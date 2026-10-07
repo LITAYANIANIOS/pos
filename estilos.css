@@ -1,0 +1,117 @@
+/* =====================================================================
+   COMÚN · ESTILOS DE PANEL Y COMPRAS · DA BOX                      v1.0
+   Lo que comparten panel.html y compras.html. Cada página suma solo lo suyo.
+   ÍNDICE: 1. Colores  2. Base  3. Estructura  4. Tablas  5. Ingreso y avisos
+   ===================================================================== */
+
+/* ---------- 1. Colores: los de la caja + uno por sucursal (paleta validada para daltonismo) ---------- */
+:root{
+  --bg:#ffffff; --side:#f7f7f5; --surface:#ffffff; --surface-2:#f7f7f5; --ink:#37352f; --muted:#787774; --line:rgba(55,53,47,.13); --sel:rgba(55,53,47,.08);
+  --accent:#f6c445; --accent-ink:#2b2200; --accent-soft:#fbf3db;
+  --ok:#448361; --ok-soft:#edf3ec; --warn:#b5821f; --warn-soft:#fbf3db; --bad:#d44c47; --bad-soft:#fdebec;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;      /* Falcon · Moreno · Nación · Somisa */
+  --seq:#2a78d6;                                               /* magnitud (un solo color) */
+  /* colores de lista, como las notas de Keep */
+  --k-amarillo:#fbf3db; --k-naranja:#fbecdd; --k-rojo:#fdebec; --k-rosa:#f9eef3; --k-violeta:#f1eef8;
+  --k-azul:#e7f0fa; --k-celeste:#e6f5f8; --k-verde:#edf3ec; --k-gris:#f1f1ef;
+  --r:8px; --r-sm:6px;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif,"Segoe UI Emoji","Apple Color Emoji";
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#191919; --side:#202020; --surface:#202020; --surface-2:#262626; --ink:#d9d9d6; --muted:#9b9b98; --line:rgba(255,255,255,.1); --sel:rgba(255,255,255,.07);
+  --accent-soft:#3a3218; --ok:#5fb08d; --ok-soft:#222b25; --warn:#d6a443; --warn-soft:#352c1c; --bad:#e3746f; --bad-soft:#3a2321;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --seq:#3987e5;
+  --k-amarillo:#3a3218; --k-naranja:#3b2a1d; --k-rojo:#3a2321; --k-rosa:#3a2330; --k-violeta:#2d2640;
+  --k-azul:#1f2c3d; --k-celeste:#1d3035; --k-verde:#222b25; --k-gris:#2c2c2c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#191919; --side:#202020; --surface:#202020; --surface-2:#262626; --ink:#d9d9d6; --muted:#9b9b98; --line:rgba(255,255,255,.1); --sel:rgba(255,255,255,.07);
+  --accent-soft:#3a3218; --ok:#5fb08d; --ok-soft:#222b25; --warn:#d6a443; --warn-soft:#352c1c; --bad:#e3746f; --bad-soft:#3a2321;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --seq:#3987e5;
+  --k-amarillo:#3a3218; --k-naranja:#3b2a1d; --k-rojo:#3a2321; --k-rosa:#3a2330; --k-violeta:#2d2640;
+  --k-azul:#1f2c3d; --k-celeste:#1d3035; --k-verde:#222b25; --k-gris:#2c2c2c; color-scheme:dark}
+
+/* ---------- 2. Base ---------- */
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14.5px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.emo{font-style:normal;line-height:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;background:var(--surface-2);color:var(--ink);padding:9px 14px;border-radius:var(--r-sm);cursor:pointer;font-weight:600}
+.btn:hover{filter:brightness(.96)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.card h3{margin:0 0 4px;font-size:15px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.note{color:var(--muted);font-size:13px;margin:4px 0 12px;max-width:75ch}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.bad{background:var(--bad-soft);color:var(--bad)}
+.num{font-variant-numeric:tabular-nums}
+.empty{color:var(--muted);padding:24px 8px;text-align:center}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:var(--r-sm);padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:6px 12px;border-radius:5px;cursor:pointer;font-weight:500;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgb(0 0 0 / .08)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
+.check{display:inline-flex;gap:8px;align-items:center;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500}
+.campo{padding:9px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);width:100%}
+.campo:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.suc-tag{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips button{border:0;background:var(--surface-2);padding:6px 12px;border-radius:99px;cursor:pointer;font-size:13px;font-weight:500}
+.chips button:hover,.chips button[aria-pressed="true"]{background:var(--sel)}
+
+/* ---------- 3. Estructura: barra lateral + contenido (igual que la caja) ---------- */
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}
+aside{background:var(--side);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh}
+.logo{display:flex;align-items:center;gap:10px;padding:0 6px;font-weight:700;font-size:15px}
+.logo small{display:block;font-size:11px;font-weight:500;color:var(--muted)}
+.logo .emo{font-size:26px}
+nav{display:flex;flex-direction:column;gap:4px}
+nav button,nav a{display:flex;align-items:center;gap:10px;border:0;background:none;color:var(--muted);padding:8px 10px;border-radius:var(--r-sm);cursor:pointer;font-weight:500;text-align:left;width:100%;text-decoration:none;font-size:14.5px}
+nav button:hover,nav a:hover{background:var(--sel);color:var(--ink)}
+nav button[aria-selected="true"]{background:var(--sel);color:var(--ink);font-weight:600}
+nav .emo{font-size:17px;width:22px;text-align:center}
+nav .pill{margin-left:auto;padding:0 6px}
+nav hr{border:0;border-top:1px solid var(--line);margin:6px 0;width:100%}
+.pie{margin-top:auto;display:grid;gap:8px;font-size:12px;color:var(--muted)}
+.pie button{border:0;background:none;color:var(--muted);cursor:pointer;text-align:left;padding:6px 10px;font-weight:500}
+.pie button:hover{color:var(--bad)}
+main{padding:24px 36px 48px;min-width:0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.top h1{margin:0;font-size:28px;font-weight:700;display:flex;align-items:center;gap:12px}
+.filtros{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:center;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.filtros .der{margin-left:auto;display:flex;gap:8px;align-items:center}
+.aviso{display:flex;gap:10px;align-items:center;background:var(--warn-soft);color:var(--warn);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:16px;font-weight:500}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  aside{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px 16px;gap:10px;border-right:0;border-bottom:1px solid var(--line)}
+  nav{flex-direction:row;flex-wrap:wrap} nav button,nav a{width:auto} nav hr{display:none}
+  .pie{margin:0 0 0 auto;display:flex;align-items:center} .logo small{display:none}
+  main{padding:16px}
+}
+
+/* ---------- 4. Tablas ---------- */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.r,th.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+td.m,.m{color:var(--muted);font-size:12px}
+.dif-ok{color:var(--ok);font-weight:600} .dif-mal{color:var(--bad);font-weight:700} .dif-nc{color:var(--muted)}
+
+/* ---------- 5. Ingreso, ventanitas, aviso flotante y tooltip ---------- */
+.overlay{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;padding:24px 16px;z-index:50;overflow:auto}
+.ov{position:fixed;inset:0;background:rgb(10 16 13 / .5);display:grid;place-items:start center;padding:12vh 16px;z-index:60;overflow:auto}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:12px;width:100%;max-width:420px;padding:24px;box-shadow:0 20px 50px rgb(0 0 0 / .12)}
+.modal h2{margin:8px 0 4px;font-size:21px}
+.modal label{display:grid;gap:6px;font-size:13px;color:var(--muted);font-weight:500;margin-top:14px}
+.modal .acciones{display:flex;gap:8px;margin-top:18px} .modal .acciones .btn{flex:1;padding:11px}
+#login .btn.primary{width:100%;margin-top:18px;padding:12px}
+.err{color:var(--bad);font-size:13px;margin-top:10px;font-weight:600}
+.link{border:0;background:none;color:var(--muted);cursor:pointer;padding:10px 0 0;font-weight:500;text-decoration:underline;text-underline-offset:3px;display:block}
+.secreto{-webkit-text-security:disc}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:10px;font-weight:600;z-index:90;max-width:calc(100% - 32px)}
+#tip{position:fixed;z-index:80;pointer-events:none;background:var(--ink);color:var(--bg);padding:7px 10px;border-radius:6px;font-size:12px;line-height:1.4;max-width:260px;box-shadow:0 6px 20px rgb(0 0 0 / .18)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}

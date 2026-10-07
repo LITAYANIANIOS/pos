@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Panel · Lita &amp; Añaños</title>
+<meta name="theme-color" content="#f6c445">
+<link rel="stylesheet" href="comun/estilos.css?v=1">
+<style>
+/* =====================================================================
+   PANEL · DA BOX                                                 v1.2
+   Para MIRAR números (solo lee). Lo compartido está en comun/.
+   Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   ===================================================================== */
+/* ---------- 1. Gráficos y tarjetas de números ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.tile span{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.tile b{display:block;font-size:26px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:2px}
+.tile small{color:var(--muted);font-size:12px}
+.barras{display:grid;gap:10px}
+.barra{display:grid;grid-template-columns:120px minmax(0,1fr) 110px;gap:10px;align-items:center;font-size:13px}
+.barra .lab{display:flex;align-items:center;gap:8px;font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.barra .pista{height:10px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.barra .pista i{display:block;height:100%;border-radius:0 4px 4px 0;background:var(--seq)}
+.barra .val{text-align:right;font-variant-numeric:tabular-nums}
+.barra .val small{color:var(--muted);margin-left:4px}
+svg.chart{width:100%;height:auto;display:block;overflow:visible}
+svg.chart text{fill:var(--muted);font-size:11px;font-family:var(--sans)}
+svg.chart .grid-l{stroke:var(--line);stroke-width:1}
+svg.chart .hit{fill:transparent;cursor:default}
+svg.chart .hit:hover + .mk, svg.chart g.col:hover .mk{opacity:.8}
+.leyenda{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin-top:10px}
+.leyenda span{display:inline-flex;align-items:center;gap:6px}
+.calor{display:grid;gap:3px;font-size:11px;color:var(--muted);overflow-x:auto}
+.calor .c{height:26px;border-radius:3px;background:var(--surface-2);position:relative}
+.calor .c i{position:absolute;inset:0;border-radius:3px;background:var(--seq)}
+.calor .h{text-align:center} .calor .d{display:flex;align-items:center;font-weight:500}
+#tip{position:fixed;z-index:80;pointer-events:none;background:var(--ink);color:var(--bg);padding:7px 10px;border-radius:6px;font-size:12px;line-height:1.4;max-width:260px;box-shadow:0 6px 20px rgb(0 0 0 / .18)}
+
+/* ---------- 2. En vivo y tablas ---------- */
+.vivo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px}
+.pc{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.pc b{display:block} .pc span{font-size:12px;color:var(--muted)}
+
+.vivo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px}
+.pc{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.pc b{display:block} .pc span{font-size:12px;color:var(--muted)}
+.grid{display:grid;gap:16px}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
+</style>
+</head>
+<body>
+<div class="app" id="app" hidden>
+<aside>
+  <div class="logo"><i class="emo">📊</i><div>Lita &amp; Añaños<small id="sRol">Panel</small></div></div>
+  <nav id="nav" role="tablist" aria-label="Secciones"></nav>
+  <div class="pie"><span id="sAct"></span><button id="bSalir">↩ Salir</button></div>
+</aside>
+<main>
+  <div class="top"><h1 id="titulo"></h1></div>
+  <div class="aviso" id="aviso" hidden></div>
+  <div class="filtros">
+    <div class="seg" id="fDias" aria-label="Período"></div>
+    <div class="seg" id="fSuc" aria-label="Sucursal"></div>
+    <div class="der"><button class="btn sm" id="bAct">↻ Actualizar</button></div>
+  </div>
+  <section id="s-vivo" hidden></section>
+  <section id="s-ventas" hidden></section>
+  <section id="s-mensual" hidden></section>
+  <section id="s-cierres" hidden></section>
+  <section id="s-productos" hidden></section>
+</main>
+</div>
+
+<script src="comun/base.js?v=1"></script>
+<script>
+(()=>{
+"use strict";
+const {$, esc, money, millones, pct, pad, ymd, fechaAR, norm, hace, leerLS, guardarLS, SUCS, SUC_COLOR, sucNom, sucTag} = LA;
+
+/* =====================================================================
+   1. CONFIGURACIÓN
+   ===================================================================== */
+const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], productos:["📦","Productos"]};
+const ROLES = {admin:"Encargado", dueno:"Dueño", compras:"Compras"};
+const CON_COMPRAS = ["admin","compras"];                    // roles que ven el link al tablero de compras
+const PERIODOS = [[7,"7 días"],[30,"30 días"],[90,"90 días"],[365,"1 año"]];
+const MEDIOS = {efectivo:"💵 Efectivo", postnet:"💳 Postnet / QR", transf:"🏦 Transferencia"};
+const DIAS_SEM = ["","Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const mesTxt = m => MESES[+m.slice(5,7)-1] + " " + m.slice(2,4);
+const PRECIO_ABIERTO = new Set(["FOTO","LIB","VAR","SUBE"]);  // categorías de la caja con precio libre
+const DIF_MINIMA = 1000;                                     // desde cuánto una diferencia de cierre se marca
+const MIN_SEÑAL = 3;                                         // la caja avisa cada minuto: más de esto = sin señal
+const REFRESCO_MIN = 5;                                      // se actualiza solo cada tantos minutos (pestaña visible)
+
+/* =====================================================================
+   2. DATOS, NAVEGACIÓN Y FILTROS
+   ===================================================================== */
+let D = null, dias = +leerLS("dias", 30) || 30, suc = "TODAS", tab = null, cargando = false;
+const cargar = () => LA.api("panel", {dias});
+async function actualizar(){
+  if(cargando) return; cargando = true; $("#bAct").textContent = "Cargando…";
+  try{ D = LA.demo ? datosDemo() : await cargar(); $("#aviso").textContent = AVISO_DEMO; $("#aviso").hidden = !LA.demo; armarNav(); render(); }
+  catch(e){ if(e === "clave"){ LA.salir(LA.ERR.clave); return; } $("#aviso").hidden = false; $("#aviso").textContent = (LA.ERR[e] || "No se pudo cargar.") + " Se muestran los últimos datos."; }
+  finally{ cargando = false; $("#bAct").textContent = "↻ Actualizar"; }
+}
+function armarNav(){
+  const secs = D.secciones.filter(s => SECCIONES[s]);
+  if(!secs.includes(tab)) tab = secs[0];
+  $("#nav").innerHTML = secs.map(s => `<button role="tab" data-s="${s}" aria-selected="${s===tab}"><i class="emo">${SECCIONES[s][0]}</i>${SECCIONES[s][1]}</button>`).join("")
+    + (CON_COMPRAS.includes(D.rol) ? `<hr><a href="compras.html"><i class="emo">🛒</i>Compras</a>` : "");
+  $("#sRol").textContent = "Panel · " + (ROLES[D.rol] || D.rol);
+}
+$("#nav").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; tab = b.dataset.s; armarNav(); render(); });
+function renderFiltros(){
+  $("#fDias").innerHTML = PERIODOS.map(([d,l]) => `<button data-d="${d}" aria-pressed="${d===dias}">${l}</button>`).join("");
+  $("#fSuc").innerHTML = ["TODAS", ...SUCS].map(s => `<button data-s="${s}" aria-pressed="${s===suc}">${s==="TODAS" ? "Todas" : `<i class="dot" style="background:${SUC_COLOR[s]}"></i>${sucNom(s)}`}</button>`).join("");
+  $("#fDias").hidden = ["vivo","mensual"].includes(tab);           // esas secciones no dependen del período
+  $("#fSuc").hidden = tab === "vivo";
+}
+$("#fDias").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; dias = +b.dataset.d; guardarLS("dias", dias); actualizar(); });
+$("#fSuc").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; suc = b.dataset.s; render(); });
+$("#bAct").onclick = actualizar;
+$("#bSalir").onclick = () => LA.salir();
+setInterval(() => { if(D && !document.hidden && !$("#app").hidden) actualizar(); }, REFRESCO_MIN*60000);
+const deSuc = s => suc === "TODAS" || s === suc;
+
+function render(){
+  if(!D) return;
+  renderFiltros();
+  Object.keys(SECCIONES).forEach(s => $("#s-"+s).hidden = s !== tab);
+  $("#titulo").innerHTML = `<i class="emo">${SECCIONES[tab][0]}</i>${SECCIONES[tab][1]}`;
+  $("#sAct").textContent = "Actualizado " + new Date(D.generado).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
+  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, productos:rProductos})[tab]();
+}
+
+/* =====================================================================
+   3. EN VIVO — cada PC avisa a la planilla cada minuto (hoja Estado)
+   ===================================================================== */
+function rVivo(){
+  const filas = D.vivo || [];
+  $("#s-vivo").innerHTML = `<p class="note">Cada caja abierta avisa cada minuto. Si una PC no avisa hace más de ${MIN_SEÑAL} min: está cerrada, sin internet o con la pestaña cerrada.</p>
+  <div class="vivo">${SUCS.map(s => {
+    const pcs = filas.filter(f => f[0] === s);
+    const items = pcs.map(f => {
+      const min = (Date.now() - f[5]) / 60000, activa = min <= MIN_SEÑAL;
+      const est = !activa ? `<span class="pill">sin señal · ${hace(f[5])}</span>` : f[4] > 0 ? `<span class="pill warn">${f[4]} sin enviar</span>` : `<span class="pill ok">al día</span>`;
+      return `<div class="pc"><div><b>${activa ? "🟢" : "⚪"} ${esc(f[2] || "—")}</b><span>${f[1] ? "PC "+esc(f[1])+" · " : ""}turno desde ${esc(f[3] || "—")}</span></div>${est}</div>`;
+    }).join("") || `<div class="pc"><span>Todavía no se abrió la caja acá.</span></div>`;
+    return `<div class="card"><h3>${sucTag(s)}</h3>${items}</div>`;
+  }).join("")}</div>`;
+}
+
+/* =====================================================================
+   4. VENTAS — por día, medio, sucursal y horario (solo ventas de DA BOX)
+   ===================================================================== */
+function rVentas(){
+  const filas = (D.dia || []).filter(f => deSuc(f[1]));
+  if(!filas.length){ $("#s-ventas").innerHTML = `<div class="card empty">🌱 No hay ventas de DA BOX en este período${suc!=="TODAS" ? " para "+sucNom(suc) : ""}.</div>`; return; }
+  const total = filas.reduce((a,f) => a + f[4], 0), n = filas.reduce((a,f) => a + f[3], 0);
+  const hoy = ymd(new Date()), fHoy = filas.filter(f => f[0] === hoy), tHoy = fHoy.reduce((a,f) => a + f[4], 0);
+  const porDia = {}; filas.forEach(f => porDia[f[0]] = (porDia[f[0]] || 0) + f[4]);
+  const diasConVenta = Object.keys(porDia).length;
+  const porMedio = {efectivo:0, postnet:0, transf:0}; filas.forEach(f => porMedio[f[2]] = (porMedio[f[2]] || 0) + f[4]);
+  const porSuc = {}; filas.forEach(f => porSuc[f[1]] = (porSuc[f[1]] || 0) + f[4]);
+
+  $("#s-ventas").innerHTML = `<div class="grid">
+    <div class="tiles">
+      <div class="tile"><span>Vendido en ${dias} días</span><b>${millones(total)}</b><small>${money(total)}</small></div>
+      <div class="tile"><span>Ventas</span><b>${n.toLocaleString("es-AR")}</b><small>${diasConVenta} días con ventas</small></div>
+      <div class="tile"><span>Ticket promedio</span><b>${money(total/n)}</b><small>por venta</small></div>
+      <div class="tile"><span>Hoy</span><b>${millones(tHoy)}</b><small>${fHoy.reduce((a,f) => a + f[3], 0)} ventas</small></div>
+    </div>
+    <div class="card"><h3>Venta por día</h3><p class="note">Total de cada día${suc!=="TODAS" ? " en "+sucNom(suc) : " (todas las sucursales)"}. Pasá el mouse por una barra para ver el detalle.</p>${chartDias(porDia)}</div>
+    <div class="g2">
+      <div class="card"><h3>Por medio de pago</h3><p class="note">Transferencias: se controlan con el banco.</p>${barras(Object.keys(MEDIOS).map(k => [MEDIOS[k], porMedio[k]]), total)}</div>
+      ${suc === "TODAS" ? `<div class="card"><h3>Por sucursal</h3><p class="note">Parte de la venta total del período.</p>${barras(SUCS.map(s => [sucTag(s), porSuc[s]||0, SUC_COLOR[s]]), total, true)}</div>` : ""}
+    </div>
+    <div class="card"><h3>¿A qué hora se vende?</h3><p class="note">Monto vendido por día de la semana y hora. Más oscuro = más venta. Sirve para armar horarios.</p>${mapaCalor()}</div>
+  </div>`;
+}
+function barras(items, total, html){
+  const max = Math.max(...items.map(i => i[1]), 1);
+  return `<div class="barras">${items.map(([l,v,c]) => `<div class="barra" data-tip="${esc(html ? "" : l)} ${money(v)} · ${pct(v,total)}"><span class="lab">${html ? l : esc(l)}</span>
+    <span class="pista"><i style="width:${v/max*100}%;${c ? "background:"+c : ""}"></i></span><span class="val">${millones(v)}<small>${pct(v,total)}</small></span></div>`).join("")}</div>`;
+}
+function chartDias(porDia){
+  const desde = new Date(); desde.setHours(0,0,0,0); desde.setDate(desde.getDate() - dias + 1);
+  const lista = []; for(let d = new Date(desde); d <= new Date(); d.setDate(d.getDate()+1)) lista.push(ymd(d));
+  const W = 900, H = 200, PL = 56, PB = 22, max = Math.max(...lista.map(f => porDia[f] || 0), 1), paso = (W - PL) / lista.length, bw = Math.max(1.5, paso - 2);
+  const y = v => H - PB - v / max * (H - PB - 8);
+  const grid = [0, .5, 1].map(p => `<line class="grid-l" x1="${PL}" x2="${W}" y1="${y(max*p)}" y2="${y(max*p)}"/><text x="${PL-8}" y="${y(max*p)+4}" text-anchor="end">${millones(max*p)}</text>`).join("");
+  const cada = Math.ceil(lista.length / 10);
+  const cols = lista.map((f,i) => {
+    const v = porDia[f] || 0, x = PL + i*paso + 1, d = new Date(f+"T12:00");
+    const t = `<b>${DIAS_SEM[d.getDay()||7]} ${fechaAR(f)}</b><br>${money(v)}`;
+    return `<g class="col" data-tip="${esc(t)}"><rect class="hit" x="${x-1}" y="0" width="${paso}" height="${H-PB}"/>${v ? `<rect class="mk" x="${x}" y="${y(v)}" width="${bw}" height="${H-PB-y(v)}" rx="${Math.min(3,bw/2)}" fill="var(--seq)"/>` : ""}
+      ${i % cada === 0 ? `<text x="${x+bw/2}" y="${H-6}" text-anchor="middle">${f.slice(8)}/${f.slice(5,7)}</text>` : ""}</g>`;
+  }).join("");
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Venta por día">${grid}${cols}</svg>`;
+}
+function mapaCalor(){
+  const filas = (D.horas || []).filter(f => deSuc(f[0]));
+  const m = {}; filas.forEach(f => { const k = f[1]+"|"+f[2]; m[k] = m[k] || [0,0]; m[k][0] += f[3]; m[k][1] += f[4]; });
+  const horas = filas.map(f => f[2]), h0 = Math.min(8, ...horas), h1 = Math.max(20, ...horas);
+  const max = Math.max(...Object.values(m).map(v => v[1]), 1), cols = h1 - h0 + 1;
+  let html = `<div class="calor" style="grid-template-columns:40px repeat(${cols}, minmax(26px,1fr))"><span></span>`;
+  for(let h = h0; h <= h1; h++) html += `<span class="h">${h}</span>`;
+  for(let d = 1; d <= 7; d++){
+    html += `<span class="d">${DIAS_SEM[d]}</span>`;
+    for(let h = h0; h <= h1; h++){
+      const v = m[d+"|"+h];
+      html += `<span class="c" data-tip="${esc(`<b>${DIAS_SEM[d]} ${h} a ${h+1} h</b><br>${v ? money(v[1]) + " · " + v[0] + " ventas" : "sin ventas"}`)}">${v ? `<i style="opacity:${(.12 + .88 * v[1]/max).toFixed(2)}"></i>` : ""}</span>`;
+    }
+  }
+  return html + `</div>`;
+}
+
+/* =====================================================================
+   5. MESES — GUARDABLE (hasta que DA BOX lo reemplace) + cierres de DA BOX
+   ===================================================================== */
+function rMensual(){
+  const filas = (D.mensual || []).filter(f => deSuc(f[1]));
+  if(!filas.length){ $("#s-mensual").innerHTML = `<div class="card empty">📅 Todavía no hay datos mensuales. Cargá la hoja <b>Historico</b> en la planilla.</div>`; return; }
+  const meses = [...new Set(filas.map(f => f[0]))].sort().slice(-13), mesActual = ymd(new Date()).slice(0,7);
+  const val = (m,s) => (filas.find(f => f[0]===m && f[1]===s) || [])[2] || 0;
+  const tot = m => filas.filter(f => f[0]===m).reduce((a,f) => a + f[2], 0);
+  const sucs = suc === "TODAS" ? SUCS : [suc];
+  const origen = m => [...new Set(filas.filter(f => f[0]===m).map(f => f[7]))].join(" + ");
+
+  // barras apiladas: una columna por mes, un tramo por sucursal (separados 2px)
+  const W = 900, H = 260, PL = 56, PB = 24, max = Math.max(...meses.map(tot), 1), paso = (W-PL)/meses.length, bw = Math.min(46, paso*.62);
+  const y = v => H - PB - v / max * (H - PB - 10);
+  const grid = [0,.25,.5,.75,1].map(p => `<line class="grid-l" x1="${PL}" x2="${W}" y1="${y(max*p)}" y2="${y(max*p)}"/><text x="${PL-8}" y="${y(max*p)+4}" text-anchor="end">${millones(max*p)}</text>`).join("");
+  const cols = meses.map((m,i) => {
+    const x = PL + i*paso + (paso-bw)/2; let base = 0, segs = "";
+    const partes = sucs.map(s => [s, val(m,s)]).filter(p => p[1] > 0);
+    partes.forEach(([s,v], j) => {
+      const y1 = y(base + v), y0 = y(base), h = Math.max(0, y0 - y1 - (j ? 2 : 0));
+      segs += `<rect x="${x}" y="${y1}" width="${bw}" height="${h}" rx="${j === partes.length-1 ? 3 : 0}" fill="${SUC_COLOR[s]}"/>`; base += v;
+    });
+    const t = `<b>${mesTxt(m)}${m===mesActual ? " (en curso)" : ""}</b><br>` + partes.map(([s,v]) => `${sucNom(s)}: ${money(v)}`).join("<br>") + (partes.length > 1 ? `<br><b>Total: ${money(base)}</b>` : "");
+    return `<g class="col" data-tip="${esc(t)}"><rect class="hit" x="${PL+i*paso}" y="0" width="${paso}" height="${H-PB}"/>${segs}
+      <text x="${x+bw/2}" y="${H-6}" text-anchor="middle"${m===mesActual ? ' font-style="italic"' : ""}>${mesTxt(m)}${m===mesActual ? "*" : ""}</text></g>`;
+  }).join("");
+  const ley = sucs.length > 1 ? `<div class="leyenda">${sucs.map(s => `<span><i class="dot" style="background:${SUC_COLOR[s]}"></i>${sucNom(s)}</span>`).join("")}<span>* mes en curso</span></div>` : `<div class="leyenda"><span>* mes en curso</span></div>`;
+
+  // tabla (también es la versión accesible del gráfico)
+  const filasT = [...meses].reverse().map((m,i,arr) => {
+    const t = sucs.reduce((a,s) => a + val(m,s), 0), prev = arr[i+1] ? sucs.reduce((a,s) => a + val(arr[i+1],s), 0) : 0;
+    const v = prev && m !== mesActual ? (t/prev - 1) * 100 : null;
+    return `<tr><td>${mesTxt(m)}${m===mesActual ? ' <span class="pill">en curso</span>' : ""}</td>${sucs.length > 1 ? sucs.map(s => `<td class="r">${money(val(m,s))}</td>`).join("") : ""}
+      <td class="r"><b>${money(t)}</b></td><td class="r ${v==null ? "dif-nc" : v >= 0 ? "dif-ok" : "dif-mal"}">${v==null ? "—" : (v>0?"+":"") + v.toFixed(1) + "%"}</td><td class="m">${esc(origen(m))}</td></tr>`;
+  }).join("");
+  $("#s-mensual").innerHTML = `<div class="grid">
+    <div class="card"><h3>Venta mensual${suc!=="TODAS" ? " · "+sucNom(suc) : " por sucursal"}</h3><p class="note">Pesos de cada mes, sin ajustar por inflación. Cada día se toma del GUARDABLE si está cargado; si no, de los cierres de DA BOX.</p>
+      <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Venta mensual">${grid}${cols}</svg>${ley}</div>
+    <div class="card"><h3>Detalle</h3><p class="note">Variación contra el mes anterior (el mes en curso no se compara).</p>
+      <div class="tw"><table><tr><th>Mes</th>${sucs.length > 1 ? sucs.map(s => `<th class="r">${sucTag(s)}</th>`).join("") : ""}<th class="r">Total</th><th class="r">vs. mes anterior</th><th>Datos</th></tr>${filasT}</table></div></div>
+  </div>`;
+}
+
+/* =====================================================================
+   6. CIERRES — diferencias de caja (DA BOX: efectivo y postnet · GUARDABLE: caja contra Don Gestión)
+   ===================================================================== */
+let soloDif = true;
+function rCierres(){
+  const todos = (D.cierres || []).filter(c => deSuc(c[1]));
+  const conDif = c => Math.abs(c[4] || 0) >= DIF_MINIMA || Math.abs(c[5] || 0) >= DIF_MINIMA;
+  const lista = soloDif ? todos.filter(conDif) : todos;
+  const porCaj = {}; todos.forEach(c => { const k = c[2] || "—"; porCaj[k] = porCaj[k] || [0,0,0]; porCaj[k][0]++; if(conDif(c)){ porCaj[k][1]++; porCaj[k][2] += (c[4]||0) + (c[5]||0); } });
+  const dif = d => d == null ? `<span class="dif-nc">—</span>` : Math.abs(d) < DIF_MINIMA ? `<span class="dif-ok">${Math.round(d) ? (d < 0 ? "−" : "+") + money(Math.abs(d)).slice(1) : "OK"}</span>` : `<span class="dif-mal">${d > 0 ? "sobra " : "falta "}${money(Math.abs(d))}</span>`;
+  const fecha = ts => { const d = new Date(ts); return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  $("#s-cierres").innerHTML = `<div class="grid">
+    <div class="tiles">
+      <div class="tile"><span>Cierres en ${dias} días</span><b>${todos.length}</b></div>
+      <div class="tile"><span>Con diferencia ≥ ${money(DIF_MINIMA)}</span><b>${todos.filter(conDif).length}</b><small>${pct(todos.filter(conDif).length, todos.length)} de los cierres</small></div>
+      <div class="tile"><span>Suma de diferencias</span>${(() => { const t = todos.filter(conDif).reduce((a,c) => a + (c[4]||0) + (c[5]||0), 0); return `<b class="${t < 0 ? "dif-mal" : ""}">${t < 0 ? "falta " : t > 0 ? "sobra " : ""}${money(Math.abs(t))}</b><small>faltantes y sobrantes sumados</small>`; })()}</div>
+    </div>
+    <div class="card"><h3>Por cajero</h3><p class="note">Cuántos cierres hizo cada uno y cuántos tuvieron diferencia.</p>
+      <div class="tw"><table><tr><th>Cajero</th><th class="r">Cierres</th><th class="r">Con diferencia</th><th class="r">Suma</th></tr>
+      ${Object.entries(porCaj).sort((a,b) => b[1][1]-a[1][1] || b[1][0]-a[1][0]).map(([k,v]) => `<tr><td>${esc(k)}</td><td class="r">${v[0]}</td><td class="r">${v[1]} <span class="m">(${pct(v[1],v[0])})</span></td><td class="r">${v[1] ? dif(v[2]) : "—"}</td></tr>`).join("")}</table></div></div>
+    <div class="card"><h3><span>Cierres</span><label class="check"><input type="checkbox" id="cSolo" ${soloDif ? "checked" : ""}> Solo con diferencia</label></h3>
+      <p class="note">DA BOX: efectivo contado contra el sistema, y cierre de lote contra el postnet. GUARDABLE: total de caja contra Don Gestión.</p>
+      ${lista.length ? `<div class="tw"><table><tr><th>Fecha</th><th>Sucursal</th><th>Cajero</th><th class="r">Vendido</th><th class="r">Dif. efectivo</th><th class="r">Dif. postnet</th><th class="r">Retiro</th><th>Obs.</th><th>Datos</th></tr>
+      ${lista.slice(0, 300).map(c => `<tr><td class="num">${fecha(c[0])}</td><td>${sucTag(c[1])}</td><td>${esc(c[2])}</td><td class="r">${money(c[3])}</td><td class="r">${dif(c[4])}</td><td class="r">${dif(c[5])}</td><td class="r">${money(c[6])}</td><td class="m">${esc(c[9])}</td><td><span class="pill">${c[10]}</span></td></tr>`).join("")}</table></div>` : `<div class="empty">🎉 Ningún cierre con diferencia en este período.</div>`}
+    </div></div>`;
+  $("#cSolo").onchange = e => { soloDif = e.target.checked; rCierres(); };
+}
+
+/* =====================================================================
+   7. PRODUCTOS — más vendidos (para compras)
+   ===================================================================== */
+let pOrden = "cant", pBusca = "", pAbiertos = false;
+function rProductos(){
+  const ag = {};
+  (D.productos || []).filter(p => deSuc(p[0])).forEach(([s,cod,nom,cat,cant,monto,ult]) => {
+    if(!pAbiertos && PRECIO_ABIERTO.has(cod)) return;
+    const k = cod + "|" + nom; ag[k] = ag[k] || {cod, nom, cat, cant:0, monto:0, ult:0, suc:{}};
+    const a = ag[k]; a.cant += cant; a.monto += monto; a.ult = Math.max(a.ult, ult); a.suc[s] = (a.suc[s]||0) + cant;
+  });
+  const t = pBusca.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+  let lista = Object.values(ag).filter(a => !t || (a.nom+" "+a.cod+" "+a.cat).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().includes(t));
+  lista.sort((a,b) => b[pOrden] - a[pOrden]);
+  const total = lista.reduce((x,a) => x + a.monto, 0);
+  $("#s-productos").innerHTML = `<div class="card">
+    <h3>Más vendidos en ${dias} días${suc!=="TODAS" ? " · "+sucNom(suc) : ""}</h3>
+    <p class="note">Solo ventas cobradas en DA BOX (sin anuladas). ${lista.length} productos · ${money(total)}.</p>
+    <div class="filtros" style="border:0;padding:0;margin-bottom:10px">
+      <input class="campo" id="pBusca" placeholder="Buscar producto, código o categoría" value="${esc(pBusca)}" style="max-width:340px">
+      <div class="seg" id="pOrden"><button data-o="cant" aria-pressed="${pOrden==="cant"}">Por unidades</button><button data-o="monto" aria-pressed="${pOrden==="monto"}">Por plata</button></div>
+      <label class="check"><input type="checkbox" id="pAb" ${pAbiertos ? "checked" : ""}> Incluir precio abierto (fotocopias, librería, varios, SUBE)</label>
+    </div>
+    ${lista.length ? `<div class="tw"><table><tr><th>#</th><th>Producto</th><th>Categoría</th><th class="r">Unidades</th><th class="r">Vendido</th>${suc==="TODAS" ? `<th>Unidades por sucursal</th>` : ""}<th class="r">Última venta</th></tr>
+    ${lista.slice(0,150).map((a,i) => `<tr><td class="m">${i+1}</td><td>${esc(a.nom)}<br><span class="m">${esc(a.cod)}</span></td><td class="m">${esc(a.cat)}</td><td class="r"><b>${a.cant.toLocaleString("es-AR")}</b></td><td class="r">${money(a.monto)}</td>
+      ${suc==="TODAS" ? `<td class="m">${SUCS.filter(s => a.suc[s]).map(s => `<span class="suc-tag"><i class="dot" style="background:${SUC_COLOR[s]}"></i>${a.suc[s]}</span>`).join(" &nbsp;")}</td>` : ""}<td class="r m">${a.ult ? hace(a.ult) : ""}</td></tr>`).join("")}</table></div>`
+    : `<div class="empty">🔍 Sin productos para mostrar.</div>`}</div>`;
+  const inp = $("#pBusca"); inp.oninput = () => { pBusca = inp.value; const p = inp.selectionStart; rProductos(); const n = $("#pBusca"); n.focus(); n.setSelectionRange(p,p); };
+  $("#pOrden").onclick = e => { const b = e.target.closest("button"); if(b){ pOrden = b.dataset.o; rProductos(); } };
+  $("#pAb").onchange = e => { pAbiertos = e.target.checked; rProductos(); };
+}
+
+/* =====================================================================
+   8. DATOS DE PRUEBA — inventados, para probar el panel sin la planilla
+   ===================================================================== */
+function datosDemo(){
+  let semilla = 42; const rnd = () => (semilla = (semilla * 16807) % 2147483647) / 2147483647;
+  const peso = {FALCON:1, MORENO:.5, NACION:.3, SOMISA:.35}, ahora = Date.now(), dia = [], horas = {}, prod = [];
+  const PRODS = [["779101","Birome azul","ESCRITURA",900],["779202","Cuaderno ABC 50h","CUADERNOS",6900],["779303","Resma A4 75g","RESMAS",9800],["779404","Plasticola 40g","ADHESIVOS",1300],
+    ["779505","Lápiz HB","ESCRITURA",750],["779606","Carpeta N°3","CARPETAS",4500],["FOTO","Fotocopias","FOTOCOPIAS",0],["779707","Cinta 12mm","CINTAS",850],["779808","Goma de borrar","ESCRITURA",600]];
+  for(let d = 0; d < dias; d++){
+    const f = ymd(new Date(ahora - d*864e5)), dow = new Date(ahora - d*864e5).getDay(); if(dow === 0) continue;
+    SUCS.forEach(s => ["efectivo","postnet","transf"].forEach((m,j) => {
+      const n = Math.round((20 + rnd()*25) * peso[s] * [1,.6,.5][j]); if(!n) return;
+      dia.push([f, s, m, n, n * (2500 + rnd()*4000)]);
+    }));
+  }
+  SUCS.forEach(s => { for(let dw = 1; dw <= 6; dw++) for(let h = 8; h <= 20; h++){ if(dw === 6 && h > 13) continue;
+    const pico = (h >= 10 && h <= 12) || (h >= 17 && h <= 19) ? 2 : 1, n = Math.round(rnd()*6*pico*peso[s]*dias/30) + 1; horas[s+dw+h] = [s, dw, h, n, n*4200]; } });
+  SUCS.forEach(s => PRODS.forEach(p => prod.push([s, p[0], p[1], p[2], Math.round(rnd()*120*peso[s]*dias/30)+1, 0, ahora - rnd()*864e5*5]))); prod.forEach(p => p[5] = p[4] * (PRODS.find(x => x[0]===p[1])[3] || 1500));
+  const mensual = []; for(let i = 11; i >= 0; i--){ const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); const m = ymd(d).slice(0,7);
+    SUCS.forEach(s => { const t = (8e6 + rnd()*6e6) * peso[s] * (i === 0 ? .25 : 1); mensual.push([m, s, t, t*.45, t*.3, t*.25, 0, i < 1 ? "DA BOX" : "GUARDABLE"]); }); }
+  const cajeros = ["Ana","Celi","Delfi","Joa","Luka","Manu C","Manu R","Mica","Paula"], cierres = [];
+  for(let d = 0; d < dias; d++) SUCS.forEach((s,i) => { const r = rnd(), dif = r < .15 ? -Math.round(rnd()*8000) : r < .22 ? Math.round(rnd()*3000) : 0;
+    cierres.push([ahora - d*864e5 - i*3e5, s, cajeros[Math.floor(rnd()*cajeros.length)], Math.round(2e5 + rnd()*5e5), dif, rnd() < .1 ? -1500 : 0, Math.round(1e5 + rnd()*2e5), 0, 1, dif ? "error de vuelto" : "", "DA BOX"]); });
+  return {rol:"admin", dias, generado:ahora, secciones:["vivo","ventas","mensual","cierres","productos"],
+    vivo:[["FALCON","1","Celi","08:58",0,ahora-4e4],["FALCON","2","Joa","09:05",2,ahora-9e4],["MORENO","","Manu R","08:30",0,ahora-3e4],["NACION","","Delfi","09:00",0,ahora-36e5],["SOMISA","","Luka","13:30",0,ahora-2e4]],
+    dia, horas:Object.values(horas), productos:prod, mensual, cierres};
+
+}
+
+/* =====================================================================
+   9. ARRANQUE
+   ===================================================================== */
+const AVISO_DEMO = "🧪 Datos de prueba inventados: no son ventas reales.";
+$("#aviso").textContent = AVISO_DEMO;
+LA.ingreso({app:"Panel de cajas", emoji:"📊", cargar, demo:datosDemo,
+  alEntrar: d => { D = d; $("#aviso").hidden = !LA.demo; armarNav(); render(); }});
+})();
+</script>
+</body>
+</html>

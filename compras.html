@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Compras · Lita &amp; Añaños</title>
+<meta name="theme-color" content="#f6c445">
+<link rel="stylesheet" href="comun/estilos.css?v=1">
+<style>
+/* =====================================================================
+   COMPRAS · DA BOX                                                v1.0
+   Tablero estilo Keep / Trello para TRABAJAR los pedidos de mercadería.
+   📥 Entrada = lo que avisan las cajas · las demás listas las arma compras (proveedor o tema).
+   Tildar = llegó (lo hace quien recibe la mercadería). Lo compartido está en comun/.
+   ÍNDICE DE ESTILOS: 1. Barra de herramientas  2. Tablero y listas  3. Tarjetas
+   ===================================================================== */
+
+/* ---------- 1. Barra de herramientas ---------- */
+.herr{display:flex;gap:10px 12px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.herr .campo{max-width:260px}
+.herr .der{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- 2. Tablero y listas ---------- */
+main{padding:20px 24px 24px}
+.tablero{display:flex;gap:14px;align-items:flex-start;overflow-x:auto;padding-bottom:14px;min-height:60vh}
+.lista{flex:0 0 290px;background:var(--k-gris);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 170px)}
+.lista[data-color="amarillo"]{background:var(--k-amarillo)} .lista[data-color="naranja"]{background:var(--k-naranja)} .lista[data-color="rojo"]{background:var(--k-rojo)}
+.lista[data-color="rosa"]{background:var(--k-rosa)} .lista[data-color="violeta"]{background:var(--k-violeta)} .lista[data-color="azul"]{background:var(--k-azul)}
+.lista[data-color="celeste"]{background:var(--k-celeste)} .lista[data-color="verde"]{background:var(--k-verde)}
+.lista.entrada{background:var(--surface);border:2px dashed var(--line)}
+.lista.sobre{outline:2px solid var(--accent);outline-offset:2px}
+.lista-h{display:flex;align-items:center;gap:8px;padding:2px 4px}
+.lista-h b{font-size:15px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lista-h .n{font-size:12px;color:var(--muted);font-weight:600}
+.ico{border:0;background:none;cursor:pointer;border-radius:6px;padding:3px 7px;color:var(--muted);font-size:15px;line-height:1}
+.ico:hover{background:var(--sel);color:var(--ink)}
+.tarjetas{display:flex;flex-direction:column;gap:6px;overflow-y:auto;min-height:24px}
+.agregar textarea{width:100%;border:0;background:transparent;resize:none;padding:8px 6px;border-radius:8px;font-size:14px;color:var(--ink);min-height:36px}
+.agregar textarea:focus{outline:none;background:var(--surface);box-shadow:0 0 0 1px var(--line)}
+.agregar textarea::placeholder{color:var(--muted)}
+.hechas-t{border:0;background:none;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;text-align:left;padding:4px 6px}
+.nueva{flex:0 0 220px;border:2px dashed var(--line);border-radius:12px;background:none;cursor:pointer;color:var(--muted);font-weight:600;padding:16px}
+.nueva:hover{color:var(--ink);border-color:var(--muted)}
+
+/* ---------- 3. Tarjetas ---------- */
+.t{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:start;cursor:grab;box-shadow:0 1px 2px rgb(0 0 0 / .04)}
+.t:hover{box-shadow:0 2px 8px rgb(0 0 0 / .1)}
+.t.arrastrando{opacity:.4}
+.t input[type=checkbox]{width:17px;height:17px;margin:2px 0 0;accent-color:#448361;cursor:pointer}
+.t .nom{font-weight:600;font-size:14px;line-height:1.3;word-break:break-word}
+.t .meta{grid-column:2 / 4;display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12px;color:var(--muted);align-items:center}
+.t .nota{grid-column:2 / 4;font-size:12.5px;color:var(--ink);opacity:.8;font-style:italic}
+.t .urg{border:0;background:none;cursor:pointer;padding:0 2px;font-size:14px;filter:grayscale(1);opacity:.3}
+.t .urg.on{filter:none;opacity:1}
+.t:hover .urg{opacity:.7} .t:hover .urg.on{opacity:1}
+.t.hecha .nom{text-decoration:line-through;color:var(--muted);font-weight:500}
+.t.hecha{background:transparent;box-shadow:none;cursor:default}
+.x2{background:var(--accent-soft);color:var(--ink);border-radius:4px;padding:0 5px;font-weight:700}
+.colores{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.colores button{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);cursor:pointer}
+.colores button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)}
+.papelera li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.papelera ul{list-style:none;margin:10px 0 0;padding:0;max-height:50vh;overflow:auto}
+.modal select{padding:9px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);width:100%}
+.peligro{color:var(--bad)!important}
+</style>
+</head>
+<body>
+<div class="app" id="app" hidden>
+<aside>
+  <div class="logo"><i class="emo">🛒</i><div>Lita &amp; Añaños<small id="sRol">Compras</small></div></div>
+  <nav aria-label="Secciones">
+    <button aria-selected="true"><i class="emo">🗂️</i>Tablero</button>
+    <hr><a href="panel.html"><i class="emo">📊</i>Panel</a>
+  </nav>
+  <div class="pie"><span id="sAct"></span><button id="bSalir">↩ Salir</button></div>
+</aside>
+<main>
+  <div class="aviso" id="aviso" hidden></div>
+  <div class="herr">
+    <input class="campo" id="fBusca" placeholder="🔎 Buscar en el tablero" autocomplete="off">
+    <div class="seg" id="fSuc" aria-label="Sucursal"></div>
+    <label class="check"><input type="checkbox" id="fUrg"> ⚡ Solo urgentes</label>
+    <div class="der"><button class="btn sm" id="bPapelera">🗑 Descartadas</button><button class="btn sm" id="bAct">↻</button></div>
+  </div>
+  <div class="tablero" id="tablero"></div>
+</main>
+</div>
+
+<!-- Ventanita: tarjeta -->
+<div class="ov" id="mTar" hidden>
+  <form class="modal" id="fTar" autocomplete="off">
+    <h2 id="tTit"></h2><div class="m" id="tInfo"></div>
+    <label>Nota <input class="campo" id="tNota" maxlength="200" placeholder="Ej: 10 cajas · llega el jueves"></label>
+    <label>Lista <select id="tLista"></select></label>
+    <label class="check" style="display:flex;margin-top:12px"><input type="checkbox" id="tUrg"> ⚡ Urgente</label>
+    <div class="acciones"><button class="btn" type="button" id="tDesc">🗑 Descartar</button><button class="btn primary" type="submit">Guardar</button></div>
+  </form>
+</div>
+<!-- Ventanita: descartar -->
+<div class="ov" id="mDesc" hidden>
+  <form class="modal" id="fDesc" autocomplete="off">
+    <h2>🗑 Descartar</h2><p class="note" id="dQue"></p>
+    <div class="chips" id="dMotivos"></div>
+    <label>Motivo <span class="m">(opcional)</span><input class="campo" id="dMot" maxlength="200"></label>
+    <div class="acciones"><button class="btn" type="button" data-cerrar>Cancelar</button><button class="btn primary" type="submit">Descartar</button></div>
+  </form>
+</div>
+<!-- Ventanita: lista nueva o editar lista -->
+<div class="ov" id="mLis" hidden>
+  <form class="modal" id="fLis" autocomplete="off">
+    <h2 id="lTit"></h2>
+    <label>Nombre <input class="campo" id="lNom" maxlength="40" placeholder="Ej: Colours · Preventa agendas"></label>
+    <div class="colores" id="lCol"></div>
+    <div class="chips" id="lMover"><button type="button" data-mv="-1">← Mover a la izquierda</button><button type="button" data-mv="1">Mover a la derecha →</button></div>
+    <button class="link peligro" type="button" id="lBorrar">Borrar lista (tiene que estar vacía)</button>
+    <div class="err" id="lErr2" hidden></div>
+    <div class="acciones"><button class="btn" type="button" data-cerrar>Cancelar</button><button class="btn primary" type="submit">Guardar</button></div>
+  </form>
+</div>
+<!-- Ventanita: descartadas -->
+<div class="ov" id="mPap" hidden>
+  <div class="modal papelera" style="max-width:520px"><h2>🗑 Descartadas</h2><p class="note">Últimos 14 días. Si te equivocaste, restaurala.</p><ul id="pLista"></ul>
+    <div class="acciones"><button class="btn" type="button" data-cerrar>Cerrar</button></div></div>
+</div>
+
+<script src="comun/base.js?v=1"></script>
+<script>
+(()=>{
+"use strict";
+const {$, esc, pad, ymd, fechaAR, norm, hace, leerLS, guardarLS, toast, SUCS, SUC_COLOR, sucNom, sucTag} = LA;
+
+/* =====================================================================
+   1. CONFIGURACIÓN
+   ===================================================================== */
+const COLORES = ["", "amarillo", "naranja", "rojo", "rosa", "violeta", "azul", "celeste", "verde", "gris"];
+const MOTIVOS = ["Fuera de temporada", "Ya hay stock", "No se trabaja más", "Aviso repetido"];
+const ROLES = {admin:"Encargado", compras:"Compras"};
+const REFRESCO_MIN = 2;                 // se actualiza solo (si no estás escribiendo ni arrastrando)
+const ENTRADA = "";                     // la lista vacía es la Entrada
+
+/* =====================================================================
+   2. DATOS
+   Tarjeta (fila de Faltantes): 0 id · 1 fecha · 2 hora · 3 sucursal · 4 quién · 5 código · 6 producto · 7 obs
+   8 resuelto · 9 estado · 10 lista · 11 nota · 12 urgente · 13 actualizado (ms) · 14 por
+   ===================================================================== */
+let D = null, suc = "TODAS", busca = "", soloUrg = false, editando = null, arrastre = null, ocupado = false;
+const abierta = f => !String(f[8] || "").trim();
+const descartada = f => f[9] === "Descartado";
+const listaDe = f => f[10] || ENTRADA;
+const cargar = () => LA.api("compras");
+
+/* agrupa filas iguales (mismo producto en la misma lista): "Cuaderno ABC ×3" en vez de 3 tarjetas */
+function grupos(filas){
+  const g = {};
+  filas.forEach(f => { const k = listaDe(f) + "|" + norm(f[5] + "|" + f[6]);
+    if(!g[k]) g[k] = {k, nom:f[6], cod:f[5], lista:listaDe(f), filas:[], suc:new Set(), obs:[], urg:false, nota:"", ult:"", act:0, por:""};
+    const a = g[k]; a.filas.push(f); if(f[3]) a.suc.add(f[3]); if(f[7]) a.obs.push(f[7]); if(f[12]) a.urg = true;
+    if(f[11]) a.nota = f[11]; if(f[1]+f[2] > a.ult) a.ult = f[1]+" "+f[2]; if(f[13] > a.act){ a.act = f[13]; a.por = f[14]; } });
+  return Object.values(g);
+}
+const visible = g => (suc === "TODAS" || g.suc.has(suc)) && (!soloUrg || g.urg) && (!busca || norm(g.nom+" "+g.cod+" "+g.nota+" "+g.obs.join(" ")).includes(busca));
+const ids = g => g.filas.map(f => f[0]);
+
+/* =====================================================================
+   3. TABLERO
+   ===================================================================== */
+function render(){
+  if(!D) return;
+  $("#fSuc").innerHTML = ["TODAS", ...SUCS].map(s => `<button data-s="${s}" aria-pressed="${s===suc}">${s==="TODAS" ? "Todas" : `<i class="dot" style="background:${SUC_COLOR[s]}"></i>${sucNom(s)}`}</button>`).join("");
+  $("#sRol").textContent = "Compras · " + (ROLES[D.rol] || D.rol);
+  $("#sAct").textContent = "Actualizado " + new Date(D.generado).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
+  const nDesc = grupos(D.tarjetas.filter(descartada)).length;
+  $("#bPapelera").textContent = "🗑 Descartadas" + (nDesc ? " · " + nDesc : "");
+  const abiertas = grupos(D.tarjetas.filter(abierta)), hechas = grupos(D.tarjetas.filter(f => !abierta(f) && !descartada(f)));
+  const listas = [[ENTRADA, ""], ...D.listas];
+  $("#tablero").innerHTML = listas.map(([nombre, color]) => {
+    const ab = abiertas.filter(g => g.lista === nombre).filter(visible).sort((a,b) => b.urg - a.urg || b.filas.length - a.filas.length || (b.ult > a.ult ? 1 : -1));
+    const he = hechas.filter(g => g.lista === nombre).filter(visible).sort((a,b) => b.act - a.act);
+    const verHechas = leerLS("hechas." + nombre, "0") === "1", ent = nombre === ENTRADA;
+    return `<section class="lista${ent ? " entrada" : ""}" data-lista="${esc(nombre)}" data-color="${esc(color)}">
+      <div class="lista-h">${ent ? `<b>📥 Entrada</b>` : `<b title="${esc(nombre)}">${esc(nombre)}</b>`}<span class="n">${ab.length}</span>
+        ${ent ? `<span class="m" title="Lo que avisan las cajas">avisos</span>` : `<button class="ico" data-editar-lista="${esc(nombre)}" title="Editar lista">⋯</button>`}</div>
+      <div class="tarjetas">${ab.map(g => tarjeta(g)).join("") || (ent ? `<div class="m" style="padding:6px">🎉 Nada nuevo. Lo que avisen las cajas aparece acá.</div>` : "")}</div>
+      <div class="agregar"><textarea rows="1" data-agregar="${esc(nombre)}" placeholder="＋ Agregar" title="Enter agrega · pegá una lista y se crea una tarjeta por renglón"></textarea></div>
+      ${he.length ? `<button class="hechas-t" data-hechas="${esc(nombre)}">${verHechas ? "▾" : "▸"} ✓ ${he.length} llegaron</button>${verHechas ? `<div class="tarjetas">${he.map(g => tarjeta(g, true)).join("")}</div>` : ""}` : ""}
+    </section>`;
+  }).join("") + `<button class="nueva" id="bNueva">＋ Nueva lista<br><span class="m">un proveedor o un tema</span></button>`;
+}
+function tarjeta(g, hecha){
+  const n = g.filas.length, sucs = [...g.suc].map(sucTag).join(" ");
+  const meta = [n > 1 ? `<span class="x2">×${n}</span>` : "", sucs, hecha ? `✓ ${hace(g.act)}${g.por ? " · " + esc(g.por) : ""}` : g.ult.trim() ? esc(fechaAR(g.ult.slice(0,10)).slice(0,5)) : ""].filter(Boolean).join(" ");
+  const obs = g.obs.length ? g.obs.slice(-2).map(esc).join(" · ") : "";
+  return `<div class="t${hecha ? " hecha" : ""}" ${hecha ? "" : 'draggable="true"'} data-k="${esc(g.k)}" ${hecha ? "" : 'title="Clic para editar · arrastrá para mover"'}>
+    <input type="checkbox" ${hecha ? "checked" : ""} data-tilde="${esc(g.k)}" title="${hecha ? "Destildar (no llegó)" : "Llegó"}" aria-label="Llegó">
+    <span class="nom">${esc(g.nom)}</span>
+    ${hecha ? "<span></span>" : `<button class="urg${g.urg ? " on" : ""}" data-urg="${esc(g.k)}" title="${g.urg ? "Quitar urgente" : "Urgente"}">⚡</button>`}
+    ${meta ? `<div class="meta">${meta}</div>` : ""}${g.nota || obs ? `<div class="nota">${esc(g.nota)}${g.nota && obs ? " · " : ""}${obs}</div>` : ""}</div>`;
+}
+const buscarGrupo = k => grupos(D.tarjetas.filter(f => !descartada(f))).find(g => g.k === k);
+
+/* =====================================================================
+   4. ACCIONES SOBRE TARJETAS (se ven al instante y se guardan en la planilla)
+   ===================================================================== */
+async function cambiar(lista, c, msg){
+  if(!lista.length) return;
+  const set = new Set(lista), dd = pad(new Date().getDate()) + "/" + pad(new Date().getMonth()+1);
+  D.tarjetas.forEach(f => { if(!set.has(f[0])) return;
+    if(c.estado != null){ f[9] = c.estado; f[8] = c.estado === "Llegó" || c.estado === "Descartado" ? `${c.estado} ${dd}` : ""; }
+    if(c.lista != null) f[10] = c.lista; if(c.nota != null) f[11] = c.nota; if(c.urgente != null) f[12] = c.urgente === "1";
+    f[13] = Date.now(); f[14] = ROLES[D.rol]; });
+  render(); if(msg) toast(msg);
+  if(LA.demo) return;
+  try{ await LA.api("compras-mover", {ids:lista.join(","), ...c, _sinReintento:1}); }
+  catch(e){ toast("⚠️ No se pudo guardar. Recargando…", 4000); actualizar(); }
+}
+const mover = (g, lista) => cambiar(ids(g), {lista, estado: lista === ENTRADA ? "" : "Pedido"}, lista === ENTRADA ? "📥 Vuelve a Entrada" : `→ ${lista}`);
+const tildar = (g, si) => cambiar(ids(g), {estado: si ? "Llegó" : (g.lista === ENTRADA ? "" : "Pedido")}, si ? `✅ Llegó: ${g.nom}` : "Destildada");
+
+async function crear(texto, lista){
+  const lineas = texto.split("\n").map(t => t.replace(/^[\s\-–•☐✓]+/, "").trim()).filter(Boolean);
+  if(!lineas.length) return;
+  const ahora = new Date(), base = "T-" + ahora.getTime().toString(36);
+  lineas.forEach((t,i) => D.tarjetas.push([base+i, ymd(ahora), pad(ahora.getHours())+":"+pad(ahora.getMinutes()), "", ROLES[D.rol], "", t.slice(0,120), "", "", lista ? "Pedido" : "", lista, "", false, ahora.getTime(), ROLES[D.rol]]));
+  render(); toast(lineas.length > 1 ? `＋ ${lineas.length} tarjetas` : "＋ Agregada");
+  const ta = document.querySelector(`[data-agregar="${CSS.escape(lista)}"]`); if(ta) ta.focus();
+  if(LA.demo) return;
+  try{ await LA.api("compras-crear", {lista, texto:lineas.join("\n"), _sinReintento:1}); actualizar(); }
+  catch(e){ toast("⚠️ No se pudo guardar. Recargando…", 4000); actualizar(); }
+}
+
+/* clics en el tablero */
+$("#tablero").addEventListener("click", e => {
+  const d = (e.target.closest("[data-urg],[data-hechas],[data-editar-lista],#bNueva,[data-tilde]") || {}).dataset;
+  if(e.target.closest("#bNueva")) return abrirLista(null);
+  if(d && d.urg){ const g = buscarGrupo(d.urg); return cambiar(ids(g), {urgente: g.urg ? "0" : "1"}, g.urg ? "Ya no es urgente" : "⚡ Urgente"); }
+  if(d && d.hechas != null){ guardarLS("hechas." + d.hechas, leerLS("hechas." + d.hechas, "0") === "1" ? "0" : "1"); return render(); }
+  if(d && d.editarLista != null) return abrirLista(d.editarLista);
+  if(d && d.tilde) return;                                            // lo maneja "change"
+  const t = e.target.closest(".t:not(.hecha)"); if(t) abrirTarjeta(t.dataset.k);
+});
+$("#tablero").addEventListener("change", e => { const k = e.target.dataset.tilde; if(k == null) return; tildar(buscarGrupo(k), e.target.checked); });
+/* agregar: Enter agrega · Shift+Enter baja de renglón · pegar varias líneas crea varias tarjetas */
+$("#tablero").addEventListener("keydown", e => {
+  const ta = e.target.closest("[data-agregar]"); if(!ta) return;
+  if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); const v = ta.value; ta.value = ""; crear(v, ta.dataset.agregar); }
+  if(e.key === "Escape"){ ta.value = ""; ta.blur(); }
+});
+$("#tablero").addEventListener("input", e => { const ta = e.target.closest("[data-agregar]"); if(ta){ ta.style.height = "auto"; ta.style.height = ta.scrollHeight + "px"; } });
+$("#tablero").addEventListener("paste", e => {
+  const ta = e.target.closest("[data-agregar]"); if(!ta) return;
+  const txt = (e.clipboardData || window.clipboardData).getData("text");
+  if(txt.includes("\n")){ e.preventDefault(); crear(ta.value + txt, ta.dataset.agregar); ta.value = ""; }
+});
+/* arrastrar y soltar entre listas */
+$("#tablero").addEventListener("dragstart", e => { const t = e.target.closest(".t"); if(!t) return; arrastre = t.dataset.k; t.classList.add("arrastrando"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", arrastre); });
+$("#tablero").addEventListener("dragend", () => { arrastre = null; document.querySelectorAll(".arrastrando,.sobre").forEach(x => x.classList.remove("arrastrando","sobre")); });
+$("#tablero").addEventListener("dragover", e => { const l = e.target.closest(".lista"); if(!l || !arrastre) return; e.preventDefault(); document.querySelectorAll(".sobre").forEach(x => x !== l && x.classList.remove("sobre")); l.classList.add("sobre"); });
+$("#tablero").addEventListener("drop", e => {
+  const l = e.target.closest(".lista"); if(!l || !arrastre) return; e.preventDefault();
+  const g = buscarGrupo(arrastre); arrastre = null; if(g && g.lista !== l.dataset.lista) mover(g, l.dataset.lista); else render();
+});
+
+/* =====================================================================
+   5. VENTANITAS: tarjeta, descartar, lista, descartadas
+   ===================================================================== */
+const abrir = id => { $(id).hidden = false; ocupado = true; };
+const cerrarTodo = () => { document.querySelectorAll(".ov").forEach(o => o.hidden = true); ocupado = false; editando = null; };
+document.addEventListener("click", e => { if(e.target.matches("[data-cerrar]") || e.target.classList.contains("ov")) cerrarTodo(); });
+document.addEventListener("keydown", e => { if(e.key === "Escape" && ocupado) cerrarTodo(); });
+
+function abrirTarjeta(k){
+  const g = buscarGrupo(k); if(!g) return; editando = g;
+  $("#tTit").textContent = g.nom;
+  $("#tInfo").innerHTML = [g.cod && esc(g.cod), g.filas.length > 1 && `${g.filas.length} avisos`, [...g.suc].map(sucTag).join(" "),
+    g.filas[0][4] && `avisó ${esc(g.filas.map(f => f[4]).filter(Boolean).join(", "))}`, g.obs.length && `“${g.obs.map(esc).join(" · ")}”`].filter(Boolean).join(" · ");
+  $("#tNota").value = g.nota; $("#tUrg").checked = g.urg;
+  $("#tLista").innerHTML = [[ENTRADA,"📥 Entrada"], ...D.listas.map(l => [l[0], l[0]])].map(([v,l]) => `<option value="${esc(v)}"${v === g.lista ? " selected" : ""}>${esc(l)}</option>`).join("");
+  abrir("#mTar"); setTimeout(() => $("#tNota").focus(), 30);
+}
+$("#fTar").onsubmit = e => {
+  e.preventDefault(); const g = editando; if(!g) return; const c = {};
+  if($("#tNota").value.trim() !== g.nota) c.nota = $("#tNota").value.trim();
+  if($("#tUrg").checked !== g.urg) c.urgente = $("#tUrg").checked ? "1" : "0";
+  if($("#tLista").value !== g.lista){ c.lista = $("#tLista").value; c.estado = c.lista === ENTRADA ? "" : "Pedido"; }
+  cerrarTodo(); if(Object.keys(c).length) cambiar(ids(g), c, c.lista != null ? (c.lista ? `→ ${c.lista}` : "📥 Vuelve a Entrada") : "Guardado");
+};
+$("#tDesc").onclick = () => { const g = editando; cerrarTodo(); editando = g;
+  $("#dQue").textContent = g.nom; $("#dMot").value = ""; $("#dMotivos").innerHTML = MOTIVOS.map(m => `<button type="button" data-m="${esc(m)}">${esc(m)}</button>`).join("");
+  abrir("#mDesc"); setTimeout(() => $("#dMot").focus(), 30); };
+$("#dMotivos").onclick = e => { const b = e.target.closest("button"); if(b){ $("#dMot").value = b.dataset.m; $("#dMot").focus(); } };
+$("#fDesc").onsubmit = e => { e.preventDefault(); const g = editando, mot = $("#dMot").value.trim(); cerrarTodo();
+  cambiar(ids(g), {estado:"Descartado", ...(mot ? {nota:mot} : {})}, "🗑 Descartada"); };
+
+/* listas: nueva / renombrar / color / mover / borrar */
+let lisEdit = null, lisColor = "";
+function abrirLista(nombre){
+  lisEdit = nombre; const l = nombre != null ? D.listas.find(x => x[0] === nombre) : null; lisColor = l ? l[1] : "";
+  $("#lTit").textContent = l ? "Editar lista" : "＋ Nueva lista"; $("#lNom").value = l ? l[0] : "";
+  $("#lMover").hidden = $("#lBorrar").hidden = !l; $("#lErr2").hidden = true; pintarColores();
+  abrir("#mLis"); setTimeout(() => $("#lNom").focus(), 30);
+}
+function pintarColores(){ $("#lCol").innerHTML = COLORES.map(c => `<button type="button" data-c="${c}" aria-pressed="${c===lisColor}" title="${c || "sin color"}" style="background:${c ? `var(--k-${c})` : "var(--surface)"}"></button>`).join(""); }
+$("#lCol").onclick = e => { const b = e.target.closest("button"); if(b){ lisColor = b.dataset.c; pintarColores(); } };
+async function opLista(params, msg){
+  const antes = JSON.stringify(D.listas);
+  try{ if(!LA.demo){ const r = await LA.api("compras-listas", {...params, _sinReintento:1}); D.listas = r.listas; } toast(msg); render(); return true; }
+  catch(e){ D.listas = JSON.parse(antes); $("#lErr2").textContent = e && e.msg === "ya existe" ? "Ya hay una lista con ese nombre." : e && e.msg === "la lista tiene tarjetas" ? "Primero mové o tildá sus tarjetas." : "No se pudo guardar."; $("#lErr2").hidden = false; return false; }
+}
+$("#fLis").onsubmit = async e => {
+  e.preventDefault(); const nom = $("#lNom").value.trim(); if(!nom) return;
+  if(lisEdit == null){
+    if(LA.demo) D.listas.push([nom, lisColor]);
+    if(await opLista({op:"crear", nombre:nom, color:lisColor}, `＋ Lista ${nom}`)) cerrarTodo();
+    return;
+  }
+  const l = D.listas.find(x => x[0] === lisEdit); let ok = true;
+  if(nom !== lisEdit){
+    if(LA.demo){ l[0] = nom; D.tarjetas.forEach(f => { if(f[10] === lisEdit) f[10] = nom; }); }
+    ok = await opLista({op:"renombrar", nombre:lisEdit, nuevo:nom}, "Lista renombrada");
+    if(ok && !LA.demo) D.tarjetas.forEach(f => { if(f[10] === lisEdit) f[10] = nom; });
+  }
+  if(ok && lisColor !== l[1]){ if(LA.demo) l[1] = lisColor; ok = await opLista({op:"color", nombre:nom, color:lisColor}, "Color cambiado"); }
+  if(ok){ cerrarTodo(); render(); }
+};
+$("#lMover").onclick = async e => {
+  const b = e.target.closest("[data-mv]"); if(!b || lisEdit == null) return;
+  const i = D.listas.findIndex(x => x[0] === lisEdit), j = i + +b.dataset.mv; if(j < 0 || j >= D.listas.length) return;
+  [D.listas[i], D.listas[j]] = [D.listas[j], D.listas[i]]; render();
+  if(!LA.demo) opLista({op:"orden", orden:D.listas.map(x => x[0]).join("|")}, "Orden guardado");
+};
+$("#lBorrar").onclick = async () => {
+  if(lisEdit == null) return;
+  if(D.tarjetas.some(f => f[10] === lisEdit && abierta(f))){ $("#lErr2").textContent = "Primero mové o tildá sus tarjetas."; $("#lErr2").hidden = false; return; }
+  if(LA.demo) D.listas = D.listas.filter(x => x[0] !== lisEdit);
+  if(await opLista({op:"borrar", nombre:lisEdit}, "Lista borrada")) cerrarTodo();
+};
+
+/* descartadas: restaurar */
+$("#bPapelera").onclick = () => {
+  const gs = grupos(D.tarjetas.filter(descartada)).sort((a,b) => b.act - a.act);
+  $("#pLista").innerHTML = gs.map(g => `<li><div><b>${esc(g.nom)}</b><br><span class="m">${esc(g.nota || "sin motivo")} · ${hace(g.act)}${g.lista ? " · " + esc(g.lista) : ""}</span></div><button class="btn sm" data-rest="${esc(g.k)}">↩ Restaurar</button></li>`).join("") || `<li class="m">No hay descartadas.</li>`;
+  abrir("#mPap");
+};
+$("#pLista").onclick = e => { const b = e.target.closest("[data-rest]"); if(!b) return;
+  const g = grupos(D.tarjetas.filter(descartada)).find(x => x.k === b.dataset.rest); cerrarTodo();
+  cambiar(ids(g), {estado: g.lista === ENTRADA ? "" : "Pedido"}, "↩ Restaurada"); };
+
+/* =====================================================================
+   6. FILTROS Y ACTUALIZACIÓN
+   ===================================================================== */
+$("#fSuc").onclick = e => { const b = e.target.closest("button"); if(b){ suc = b.dataset.s; render(); } };
+$("#fBusca").oninput = e => { busca = norm(e.target.value.trim()); render(); };
+$("#fUrg").onchange = e => { soloUrg = e.target.checked; render(); };
+$("#bSalir").onclick = () => LA.salir();
+let cargando = false;
+async function actualizar(){
+  if(cargando || LA.demo) return; cargando = true;
+  try{ D = await cargar(); render(); }
+  catch(e){ if(e === "clave") LA.salir(LA.ERR.clave); else toast(LA.ERR[e] || "No se pudo actualizar", 4000); }
+  finally{ cargando = false; }
+}
+$("#bAct").onclick = actualizar;
+setInterval(() => {                     // no actualiza si estás escribiendo, arrastrando o con una ventanita abierta
+  const escribiendo = document.activeElement && document.activeElement.matches("textarea,input") && document.activeElement.value;
+  if(D && !document.hidden && !$("#app").hidden && !ocupado && !arrastre && !escribiendo) actualizar();
+}, REFRESCO_MIN*60000);
+
+/* =====================================================================
+   7. DATOS DE PRUEBA (inventados)
+   ===================================================================== */
+function datosDemo(){
+  const ahora = Date.now(), d = n => ymd(new Date(ahora - n*864e5));
+  const f = (id, dias, suc, quien, cod, prod, obs, estado, lista, nota, urg, act) => [id, d(dias), "10:30", suc, quien, cod, prod, obs, estado === "Llegó" || estado === "Descartado" ? estado : "", estado, lista, nota, urg, act ? ahora - act*864e5 : 0, act ? "Compras" : ""];
+  return {rol:"compras", generado:ahora, listas:[["COLOURS","azul"],["PLAF","amarillo"],["Preventa agendas Talbot","rosa"],["Depósito","gris"]],
+    tarjetas:[
+      f("a1",0,"MORENO","Mica","779202","Cuaderno ABC 50h","quedan 2","","","",false,0), f("a2",0,"FALCON","Celi","779202","Cuaderno ABC 50h","","","","",false,0),
+      f("a3",1,"SOMISA","Luka","779404","Plasticola 40g","piden mucho","","","",true,0), f("a4",2,"NACION","Delfi","","Goma eva marrón","","","","",false,0),
+      f("a5",2,"NACION","Delfi","","Crepé (marrón, blanco, verde, celeste)","","","","",false,0),
+      f("b1",9,"","Compras","","Van Gogh","","Pedido","COLOURS","",false,8), f("b2",9,"","Compras","","Sellos","","Pedido","COLOURS","",false,8),
+      f("b3",9,"","Compras","","Pinta tu habitación","","Pedido","COLOURS","",false,8),
+      f("c1",12,"FALCON","Joa","779303","Resma A4 75g","","Pedido","PLAF","10 cajas",true,11), f("c2",3,"MORENO","Ana","","Resma A3","","Llegó","PLAF","",false,1),
+      f("e1",20,"","Compras","","Agenda Talbot 2027 día por página","","Pedido","Preventa agendas Talbot","seña pagada",false,15),
+      f("g1",4,"","Encargado","","Nylon cristal","","Pedido","Depósito","",false,4), f("g2",4,"","Encargado","","Goma eva roja, blanca, marrón, azul","","Pedido","Depósito","",false,4),
+      f("g3",6,"","Encargado","","Silicona líquida mediana Talbot","","Llegó","Depósito","",false,2),
+      f("z1",5,"SOMISA","Paula","","Guirnalda navideña","","Descartado","","Fuera de temporada",false,3)]};
+}
+
+/* =====================================================================
+   8. ARRANQUE
+   ===================================================================== */
+LA.ingreso({app:"Compras", emoji:"🛒", cargar, demo:datosDemo,
+  alEntrar: d => { D = d; $("#aviso").hidden = !LA.demo; $("#aviso").textContent = "🧪 Datos de prueba inventados: no se guarda nada."; render(); }});
+})();
+</script>
+</body>
+</html>
