@@ -502,9 +502,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
         <div class="calc-res"><span id="cRes">= 0</span></div>
         <div class="calc-keys" id="cKeys"></div>
         <div class="calc-acc">
-          <button class="btn soft sm" data-to="0">→ 📄 Fotocopias <kbd>Alt+1</kbd></button>
-          <button class="btn soft sm" data-to="1">→ ✏️ Librería <kbd>Alt+2</kbd></button>
-          <button class="btn soft sm" data-to="2">→ 📦 Varios <kbd>Alt+3</kbd></button>
+          <span id="calcTo" style="display:contents"></span>
           <button class="btn sm" id="cCopy">📋 Copiar</button>
         </div>
       </div>
@@ -991,7 +989,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-10-14 v3.34";
+const VERSION = "2026-10-14 v3.35";
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1005,13 +1003,13 @@ const MEDIOS = [                       // tecla = atajo en el cobro · Tab pasa 
   {k:"transf",   l:"Transferencia", tecla:"T"},
   {k:"ctacte",   l:"Cta. cte.",     tecla:"C"},   // queda debiendo: suma al saldo del cliente
 ];
-const FIJOS_BASE = [                   // categorías de precio abierto, en este orden (Alt+1…4)
+const FIJOS_BASE = [                   // categorías de precio abierto, en este orden (Alt+1…5) si el script no manda la hoja Botones
   {cod:"FOTO", nombre:"Fotocopias", cat:"FOTOCOPIAS", emo:"📄"},
+  {cod:"KIOSCO", nombre:"Kiosco",   cat:"KIOSCO",     emo:"🍬"},
   {cod:"LIB",  nombre:"Librería",   cat:"LIBRERÍA",   emo:"✏️"},
   {cod:"VAR",  nombre:"Varios",     cat:"VARIOS",     emo:"📦"},
   {cod:"SUBE", nombre:"Carga SUBE", cat:"SUBE",       emo:"🚌"},
 ];
-const KIOSCO = {cod:"KIOSCO", nombre:"Kiosco", cat:"KIOSCO", emo:"🍬"};   // script anterior a v3.25: Configuración → "Botón Kiosco (sucursales)"
 /* Desde script v3.25 los botones salen de la hoja "Botones" (nombre, emoji, categoría, sucursales, descuento SI/NO) */
 let CATS_SIN_DESC = new Set();
 let FIJOS = FIJOS_BASE;
@@ -1217,10 +1215,10 @@ function armarFijos(){
     FIJOS = B.filter(b => PRUEBA || !(b.sucs || []).length || b.sucs.includes(cfg.suc)).slice(0, 9).map(b => ({cod:b.cod, nombre:b.nombre, cat:b.cat, emo:b.emo, sinDesc:!b.desc}));
     CATS_SIN_DESC = new Set(FIJOS.filter(f => f.sinDesc).map(f => f.cat.toUpperCase()));
   } else {
-    const k = (((cat && cat.config) || {}).kiosco || []).includes(cfg.suc);
-    FIJOS = k ? [...FIJOS_BASE, KIOSCO] : FIJOS_BASE; CATS_SIN_DESC = new Set();
+    FIJOS = FIJOS_BASE; CATS_SIN_DESC = new Set();
   }
   $("#fijos").style.setProperty("--nf", Math.min(FIJOS.length, 5));
+  $("#calcTo").innerHTML = FIJOS.map((f,i) => f.cat === "SUBE" ? "" : `<button class="btn soft sm" data-to="${i}" type="button">→ ${f.emo} ${esc(f.nombre)} <kbd>Alt+${i+1}</kbd></button>`).join("");
   $("#fijos").innerHTML = FIJOS.map((f,i) => `<button data-i="${i}"><span class="ic">${f.emo}</span><span class="row">${esc(f.nombre)}<kbd>Alt+${i+1}</kbd></span></button>`).join("");
 }
 function indexCatalog(){
