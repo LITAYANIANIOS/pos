@@ -392,6 +392,10 @@ details summary{cursor:pointer;font-weight:600}
 .form label{display:grid;gap:6px;font-size:13px;color:var(--muted);font-weight:500}
 
 /* ---------- 9. Apertura de turno, ticket y avisos ---------- */
+.pend-lat{display:grid;gap:2px;text-align:left;margin:8px 0;border:1px solid var(--warn);background:var(--warn-soft);color:var(--ink);padding:9px 12px;border-radius:var(--r-sm);cursor:pointer;font-weight:700;font-size:13px}
+.pend-lat small{font-weight:500;color:var(--muted)}
+.pend-banner{border:1px solid var(--warn);background:var(--warn-soft);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:12px;font-size:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pend-banner span{flex:1;min-width:220px}
 .overlay{position:fixed;inset:0;background:rgb(10 16 13 / .55);display:grid;place-items:start center;padding:24px 16px;overflow:auto;z-index:50}
 .overlay.full{background:var(--bg);place-items:center}
 .modal{background:var(--surface);border:1px solid var(--line);border-radius:12px;width:100%;max-width:440px;padding:20px;box-shadow:0 20px 50px rgb(0 0 0 / .18)}
@@ -399,6 +403,7 @@ details summary{cursor:pointer;font-weight:600}
 .apertura{max-width:520px;padding:28px}
 .apertura .logo{justify-content:center;margin-bottom:18px}
 .apertura .logo img{width:64px;height:64px}
+.a-cierres{margin-top:16px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
 .apertura label.t{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:18px 0 8px}
 .opciones{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
 .opciones button{border:1px solid var(--line);background:var(--surface);padding:12px 8px;border-radius:var(--r-sm);cursor:pointer;font-weight:600}
@@ -454,6 +459,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
     <button class="av-h" id="lkToggle"><span>🔗 Links</span><span class="av-fl" id="lkFl">▾</span></button>
     <ul id="lkList"></ul>
   </div>
+  <button class="pend-lat" id="bPend" hidden title="Ventas que quedaron sin cierre">🌙 Ventas sin cierre<small id="pendPrev"></small></button>
   <div class="who">
     <button class="pausa-lat" id="bError" title="Contar algo que falló en la caja">🐞 Avisar un error</button>
     <button class="pausa-lat" id="bPausa" title="Una pausa corta mientras esperás">🌀 Pausa</button>
@@ -465,6 +471,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 
 <main id="main">
 <div class="top"><h1 id="titulo"><i class="emo">🛒</i>Venta</h1><div class="fecha"><span id="mSync" class="pill"></span><span id="hoy"></span><button class="btn sm" id="bGasto" title="Anotar un gasto (F9)">💸 Gasto</button><button class="btn sm" id="bIrCierre">💵 Cerrar caja</button><button class="btn sm" id="bVolverVenta" hidden>← Volver a la venta</button></div></div>
+<div class="demo-bar" id="pruebaBar" hidden>🧪 <b>Modo prueba</b> · sucursal PRUEBA · datos reales, pero lo que se envía queda marcado PRUEBA y no cuenta en el panel <a href="?">Salir de la prueba →</a></div>
 <div class="demo-bar" id="demoBar" hidden>🎓 <b>Modo demo</b> · productos y empleados inventados · nada se envía a la planilla · se borra al cerrar la pestaña <a href="?">Salir de la demo →</a></div>
 <div class="aviso" id="aviso" hidden></div>
 
@@ -693,6 +700,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 <section id="tab-cierre" hidden>
   <div class="pcs" id="cPcs"></div>
   <div class="pcs"><span id="cControl" class="pill"></span></div>
+  <div class="pend-banner" id="cPend" hidden><span id="cPendTxt"></span><button class="btn sm" id="cPendX" type="button">No ahora</button></div>
   <div class="cierre">
     <div class="card">
       <h3><span>1 · Contar</span><span class="pill teal" id="cTurno"></span></h3>
@@ -786,9 +794,21 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
       <p class="note">La lista de empleados aparece cuando la caja se conecta a la planilla.</p>
     </div>
     <div class="err" id="aErr" hidden></div>
+    <div class="a-cierres" id="aCierres" hidden></div>
+    <p class="note" id="aDespues" hidden>🌙 <b>¿Vendés después del cierre?</b> Abrí turno, cobrá y antes de irte hacé un <b>cierre chico</b> (💵 Cerrar caja → contar → cerrar).</p>
     <div class="bar2"><button class="btn primary" id="bAbrir">Abrir turno <kbd>Enter</kbd></button></div>
     <a class="link" id="aDemo" href="?demo">🎓 Probar la caja en modo demo (no toca la planilla)</a>
-    <a class="link" id="aDemoSalir" href="?" hidden>← Salir de la demo y volver a la caja real</a>
+    <a class="link" id="aDemoSalir" href="?" hidden>← Salir y volver a la caja real</a>
+  </div>
+</div>
+
+<!-- Ventas que quedaron después del cierre (se cierran al día siguiente) -->
+<div class="overlay" id="pdOverlay" hidden>
+  <div class="modal">
+    <h2>🌙 Quedaron ventas sin cierre</h2>
+    <p id="pdTxt"></p>
+    <p class="note">Esa plata tendría que estar en la caja. Hacé el cierre ahora (2 minutos): contás toda la caja y listo. Después seguís vendiendo normal.</p>
+    <div class="bar2"><button class="btn" id="pdLuego">Más tarde</button><button class="btn primary" id="pdOk">Cerrar esas ventas ahora</button></div>
   </div>
 </div>
 
@@ -971,9 +991,13 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-10-13 v3.29";
+const VERSION = "2026-10-14 v3.34";
 const NEGOCIO = "Lita & Añaños";
-const SUCS = ["FALCON","NACION","MORENO","SOMISA"];
+/* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
+   Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
+   (el panel, los cobros, los saldos y compras lo ignoran; se borra con borrarPruebas() en el script). */
+const PRUEBA = new URLSearchParams(location.search).has("prueba") && !new URLSearchParams(location.search).has("demo");
+const SUCS = PRUEBA ? ["PRUEBA"] : ["FALCON","NACION","MORENO","SOMISA"];
 const PCS_POR_SUC = {FALCON: 2};       // sucursales con más de una computadora
 const MEDIOS = [                       // tecla = atajo en el cobro · Tab pasa al siguiente
   {k:"efectivo", l:"Efectivo",      tecla:"E"},
@@ -987,7 +1011,9 @@ const FIJOS_BASE = [                   // categorías de precio abierto, en este
   {cod:"VAR",  nombre:"Varios",     cat:"VARIOS",     emo:"📦"},
   {cod:"SUBE", nombre:"Carga SUBE", cat:"SUBE",       emo:"🚌"},
 ];
-const KIOSCO = {cod:"KIOSCO", nombre:"Kiosco", cat:"KIOSCO", emo:"🍬"};   // solo en las sucursales de Configuración → "Botón Kiosco (sucursales)"
+const KIOSCO = {cod:"KIOSCO", nombre:"Kiosco", cat:"KIOSCO", emo:"🍬"};   // script anterior a v3.25: Configuración → "Botón Kiosco (sucursales)"
+/* Desde script v3.25 los botones salen de la hoja "Botones" (nombre, emoji, categoría, sucursales, descuento SI/NO) */
+let CATS_SIN_DESC = new Set();
 let FIJOS = FIJOS_BASE;
 const BILLETES = [20000,10000,2000,1000,500,200,100];
 const REDONDEO = 10;                   // los precios se redondean hacia arriba a múltiplos de esto
@@ -1138,10 +1164,11 @@ function dobleToque(b, texto, accion){   // acciones delicadas: el primer clic p
 let LS = null;
 try{ const S = DEMO ? sessionStorage : localStorage; S.setItem("caja._t","1"); S.removeItem("caja._t"); LS = S; }catch(e){}   // demo: solo esta pestaña
 let bloqueada = false, espacioLleno = false;
-function leer(k, d){ if(!LS) return d; try{ const v=LS.getItem("caja."+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } }
+const PFX = PRUEBA ? "prueba." : "caja.";   // la caja de prueba guarda aparte: no toca ventas ni turno reales
+function leer(k, d){ if(!LS) return d; try{ const v=LS.getItem(PFX+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } }
 function guardar(k, v){
   if(bloqueada || !LS) return;
-  try{ LS.setItem("caja."+k, JSON.stringify(v)); if(espacioLleno){ espacioLleno=false; renderMeta(); } }
+  try{ LS.setItem(PFX+k, JSON.stringify(v)); if(espacioLleno){ espacioLleno=false; renderMeta(); } }
   catch(e){ espacioLleno=true; renderMeta(); toast("⚠ No se pudo guardar: el navegador está lleno. Avisá al encargado.", 8000); }
 }
 
@@ -1150,7 +1177,10 @@ function guardar(k, v){
    ===================================================================== */
 let cfg = Object.assign({suc:"", pc:"", url:"", clave:"", nombres:[], turno:null, cierreRemoto:0}, leer("cfg", {}));
 let cat = leer("catalog", null);        // {items, fuente:"planilla", fecha}
-if(DEMO){ cfg.url = ""; cfg.clave = ""; cat = {...DEMO_CAT, fecha: Date.now()}; }   // la demo nunca tiene planilla
+if(DEMO){ cfg.url = ""; cfg.clave = ""; cat = {...DEMO_CAT, fecha: Date.now()}; }
+if(PRUEBA){ cfg.suc = "PRUEBA"; cfg.pc = "";
+  if(!cfg.url){ try{ const real = JSON.parse(localStorage.getItem("caja.cfg") || "{}"); cfg.url = real.url || ""; cfg.clave = real.clave || ""; }catch(e){} }   // misma planilla que la caja real
+  if(!cat){ try{ cat = JSON.parse(localStorage.getItem("caja.catalog") || "null"); }catch(e){} } }   // la demo nunca tiene planilla
 let sales   = leer("sales", []).filter(s => !s.demo);
 let cierres = leer("cierres", []);
 let faltantes = leer("faltantes", []);
@@ -1182,9 +1212,15 @@ function podar(){   // borra de la PC lo ya enviado y viejo (espacio del navegad
    ===================================================================== */
 let pool = [];
 function armarFijos(){
-  const k = (((cat && cat.config) || {}).kiosco || []).includes(cfg.suc);
-  FIJOS = k ? [...FIJOS_BASE, KIOSCO] : FIJOS_BASE;
-  $("#fijos").style.setProperty("--nf", FIJOS.length);
+  const B = (cat && Array.isArray(cat.botones) && cat.botones.length) ? cat.botones : null;
+  if(B){
+    FIJOS = B.filter(b => PRUEBA || !(b.sucs || []).length || b.sucs.includes(cfg.suc)).slice(0, 9).map(b => ({cod:b.cod, nombre:b.nombre, cat:b.cat, emo:b.emo, sinDesc:!b.desc}));
+    CATS_SIN_DESC = new Set(FIJOS.filter(f => f.sinDesc).map(f => f.cat.toUpperCase()));
+  } else {
+    const k = (((cat && cat.config) || {}).kiosco || []).includes(cfg.suc);
+    FIJOS = k ? [...FIJOS_BASE, KIOSCO] : FIJOS_BASE; CATS_SIN_DESC = new Set();
+  }
+  $("#fijos").style.setProperty("--nf", Math.min(FIJOS.length, 5));
   $("#fijos").innerHTML = FIJOS.map((f,i) => `<button data-i="${i}"><span class="ic">${f.emo}</span><span class="row">${esc(f.nombre)}<kbd>Alt+${i+1}</kbd></span></button>`).join("");
 }
 function indexCatalog(){
@@ -1203,7 +1239,7 @@ async function cargarCatalogo(){ /* también trae empleados y avisos */
   try{
     const r = await api("catalogo");
     if(!r.items || !r.items.length) throw 0;
-    cat = {items:r.items, empleados:r.empleados||[], avisos:r.avisos||[], config:r.config||{}, links:r.links||[], tarifas:r.tarifas||{}, descuentos:r.descuentos||null, clientes:r.clientes||[], errores:r.errores||[], saldos:r.saldos||{}, version:r.version||"", fuente:"planilla", fecha:Date.now()};
+    cat = {items:r.items, empleados:r.empleados||[], avisos:r.avisos||[], config:r.config||{}, links:r.links||[], tarifas:r.tarifas||{}, descuentos:r.descuentos||null, clientes:r.clientes||[], errores:r.errores||[], saldos:r.saldos||{}, botones:r.botones||null, version:r.version||"", fuente:"planilla", fecha:Date.now()};
     guardar("catalog", cat); indexCatalog(); renderMeta(); renderAvisos(); renderLinks();
     if(!$("#apertura").hidden) renderApertura();
   }catch(e){ if(e && e.tipo === "clave") claveMal = true; renderMeta(); }
@@ -1212,7 +1248,7 @@ async function cargarCatalogo(){ /* también trae empleados y avisos */
 /* =====================================================================
    6. PESTAÑA DUPLICADA: la pestaña nueva pregunta; si otra contesta, se bloquea
    ===================================================================== */
-const canal = (!DEMO && "BroadcastChannel" in window) ? new BroadcastChannel("caja-lya") : null;
+const canal = (!DEMO && "BroadcastChannel" in window) ? new BroadcastChannel(PRUEBA ? "caja-lya-prueba" : "caja-lya") : null;
 let verificando = !!canal;
 if(canal){
   canal.onmessage = e => {
@@ -1231,6 +1267,10 @@ const avatarDe = n => { const e = empleados().find(x => x.nombre === n); return 
 function abrirApertura(){
   aSuc = cfg.suc || ""; aPc = cfg.pc || ""; aEmp = "";
   $("#aNom").value = ""; $("#aErr").hidden = true;
+  $("#aDespues").hidden = DEMO || corte() < inicioHoy();   // ya se cerró la caja hoy: recordatorio del cierre chico
+  const hoyC = cierresHoy();                                // reimprimir para envolver el retiro
+  $("#aCierres").hidden = !hoyC.length;
+  $("#aCierres").innerHTML = hoyC.length ? `<span>🖨️ Cierres de hoy:</span>` + hoyC.map(c => `<button class="btn sm" data-cid="${esc(c.id)}" type="button" title="Imprimir para envolver el retiro">${hm(new Date(parseInt(String(c.id).split("-").pop(), 36) || c.hasta))} · ${esc(c.cajero)} · retiro ${money(c.retiro)}</button>`).join("") : "";
   renderApertura(); $("#apertura").hidden = false; $("#app").inert = true;
   setTimeout(() => ($("#aLibre").hidden ? $("#aSuc button[aria-pressed=true]") || $("#aSuc button") : $("#aNom")).focus(), 50);
 }
@@ -1245,7 +1285,7 @@ function renderApertura(){
   $("#aLibre").hidden = emp.length > 0;
   $("#aEmp").innerHTML = emp.map(x => `<button data-n="${esc(x)}" aria-pressed="${x===aEmp}">${avatarDe(x)}${esc(x)}</button>`).join("");
   $("#aCarita").hidden = !aEmp;
-  $("#aDemo").hidden = DEMO; $("#aDemoSalir").hidden = !DEMO;
+  $("#aDemo").hidden = DEMO || PRUEBA; $("#aDemoSalir").hidden = !DEMO && !PRUEBA;
 }
 $("#aSuc").addEventListener("click", e => { const b=e.target.closest("button"); if(!b) return; aSuc=b.dataset.s; renderApertura(); });
 $("#aPc").addEventListener("click", e => { const b=e.target.closest("button"); if(!b) return; aPc=b.dataset.p; renderApertura(); });
@@ -1292,7 +1332,43 @@ function abrirTurno(){
   $("#apertura").hidden = true; $("#app").inert = false;
   ultimaId = null; renderMeta(); renderAvisos(); renderLinks(); showTab("venta"); cargarNota(); enviarEstado();
   toast(`${saludo()}, ${nombre}! Turno abierto ${hm(new Date())} hs`);
+  buscarPendiente(true);
 }
+
+/* =====================================================================
+   7b. VENTAS DESPUÉS DEL CIERRE
+   Si en días anteriores alguien vendió después del cierre y no hizo el cierre chico, al abrir el turno
+   la caja avisa y permite cerrar esas ventas (turno con "hasta" = ayer a la noche). No toca el turno de hoy.
+   ===================================================================== */
+let pend = null, cerrandoPend = false;
+const rangoPend = () => ({sucursal:cfg.suc, hoy:inicioHoy() - 7*864e5, hasta:inicioHoy() - 1, pc:cfg.pc||""});
+const pendTxt = p => `${p.ventas} venta${p.ventas > 1 ? "s" : ""} del ${fechaAR(ymd(new Date(p.ultima)))} (${hm(new Date(p.primera))}${p.ultima !== p.primera ? " a " + hm(new Date(p.ultima)) : ""} hs) por ${money(Object.values(p.porMedio).reduce((a,b) => a + b, 0))}` + (p.cajeros && p.cajeros.length ? `, cobró ${p.cajeros.join(" y ")}` : "");
+async function buscarPendiente(avisar){
+  if(DEMO || !cfg.url || !cfg.suc) return;
+  try{
+    const r = await api("turno", rangoPend()); if(r.error || r.primera == null && r.ventas) return;   // script anterior a v3.25: no sabe de "hasta"
+    pend = r.ventas > 0 && r.primera ? r : null;
+  }catch(e){ return; }
+  $("#bPend").hidden = !pend; if(!pend) return;
+  $("#pendPrev").textContent = pendTxt(pend);
+  if(avisar){ $("#pdTxt").textContent = pendTxt(pend) + "."; $("#pdOverlay").hidden = false; $("#pdOk").focus(); }
+}
+function cerrarPendiente(){ if(!pend) return; $("#pdOverlay").hidden = true; cerrandoPend = true; showTab("cierre"); }
+$("#pdOk").onclick = cerrarPendiente;
+$("#pdLuego").onclick = () => { $("#pdOverlay").hidden = true; toast("Queda el botón 🌙 en la barra lateral"); focusQ(); };
+$("#bPend").onclick = cerrarPendiente;
+$("#cPendX").onclick = () => showTab("venta");
+/* aviso al cerrar la pestaña o el navegador si hay ventas sin cerrar en esta PC */
+window.addEventListener("beforeunload", e => {
+  if(DEMO || !turnoAbierto()) return;
+  const desde = Math.max(corte(), inicioHoy());
+  if(sales.some(x => x.sucursal === cfg.suc && !x.anulada && x.ts > desde)){ e.preventDefault(); e.returnValue = ""; }
+});
+function cierresHoy(){   // cierres hechos en esta PC desde las 0 h (la hora sale del ID: incluye el cierre de ventas de ayer hecho hoy)
+  const hecho = c => parseInt(String(c.id).split("-").pop(), 36) || c.hasta;
+  return cierres.filter(c => c.sucursal === cfg.suc && hecho(c) >= inicioHoy()).sort((a,b) => hecho(b) - hecho(a)).slice(0, 6);
+}
+$("#aCierres").addEventListener("click", e => { const b = e.target.closest("[data-cid]"); if(!b) return; const c = cierres.find(x => x.id === b.dataset.cid); if(c) imprimir(cierreHTML(c), "Cierre " + c.sucursal); });
 /* demo: unas ventas de ejemplo para que "Ventas de hoy" y el cierre no arranquen vacíos */
 function ventasDemo(){
   if(sales.some(s => s.fecha === ymd(new Date()) && s.sucursal === cfg.suc)) return;
@@ -1327,6 +1403,8 @@ $("#gHerr").onclick = () => {
 };
 renderGrupo();
 function showTab(t){
+  if(t !== "cierre" && cerrandoPend){ cerrandoPend = false; base = null; }
+  $("#cPend").hidden = !(t === "cierre" && cerrandoPend);
   if(!$("#nota").hidden && $("#notaPin").getAttribute("aria-pressed") !== "true") $("#nota").hidden = true;
   document.querySelectorAll("nav button[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
   Object.keys(TABS).forEach(x => $("#tab-"+x).hidden = x !== t);
@@ -1379,7 +1457,7 @@ function agregar(p, qty){
 const total = () => Math.round(cart.reduce((a,b) => a + subt(b), 0));
 function renderCart(){
   $("#lines").innerHTML = (cart.length ? `<div class="hd"><span>Producto</span><span style="text-align:center">Cant.</span><span style="text-align:right">Precio</span><span style="text-align:right">Subtotal</span><span></span></div>` : "") +
-    cart.map((l,i) => `<li><span class="n" title="${esc(l.nombre)}${l.combo ? " · combo "+l.combo.q+" x "+money(l.combo.p) : ""}">${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span>${l.open || SIN_DESC(l) ? "" : ` <button class="bell${enRevision(l.cod) ? " on" : ""}" data-bell="${i}" type="button" title="${enRevision(l.cod) ? "Precio en revisión" : "Avisar que el precio está mal"}">🔔</button>`}</span>
+    cart.map((l,i) => `<li><span class="n" title="${esc(l.nombre)}${l.combo ? " · combo "+l.combo.q+" x "+money(l.combo.p) : ""}">${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span>${l.open || ES_SERVICIO(l) ? "" : ` <button class="bell${enRevision(l.cod) ? " on" : ""}" data-bell="${i}" type="button" title="${enRevision(l.cod) ? "Precio en revisión" : "Avisar que el precio está mal"}">🔔</button>`}</span>
     <span class="step"><button class="mn" data-dec="${i}" type="button" tabindex="-1" aria-label="Uno menos">−</button><input class="qty" data-i="${i}" value="${l.cant}" inputmode="decimal" aria-label="Cantidad"><button class="mn" data-inc="${i}" type="button" tabindex="-1" aria-label="Uno más">+</button></span>
     ${l.open ? `<input class="price${l.precio>0?"":" need"}" data-i="${i}" value="${l.precio||""}" placeholder="precio" inputmode="decimal" aria-label="Precio">` : `<span class="p">${money(l.precio)}</span>`}
     <span class="s">${money(subt(l))}</span><button class="x" data-i="${i}" aria-label="Quitar">✕</button></li>`).join("");
@@ -1568,9 +1646,10 @@ function setMedio(m){
    DESCUENTOS (hojas Descuentos y Clientes de la planilla). Se aplica SOLO el más alto, nunca se suman.
    · Efectivo: al cobrar en efectivo, desde $X    · Monto: toda la compra, desde $X (escalas)
    · Unidades: cantidad total de artículos (escalas) · Cliente: % de la hoja Clientes · Libre: % con PIN del encargado
-   No cuentan SUBE ni copias/anillados. El cajero puede quitarlo (D). Todo queda registrado en la venta.
+   No cuentan SUBE, copias/anillados ni kiosco. El cajero puede quitarlo (D). Todo queda registrado en la venta.
    ===================================================================== */
-const SIN_DESC = l => /^(SUBE|FOTOCOPIAS|ANILLADO)$/i.test(l.cat || "") || /^IMP-/.test(l.cod || "") || /fotocop|impresi/i.test(l.cat || "");
+const ES_SERVICIO = l => /^(SUBE|FOTOCOPIAS|ANILLADO)$/i.test(l.cat || "") || /^IMP-/.test(l.cod || "") || /fotocop|impresi/i.test(l.cat || "");   // precio que pone el cajero o el cotizador
+const SIN_DESC = l => ES_SERVICIO(l) || /kiosco/i.test(l.cat || "") || CATS_SIN_DESC.has(String(l.cat || "").toUpperCase());   // no llevan descuento: SUBE, copias/anillados, kiosco y botones con Descuento = NO
 const DESC_L = {manual:"🏷️ Descuento", efectivo:"💵 Efectivo", transferencia:"🏦 Transferencia", monto:"🧾 Por monto", unidades:"📦 Por cantidad", cliente:"👤", libre:"✋"};
 let descOn = true, descBloq = false, descCli = null;   // descBloq: venta de un presupuesto con descuento · descCli: cliente o libre elegido
 function reglas(){
@@ -2685,7 +2764,7 @@ $("#mdOk").onclick = () => {
    Sin conexión, usa solo las ventas de esta PC y lo deja anotado.
    ===================================================================== */
 const CIN = ["#cFondo","#cLote"];   // los gastos no se escriben: vienen de 💸 Gasto
-let comparaciones = 0, base = null;   // base = totales del sistema usados en la comparación
+let comparaciones = 0, difInicial = null, base = null;   // base = totales del sistema usados en la comparación
 $("#tBilletes").innerHTML = `<tr><th>Billete</th><th>Cantidad</th><th class="r">Subtotal</th></tr>` +
   BILLETES.map(b => `<tr><td>${money(b)}</td><td><input id="b${b}" inputmode="numeric" autocomplete="off" placeholder="0"></td><td class="r" id="s${b}">—</td></tr>`).join("") +
   `<tr><td>Monedas y otros</td><td><input id="bOtros" class="mon" inputmode="numeric" autocomplete="off" placeholder="$ 0"></td><td class="r" id="sOtros">—</td></tr>
@@ -2716,19 +2795,21 @@ async function baseSistema(){   // pide a la planilla los totales de la sucursal
   if(cfg.url){
     await flush();
     try{
-      const r = await api("turno", {sucursal:cfg.suc, hoy:inicioHoy(), pc:cfg.pc||""});
+      const r = await api("turno", cerrandoPend ? rangoPend() : {sucursal:cfg.suc, hoy:inicioHoy(), pc:cfg.pc||""});
+      if(cerrandoPend) r.hasta = rangoPend().hasta;
       if(r.error) throw 0;
       if(r.ultimoCierre > (cfg.cierreRemoto||0)){ cfg.cierreRemoto = r.ultimoCierre; guardar("cfg", cfg); }
       return {...r, cobros: r.cobros || cobrosLocal(r.desde), gastos: r.gastos != null ? r.gastos : gastosCajaLocal(), control: controlEnvios(r), origen: queue.length ? "planilla (esta PC con envíos pendientes)" : "planilla"};
     }catch(e){}
   }
+  if(cerrandoPend){ toast("Sin conexión: las ventas de días anteriores se cierran cuando vuelva internet"); cerrandoPend = false; setTimeout(() => showTab("venta"), 0); }
   return baseLocal();
 }
 /* compara las ventas de esta PC con las que tiene la planilla; las que faltan se vuelven a mandar */
 function controlEnvios(r){
   if(!Array.isArray(r.idsPc)) return null;                 // script viejo: no se puede controlar
   const remotos = new Set(r.idsPc), pend = new Set(queue.map(o => o.id));
-  const locales = sales.filter(s => s.sucursal===cfg.suc && (s.pc||"")===(cfg.pc||"") && s.ts > r.desde);
+  const locales = sales.filter(s => s.sucursal===cfg.suc && (s.pc||"")===(cfg.pc||"") && s.ts > r.desde && (!r.hasta || s.ts <= r.hasta));
   const faltan = locales.filter(s => !remotos.has(s.id) && !pend.has(s.id));
   faltan.forEach(s => { queue.push({tipo:"venta", id:s.id}); if(s.anulada) queue.push({tipo:"anulacion", id:s.id}); });
   if(faltan.length){ guardar("queue", queue); flush(); }
@@ -2751,9 +2832,10 @@ function renderPcs(b){
   $("#cPcs").innerHTML = chips;
 }
 async function renderCierre(){
+  if(cerrandoPend && pend) $("#cPendTxt").innerHTML = `🌙 <b>Cerrando ventas de después del cierre:</b> ${esc(pendTxt(pend))}. Contá toda la caja. En el lote poné <b>0</b> (esas tarjetas entran en el lote de hoy).`;
   $("#cTurno").textContent = "Buscando ventas…";
   base = await baseSistema();
-  $("#cTurno").textContent = `desde ${hm(new Date(base.desde))} · ${base.ventas} ventas`;
+  $("#cTurno").textContent = base.hasta && base.ultima ? `ventas del ${fechaAR(ymd(new Date(base.ultima)))} · ${base.ventas}` : `desde ${hm(new Date(base.desde))} · ${base.ventas} ventas`;
   renderPcs(base); renderControl(base);
   $("#cGastos").value = base.gastos ? money(base.gastos) : "";
   const gt = gastosTurno().filter(g => !g.anulado), gc = gt.filter(g => g.origen === "caja"), gr = gt.filter(g => g.origen === "reserva");
@@ -2781,13 +2863,13 @@ function armarCierre(){
   const lote = opcional("#cLote");
   const billetes = BILLETES.filter(b => toNum($("#b"+b).value)).map(b => `${b}x${toNum($("#b"+b).value)}`).join(" ") + (toNum($("#bOtros").value) ? ` otros:${toNum($("#bOtros").value)}` : "");
   return {
-    id: "C-"+cfg.suc.slice(0,3)+(cfg.pc||"")+"-"+ahora.getTime().toString(36), fecha: ymd(ahora), desde: base.desde, hasta: ahora.getTime(),
+    id: "C-"+cfg.suc.slice(0,3)+(cfg.pc||"")+"-"+ahora.getTime().toString(36), fecha: base.hasta && base.ultima ? ymd(new Date(base.ultima)) : ymd(ahora), desde: base.desde, hasta: base.hasta || ahora.getTime(),
     sucursal: cfg.suc, cajero: cfg.turno.cajero, ventas: base.ventas, totalVentas: sis.efectivo+sis.postnet+sis.transf+sis.ctacte, ctacte: sis.ctacte, cobros: cob,
     fondo, gastos, retiro: Math.max(0, efeContado - fondo), sube: base.sube || 0,
     efectivo: {sistema: sis.efectivo, esperado, contado: efeContado, dif: efeContado - esperado},
     postnet:  {sistema: sis.postnet + cob.postnet, lote, dif: null},   // no se compara acá: el lote no incluye el QR pagado con transferencia (se controla en el panel)
     transf:   {sistema: sis.transf + cob.transf},
-    billetes, comparaciones, obs: $("#cObs").value.trim(), origen: base.origen
+    billetes, comparaciones, difInicial, obs: (base.hasta ? `Ventas después del cierre (cobró ${(base.cajeros || []).join(" y ")}; contó ${cfg.turno.cajero} el ${fechaAR(ymd(ahora))}). ` : "") + $("#cObs").value.trim(), origen: base.origen
   };
 }
 const difTxt = d => d==null ? "sin controlar" : Math.round(d)===0 ? "OK" : (d>0 ? "sobra " : "falta ") + money(Math.abs(d));
@@ -2819,9 +2901,10 @@ $("#bComparar").onclick = async () => {
   $("#cLoteErr").hidden = true;
   $("#bComparar").disabled = true; $("#bComparar").textContent = "Buscando ventas de todas las PC…";
   base = await baseSistema(); renderPcs(base); renderControl(base);
-  $("#cTurno").textContent = `desde ${hm(new Date(base.desde))} · ${base.ventas} ventas`;
+  $("#cTurno").textContent = base.hasta && base.ultima ? `ventas del ${fechaAR(ymd(new Date(base.ultima)))} · ${base.ventas}` : `desde ${hm(new Date(base.desde))} · ${base.ventas} ventas`;
   $("#bComparar").textContent = "Comparar con el sistema";
-  comparaciones++; bloquearConteo(true); $("#cResultado").hidden = false; renderResultado();
+  comparaciones++; if(comparaciones === 1) difInicial = Math.round(armarCierre().efectivo.dif);   // queda la diferencia del primer conteo
+  bloquearConteo(true); $("#cResultado").hidden = false; renderResultado();
 };
 $("#bCorregir").onclick = () => { bloquearConteo(false); $("#cResultado").hidden = true; $("#cFondo").focus(); };
 $("#bImpCierre").onclick = () => imprimir(cierreHTML(armarCierre()), "Cierre "+cfg.suc);
@@ -2831,7 +2914,11 @@ $("#bConfCierre").onclick = e => dobleToque(e.currentTarget, "Tocá de nuevo par
   cierres.push(c); guardar("cierres", cierres); encolar("cierre", c.id);
   [...CIN, ...BILLETES.map(b=>"#b"+b), "#bOtros", "#cObs"].forEach(s => $(s).value = "");
   $("#tBilletes").dispatchEvent(new Event("input"));
-  comparaciones = 0; bloquearConteo(false); $("#cResultado").hidden = true;
+  comparaciones = 0; difInicial = null; bloquearConteo(false); $("#cResultado").hidden = true;
+  if(cerrandoPend){                                                   // cierre de ventas viejas: el turno de hoy sigue abierto
+    cfg.fondoSig = c.fondo; guardar("cfg", cfg); cerrandoPend = false; pend = null; base = null; $("#bPend").hidden = true;
+    toast("🌙 Listo: esas ventas quedaron cerradas. Seguís con tu turno."); showTab("venta"); return;
+  }
   cfg.turno = null; cfg.fondoSig = c.fondo; guardar("cfg", cfg);   // el cierre termina el turno; el fondo queda para el próximo
   toast("Cierre guardado" + (cfg.url ? " y enviado a la planilla" : ""));
   abrirApertura();
@@ -2855,6 +2942,7 @@ function cierreHTML(c){
   const l = (a,b) => `<div class="tk-l"><span>${a}</span><span>${b}</span></div>`;
   return `<div class="tk"><div class="tk-h"><b>Cierre de caja</b><small>${esc(NEGOCIO)} · ${esc(c.sucursal)}</small></div>
     <div class="tk-m"><span>${fechaAR(c.fecha)} ${hm(new Date(c.desde))}–${hm(new Date(c.hasta))}</span><span>${esc(c.cajero)}</span></div>
+    <div style="border:2px solid #000;text-align:center;padding:6px;margin:6px 0;font-size:20px;font-weight:800">RETIRO ${money(c.retiro)}</div>
     <div class="tk-i">${l("Ventas", c.ventas)}${l("Total vendido", money(c.totalVentas))}${l("Datos", esc(c.origen))}
     <div class="tk-s">Efectivo</div>${l("Fondo inicial", money(c.fondo))}${l("Ventas efectivo", money(c.efectivo.sistema))}${l("Gastos", "− "+money(c.gastos))}
     ${l("Esperado", money(c.efectivo.esperado))}${l("Contado", money(c.efectivo.contado))}${l("<b>Diferencia</b>", "<b>"+difTxt(c.efectivo.dif)+"</b>")}${l("<b>Retiro</b>", "<b>"+money(c.retiro)+"</b>")}${c.sube ? l("SUBE vendido", money(c.sube)) : ""}
@@ -2947,7 +3035,7 @@ function renderMeta(){
   $("#wSuc").textContent = cfg.suc ? `${cfg.suc[0]+cfg.suc.slice(1).toLowerCase()}${cfg.pc ? " · PC "+cfg.pc : ""}${cfg.turno ? " · desde "+hm(new Date(cfg.turno.desde)) : ""}` : "";
   $("#hoy").textContent = new Date().toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"}).replace(/^./, c => c.toUpperCase());
   const ms = $("#mSync");
-  $("#demoBar").hidden = !DEMO; $("#bNota").hidden = !turnoAbierto();
+  $("#demoBar").hidden = !DEMO; $("#pruebaBar").hidden = !PRUEBA; $("#bNota").hidden = !turnoAbierto();
   if(DEMO){ ms.className="pill warn"; ms.textContent="🎓 Demo"; }
   else if(espacioLleno){ ms.className="pill bad"; ms.textContent="Navegador lleno"; }
   else if(claveMal){ ms.className="pill bad"; ms.textContent="🔑 Clave incorrecta"; }
@@ -3034,7 +3122,7 @@ setTimeout(() => {               // espera la respuesta de otras pestañas antes
   verificando = false;
   if(bloqueada) return;
   podar();
-  if(!turnoAbierto()) abrirApertura(); else { focusQ(); cargarNota(); }
+  if(!turnoAbierto()) abrirApertura(); else { focusQ(); cargarNota(); setTimeout(() => buscarPendiente(false), 3000); }
   renderAvisos(); renderLinks();
   flush(); cargarCatalogo();
   setInterval(() => { flush(); enviarEstado(); renderMeta(); renderAvisos(); renderLinks(); }, 60000);

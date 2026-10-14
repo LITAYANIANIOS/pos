@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v1.4
+   PANEL · DA BOX                                                 v1.6
    Para MIRAR números (solo lee). Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
    ===================================================================== */
@@ -88,7 +88,8 @@ const {$, esc, money, millones, pct, pad, ymd, fechaAR, norm, hace, leerLS, guar
 const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], cobros:["💳","Cobros"], productos:["📦","Productos"]};
 const ROLES = {admin:"Encargado", dueno:"Dueño", compras:"Compras"};
 const CON_COMPRAS = ["admin","compras"];                    // roles que ven el link al tablero de compras
-const PERIODOS = [[7,"7 días"],[30,"30 días"],[90,"90 días"],[365,"1 año"]];
+const PERIODOS = [[1,"Hoy"],[7,"7 días"],[30,"30 días"],[90,"90 días"],[365,"1 año"]];
+const enPer = () => dias === 1 ? "hoy" : `en ${dias} días`;   // texto del período elegido
 const MEDIOS = {efectivo:"💵 Efectivo", postnet:"💳 Postnet / QR", transf:"🏦 Transferencia", ctacte:"📒 Cta. cte."};
 const DIAS_SEM = ["","Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -171,12 +172,12 @@ function rVentas(){
 
   $("#s-ventas").innerHTML = `<div class="grid">
     <div class="tiles">
-      <div class="tile"><span>Vendido en ${dias} días</span><b>${millones(total)}</b><small>${money(total)}</small></div>
-      <div class="tile"><span>Ventas</span><b>${n.toLocaleString("es-AR")}</b><small>${diasConVenta} días con ventas</small></div>
+      <div class="tile"><span>Vendido ${enPer()}</span><b>${millones(total)}</b><small>${money(total)}</small></div>
+      <div class="tile"><span>Ventas</span><b>${n.toLocaleString("es-AR")}</b><small>${dias === 1 ? "desde las 0 h" : diasConVenta + " días con ventas"}</small></div>
       <div class="tile"><span>Ticket promedio</span><b>${money(total/n)}</b><small>por venta</small></div>
-      <div class="tile"><span>Hoy</span><b>${millones(tHoy)}</b><small>${fHoy.reduce((a,f) => a + f[3], 0)} ventas</small></div>
+      ${dias === 1 ? "" : `<div class="tile"><span>Hoy</span><b>${millones(tHoy)}</b><small>${fHoy.reduce((a,f) => a + f[3], 0)} ventas</small></div>`}
     </div>
-    <div class="card"><h3>Venta por día</h3><p class="note">Total de cada día${suc!=="TODAS" ? " en "+sucNom(suc) : " (todas las sucursales)"}. Pasá el mouse por una barra para ver el detalle.</p>${chartDias(porDia)}</div>
+    <div class="card"${dias === 1 ? " hidden" : ""}><h3>Venta por día</h3><p class="note">Total de cada día${suc!=="TODAS" ? " en "+sucNom(suc) : " (todas las sucursales)"}. Pasá el mouse por una barra para ver el detalle.</p>${chartDias(porDia)}</div>
     <div class="g2">
       <div class="card"><h3>Por medio de pago</h3><p class="note">Transferencias: se controlan con el banco.</p>${barras(Object.keys(MEDIOS).map(k => [MEDIOS[k], porMedio[k]]), total)}</div>
       ${suc === "TODAS" ? `<div class="card"><h3>Por sucursal</h3><p class="note">Parte de la venta total del período.</p>${barras(SUCS.map(s => [sucTag(s), porSuc[s]||0, SUC_COLOR[s]]), total, true)}</div>` : ""}
@@ -272,23 +273,33 @@ let soloDif = true;
 function rCierres(){
   const todos = (D.cierres || []).filter(c => deSuc(c[1]));
   const conDif = c => Math.abs(c[4] || 0) >= DIF_MINIMA || Math.abs(c[5] || 0) >= DIF_MINIMA;
-  const lista = soloDif ? todos.filter(conDif) : todos;
-  const porCaj = {}; todos.forEach(c => { const k = c[2] || "—"; porCaj[k] = porCaj[k] || [0,0,0]; porCaj[k][0]++; if(conDif(c)){ porCaj[k][1]++; porCaj[k][2] += (c[4]||0) + (c[5]||0); } });
+  const lista = soloDif ? todos.filter(c => conDif(c) || (c[10] === "DA BOX" && (c[8] || 1) > 1)) : todos;
+  const corr = c => c[10] === "DA BOX" ? Math.max(0, (c[8] || 1) - 1) : 0;          // veces que tocó "Corregir" antes de cerrar
+  const primero = c => c[11] != null && Math.abs(c[11] - (c[4] || 0)) >= 1 ? c[11] : null;   // diferencia del 1er conteo, si cambió
+  const porCaj = {}; todos.forEach(c => { const k = c[2] || "—"; porCaj[k] = porCaj[k] || [0,0,0,0,0]; porCaj[k][0]++; if(conDif(c)){ porCaj[k][1]++; porCaj[k][2] += (c[4]||0) + (c[5]||0); }
+    if(corr(c)){ porCaj[k][3]++; porCaj[k][4] += corr(c); } });
   const dif = d => d == null ? `<span class="dif-nc">—</span>` : Math.abs(d) < DIF_MINIMA ? `<span class="dif-ok">${Math.round(d) ? (d < 0 ? "−" : "+") + money(Math.abs(d)).slice(1) : "OK"}</span>` : `<span class="dif-mal">${d > 0 ? "sobra " : "falta "}${money(Math.abs(d))}</span>`;
+  const difTxtP = d => Math.round(d) === 0 ? "OK" : (d > 0 ? "sobraba " : "faltaba ") + money(Math.abs(d));
   const fecha = ts => { const d = new Date(ts); return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
   $("#s-cierres").innerHTML = `<div class="grid">
     <div class="tiles">
-      <div class="tile"><span>Cierres en ${dias} días</span><b>${todos.length}</b></div>
+      <div class="tile"><span>Cierres ${enPer()}</span><b>${todos.length}</b></div>
       <div class="tile"><span>Con diferencia ≥ ${money(DIF_MINIMA)}</span><b>${todos.filter(conDif).length}</b><small>${pct(todos.filter(conDif).length, todos.length)} de los cierres</small></div>
       <div class="tile"><span>Suma de diferencias</span>${(() => { const t = todos.filter(conDif).reduce((a,c) => a + (c[4]||0) + (c[5]||0), 0); return `<b class="${t < 0 ? "dif-mal" : ""}">${t < 0 ? "falta " : t > 0 ? "sobra " : ""}${money(Math.abs(t))}</b><small>faltantes y sobrantes sumados</small>`; })()}</div>
     </div>
-    <div class="card"><h3>Por cajero</h3><p class="note">Cuántos cierres hizo cada uno y cuántos tuvieron diferencia.</p>
-      <div class="tw"><table><tr><th>Cajero</th><th class="r">Cierres</th><th class="r">Con diferencia</th><th class="r">Suma</th></tr>
-      ${Object.entries(porCaj).sort((a,b) => b[1][1]-a[1][1] || b[1][0]-a[1][0]).map(([k,v]) => `<tr><td>${esc(k)}</td><td class="r">${v[0]}</td><td class="r">${v[1]} <span class="m">(${pct(v[1],v[0])})</span></td><td class="r">${v[1] ? dif(v[2]) : "—"}</td></tr>`).join("")}</table></div></div>
-    <div class="card"><h3><span>Cierres</span><label class="check"><input type="checkbox" id="cSolo" ${soloDif ? "checked" : ""}> Solo con diferencia</label></h3>
+    ${(() => { const sc = (D.sinCierre || []).filter(x => deSuc(x[1])); if(!sc.length) return "";
+      const hh = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+      return `<div class="card" style="border-color:var(--warn)"><h3>🌙 Ventas sin cierre</h3>
+      <p class="note">Ventas que no entraron en ningún cierre: alguien vendió después de cerrar y no hizo el cierre chico. La plata tendría que estar en la caja. Si la caja las cierra al día siguiente (aviso al abrir turno), desaparecen de acá.</p>
+      <div class="tw"><table><tr><th>Día</th><th>Sucursal</th><th class="r">Ventas</th><th class="r">Monto</th><th>Horario</th><th>Cobró</th></tr>
+      ${sc.map(x => `<tr><td class="num">${fechaAR(x[0])}</td><td>${sucTag(x[1])}</td><td class="r">${x[2]}</td><td class="r"><b>${money(x[3])}</b></td><td class="num">${hh(x[4])}${x[5] !== x[4] ? "–" + hh(x[5]) : ""}</td><td>${esc((x[6] || []).join(", "))}</td></tr>`).join("")}</table></div></div>`; })()}
+    <div class="card"><h3>Por cajero</h3><p class="note">Cuántos cierres hizo cada uno, cuántos tuvieron diferencia y en cuántos <b>corrigió el conteo</b> (tocó "Corregir" después de ver el resultado). Corregir está bien si contó mal un billete; muchas correcciones seguidas = revisar cómo cuenta.</p>
+      <div class="tw"><table><tr><th>Cajero</th><th class="r">Cierres</th><th class="r">Con diferencia</th><th class="r">Suma</th><th class="r">Corrigió</th></tr>
+      ${Object.entries(porCaj).sort((a,b) => b[1][1]-a[1][1] || b[1][0]-a[1][0]).map(([k,v]) => `<tr><td>${esc(k)}</td><td class="r">${v[0]}</td><td class="r">${v[1]} <span class="m">(${pct(v[1],v[0])})</span></td><td class="r">${v[1] ? dif(v[2]) : "—"}</td><td class="r">${v[3] ? `<span class="${v[3]/v[0] >= .3 ? "dif-mal" : ""}">${v[3]} cierre${v[3] > 1 ? "s" : ""}</span> <span class="m">(${v[4]} ${v[4] > 1 ? "veces" : "vez"})</span>` : "—"}</td></tr>`).join("")}</table></div></div>
+    <div class="card"><h3><span>Cierres</span><label class="check"><input type="checkbox" id="cSolo" ${soloDif ? "checked" : ""}> Solo con diferencia o corrección</label></h3>
       <p class="note">DA BOX: efectivo contado contra el sistema (el posnet se controla en 💳 Cobros). GUARDABLE: total de caja contra Don Gestión.</p>
-      ${lista.length ? `<div class="tw"><table><tr><th>Fecha</th><th>Sucursal</th><th>Cajero</th><th class="r">Vendido</th><th class="r">Dif. efectivo</th><th class="r">Dif. postnet</th><th class="r">Retiro</th><th>Obs.</th><th>Datos</th></tr>
-      ${lista.slice(0, 300).map(c => `<tr><td class="num">${fecha(c[0])}</td><td>${sucTag(c[1])}</td><td>${esc(c[2])}</td><td class="r">${money(c[3])}</td><td class="r">${dif(c[4])}</td><td class="r">${dif(c[5])}</td><td class="r">${money(c[6])}</td><td class="m">${esc(c[9])}</td><td><span class="pill">${c[10]}</span></td></tr>`).join("")}</table></div>` : `<div class="empty">🎉 Ningún cierre con diferencia en este período.</div>`}
+      ${lista.length ? `<div class="tw"><table><tr><th>Fecha</th><th>Sucursal</th><th>Cajero</th><th class="r">Vendido</th><th class="r">Dif. efectivo</th><th class="r">Dif. postnet</th><th class="r">Retiro</th><th class="r">Correcciones</th><th>Obs.</th><th>Datos</th></tr>
+      ${lista.slice(0, 300).map(c => `<tr><td class="num">${fecha(c[0])}</td><td>${sucTag(c[1])}</td><td>${esc(c[2])}</td><td class="r">${money(c[3])}</td><td class="r">${dif(c[4])}</td><td class="r">${dif(c[5])}</td><td class="r">${money(c[6])}</td><td class="r">${corr(c) ? `<span title="Veces que tocó Corregir">✏️ ${corr(c)}</span>${primero(c) != null ? `<br><small class="m">1er conteo: ${difTxtP(primero(c))}</small>` : ""}` : c[10] === "DA BOX" ? "—" : ""}</td><td class="m">${esc(c[9])}</td><td><span class="pill">${c[10]}</span></td></tr>`).join("")}</table></div>` : `<div class="empty">🎉 Ningún cierre con diferencia en este período.</div>`}
     </div></div>`;
   $("#cSolo").onchange = e => { soloDif = e.target.checked; rCierres(); };
 }
@@ -353,7 +364,7 @@ function rProductos(){
   lista.sort((a,b) => b[pOrden] - a[pOrden]);
   const total = lista.reduce((x,a) => x + a.monto, 0);
   $("#s-productos").innerHTML = `<div class="card">
-    <h3>Más vendidos en ${dias} días${suc!=="TODAS" ? " · "+sucNom(suc) : ""}</h3>
+    <h3>Más vendidos ${enPer()}${suc!=="TODAS" ? " · "+sucNom(suc) : ""}</h3>
     <p class="note">Solo ventas cobradas en DA BOX (sin anuladas). ${lista.length} productos · ${money(total)}.</p>
     <div class="filtros" style="border:0;padding:0;margin-bottom:10px">
       <input class="campo" id="pBusca" placeholder="Buscar producto, código o categoría" value="${esc(pBusca)}" style="max-width:340px">
@@ -391,7 +402,8 @@ function datosDemo(){
     SUCS.forEach(s => { const t = (8e6 + rnd()*6e6) * peso[s] * (i === 0 ? .25 : 1); mensual.push([m, s, t, t*.45, t*.3, t*.25, 0, i < 1 ? "DA BOX" : "GUARDABLE"]); }); }
   const cajeros = ["Ana","Celi","Delfi","Joa","Luka","Manu C","Manu R","Mica","Paula"], cierres = [];
   for(let d = 0; d < dias; d++) SUCS.forEach((s,i) => { const r = rnd(), dif = r < .15 ? -Math.round(rnd()*8000) : r < .22 ? Math.round(rnd()*3000) : 0;
-    cierres.push([ahora - d*864e5 - i*3e5, s, cajeros[Math.floor(rnd()*cajeros.length)], Math.round(2e5 + rnd()*5e5), dif, rnd() < .1 ? -1500 : 0, Math.round(1e5 + rnd()*2e5), 0, 1, dif ? "error de vuelto" : "", "DA BOX"]); });
+    cierres.push([ahora - d*864e5 - i*3e5, s, cajeros[Math.floor(rnd()*cajeros.length)], Math.round(2e5 + rnd()*5e5), dif, rnd() < .1 ? -1500 : 0, Math.round(1e5 + rnd()*2e5), 0, ...(rnd() < .12 ? [2 + (rnd() < .3 ? 1 : 0), dif ? "error de vuelto" : "", "DA BOX", dif - 5000] : [1, dif ? "error de vuelto" : "", "DA BOX", null])]); });
+  const sinCierre = [[ymd(new Date(ahora - 864e5)), "MORENO", 2, 7400, ahora - 864e5 + 3e5, ahora - 864e5 + 15e5, ["Mica"]]];
   const cobros = {semanas:[], movimientos:[], liquidaciones:[], ultimoQR: ymd(new Date(ahora - 2*864e5)), hojas:{qr:true, mov:true, liq:true}};
   for(let k = 0; k < 6; k++){ const d = new Date(ahora - k*7*864e5); d.setDate(d.getDate() - (d.getDay()+6)%7); const w = ymd(d); let lotes = 0;
     SUCS.forEach(s => { const lote = Math.round((60000 + rnd()*120000)*peso[s]*3), qr = Math.round((200000 + rnd()*400000)*peso[s]*2), err = rnd() < .2 ? -Math.round(rnd()*15000) : Math.round(rnd()*900);
@@ -399,7 +411,7 @@ function datosDemo(){
     cobros.movimientos.push([w, lotes + (rnd() < .3 ? 4200 : 0)]); }
   for(let i = 0; i < 3; i++){ const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); const m = ymd(d).slice(0,7);
     [["VISA",1.8e6,.02,.02],["MASTERCARD",.5e6,.018,.02],["CABAL",.08e6,.09,.035]].forEach(([b,t,c,im]) => cobros.liquidaciones.push([m, b, t, t*c, t*im])); }
-  return {rol:"admin", dias, generado:ahora, secciones:["vivo","ventas","mensual","cierres","cobros","productos"], cobros,
+  return {rol:"admin", dias, generado:ahora, secciones:["vivo","ventas","mensual","cierres","cobros","productos"], cobros, sinCierre,
     vivo:[["FALCON","1","Celi","08:58",0,ahora-4e4],["FALCON","2","Joa","09:05",2,ahora-9e4],["MORENO","","Manu R","08:30",0,ahora-3e4],["NACION","","Delfi","09:00",0,ahora-36e5],["SOMISA","","Luka","13:30",0,ahora-2e4]],
     dia, horas:Object.values(horas), productos:prod, mensual, cierres};
 
