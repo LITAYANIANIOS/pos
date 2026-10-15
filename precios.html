@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Precios · Lita &amp; Añaños</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f6c445'/%3E%3Cpath d='M12 30V14a2 2 0 0 1 2-2h16l22 22-18 18z' fill='none' stroke='%231f2a24' stroke-width='5' stroke-linejoin='round'/%3E%3Ccircle cx='22' cy='22' r='4' fill='%231f2a24'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f6c445">
+<link rel="stylesheet" href="comun/estilos.css?v=1">
+<style>
+/* =====================================================================
+   PRECIOS · DA BOX                                               v1.0
+   Para el celular de Roman y de la dueña:
+   🔎 Buscar: sin clave, solo mira precios.  ✏️ Actualizar: con la clave del panel, cambia precio/combo/nombre.
+   Los cambios quedan en la hoja "Cambios de precio" y las cajas los toman en hasta 30 minutos.
+   ===================================================================== */
+body{background:var(--bg)}
+.wrap{max-width:720px;margin:0 auto;padding:16px 16px 40px}
+.cab{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.cab b{font-size:17px} .cab small{display:block;color:var(--muted);font-size:12px;font-weight:500}
+.cab .der{margin-left:auto;display:flex;gap:6px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--surface-2);padding:4px;border-radius:10px;margin-bottom:14px}
+.tabs button{border:0;background:none;padding:11px;border-radius:8px;font-weight:600;color:var(--muted);cursor:pointer;font-size:15px}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0 / .08)}
+.busca{position:sticky;top:0;z-index:5;background:var(--bg);padding:6px 0 10px}
+.busca input{font-size:18px;padding:14px 16px;border-radius:12px}
+.info{font-size:12px;color:var(--muted);margin:2px 2px 8px}
+.res{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.res li{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.res li.edit{cursor:pointer} .res li.edit:hover{background:var(--sel)}
+.res .n{flex:1;min-width:0}
+.res .n b{display:block;font-weight:600;line-height:1.3}
+.res .n small{color:var(--muted);font-size:12px}
+.res .p{text-align:right;white-space:nowrap}
+.res .p b{font-size:20px;font-variant-numeric:tabular-nums}
+.res .p small{display:block;font-size:12px;color:var(--warn);font-weight:600}
+.res .lapiz{color:var(--muted);font-size:16px}
+.cambios{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13px}
+.cambios li{display:flex;gap:10px;padding:8px 10px;border-radius:8px;background:var(--surface-2)}
+.cambios li span{flex:1;min-width:0}
+.ov .modal input.grande{font-size:26px;font-weight:700;text-align:right}
+.antes{color:var(--muted);font-size:13px;margin-top:6px}
+.sube{color:var(--ok);font-weight:600} .baja{color:var(--bad);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="cab"><span style="font-size:26px">🏷️</span><div><b>Precios</b><small>Lita &amp; Añaños</small></div>
+    <div class="der"><button class="btn sm" id="bRec" title="Volver a bajar los precios de la planilla">↻</button><button class="btn sm" id="bSalir" hidden>Salir</button></div></div>
+  <div class="tabs" role="tablist"><button role="tab" data-t="buscar" aria-selected="true">🔎 Buscar</button><button role="tab" data-t="editar" aria-selected="false">✏️ Actualizar</button></div>
+
+  <!-- Dirección de la planilla (una sola vez por celular) -->
+  <div class="card" id="cUrl" hidden>
+    <h3>Conectar con la planilla</h3>
+    <p class="note">Pegá la dirección del Apps Script (la misma de las cajas y el panel). Se guarda en este celular.</p>
+    <input class="campo" id="iUrl" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
+    <div class="err" id="eUrl" hidden></div>
+    <button class="btn primary" id="bUrl" style="margin-top:12px;width:100%">Conectar</button>
+  </div>
+
+  <!-- Clave para actualizar -->
+  <div class="card" id="cClave" hidden>
+    <h3>🔒 Para cambiar precios</h3>
+    <p class="note">Usá tu clave del panel. Se olvida al cerrar la pestaña.</p>
+    <input class="campo secreto" id="iClave" type="text" autocomplete="off" spellcheck="false" placeholder="Clave del panel">
+    <div class="err" id="eClave" hidden></div>
+    <button class="btn primary" id="bClave" style="margin-top:12px;width:100%">Entrar</button>
+  </div>
+
+  <div id="cLista" hidden>
+    <div class="busca"><input class="campo" id="q" type="search" autocomplete="off" placeholder="Buscar: nombre, código o categoría" enterkeyhint="search"></div>
+    <p class="info" id="info"></p>
+    <ul class="res" id="res"></ul>
+    <div id="cCambios" hidden>
+      <h3 style="margin:22px 2px 8px;font-size:14px">Últimos cambios</h3>
+      <ul class="cambios" id="cambios"></ul>
+    </div>
+  </div>
+</div>
+
+<!-- Editar un producto -->
+<div class="ov" id="ed" hidden>
+  <form class="modal" id="fEd" autocomplete="off">
+    <h2 id="edTit">Cambiar precio</h2>
+    <p class="note" id="edInfo"></p>
+    <label>Precio <input class="campo grande mon" id="edPre" inputmode="numeric"></label>
+    <p class="antes" id="edAntes"></p>
+    <label>Combo (opcional, ej. 3x2500) <input class="campo" id="edCombo" placeholder="vacío = sin combo"></label>
+    <label>Nombre <input class="campo" id="edNom"></label>
+    <div class="err" id="edErr" hidden></div>
+    <div class="acciones"><button class="btn" type="button" id="edX">Cancelar</button><button class="btn primary" type="submit" id="edOk">Guardar</button></div>
+  </form>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(()=>{
+"use strict";
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = n => "$ " + Math.round(n || 0).toLocaleString("es-AR");
+const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const toNum = s => { s = String(s ?? "").replace(/[$\s]/g,""); if(/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g,""); else s = s.replace(",", "."); const n = parseFloat(s); return isFinite(n) ? n : 0; };
+const LS = (k, v) => { try{ if(v === undefined) return localStorage.getItem("dabox."+k); localStorage.setItem("dabox."+k, v); }catch(e){ return null; } };
+const SS = (k, v) => { try{ if(v === undefined) return sessionStorage.getItem("dabox."+k) || ""; v ? sessionStorage.setItem("dabox."+k, v) : sessionStorage.removeItem("dabox."+k); }catch(e){ return ""; } };
+let toastT; function toast(m, ms=3000){ const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms); }
+const comboTxt = c => { const m = String(c||"").match(/^\s*(\d+)\s*[xX×]\s*\$?\s*([\d.,]+)\s*$/); return m ? `${m[1]} × ${money(toNum(m[2]))}` : ""; };
+
+/* ---------- conexión: url en el celular (la misma del panel), clave solo en esta pestaña ---------- */
+let url = LS("url") || "", clave = SS("clave"), tab = "buscar", items = [], cambios = [], editando = null;
+async function api(accion, params = {}){
+  const u = new URL(url); u.search = new URLSearchParams({accion, ...params});
+  const r = await fetch(u, {cache:"no-store"}); if(!r.ok) throw new Error("La dirección no responde");
+  const j = await r.json(); if(j.error) throw new Error(j.error); return j;
+}
+async function cargarPrecios(forzar){
+  const cache = (() => { try{ return JSON.parse(LS("precios") || "null"); }catch(e){ return null; } })();
+  if(cache && !forzar){ items = cache.items; render(); }
+  try{
+    $("#info").textContent = items.length ? `${items.length} productos · actualizando…` : "Bajando precios…";
+    const j = await api("precios"); items = j.items || [];
+    LS("precios", JSON.stringify({items, fecha: Date.now()})); render();
+  }catch(e){ $("#info").textContent = (items.length ? `${items.length} productos (guardados) · ` : "") + "⚠ " + (e.message === "Failed to fetch" ? "sin conexión" : e.message === "acción desconocida" ? "el script es anterior a v3.23" : e.message); }
+}
+async function cargarCambios(){ try{ const j = await api("precio-cambios", {clave}); cambios = j.cambios || []; renderCambios(); return true; }catch(e){ return e; } }
+
+/* ---------- pantallas ---------- */
+function vista(){
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.t === tab));
+  $("#cUrl").hidden = !!url;
+  $("#cClave").hidden = !url || tab !== "editar" || !!clave;
+  $("#cLista").hidden = !url || (tab === "editar" && !clave);
+  $("#cCambios").hidden = tab !== "editar";
+  $("#bSalir").hidden = !clave;
+  if(!$("#cLista").hidden){ render(); setTimeout(() => $("#q").focus(), 30); }
+}
+document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; tab = b.dataset.t; vista(); });
+function buscar(q){
+  const t = norm(q).split(/\s+/).filter(Boolean); if(!t.length) return [];
+  return items.filter(p => { const k = norm(p.nombre + " " + p.cat + " " + p.cod + " " + p.alt); return t.every(x => k.includes(x)); }).slice(0, 60);
+}
+function render(){
+  const q = $("#q").value, l = buscar(q), ed = tab === "editar";
+  $("#info").textContent = !items.length ? "" : !q.trim() ? `${items.length} productos. Escribí para buscar.${ed ? " Tocá uno para cambiarlo." : ""}` : `${l.length === 60 ? "60+" : l.length} resultado${l.length === 1 ? "" : "s"}`;
+  $("#res").innerHTML = l.map((p,i) => `<li${ed ? ` class="edit" data-i="${i}"` : ""}><div class="n"><b>${esc(p.nombre)}</b><small>${esc(p.cat)} · ${esc(p.cod)}</small></div>
+    <div class="p">${p.precio > 0 ? `<b>${money(p.precio)}</b>` : `<small>precio abierto</small>`}${p.combo && comboTxt(p.combo) ? `<small>🏷️ ${comboTxt(p.combo)}</small>` : ""}</div>${ed ? `<span class="lapiz">✏️</span>` : ""}</li>`).join("");
+  $("#res")._l = l;
+}
+function renderCambios(){
+  $("#cambios").innerHTML = cambios.slice(0, 30).map(c => `<li><span><b>${esc(c[4])}</b><br><small class="m">${esc(c[0].split("-").reverse().join("/"))} ${esc(c[1])} · ${esc(c[2])}</small></span>
+    <span style="text-align:right;flex:none">${money(c[5])} → <b class="${c[6] > c[5] ? "sube" : c[6] < c[5] ? "baja" : ""}">${money(c[6])}</b></span></li>`).join("") || `<li>Todavía no hay cambios.</li>`;
+}
+$("#q").addEventListener("input", render);
+$("#res").addEventListener("click", e => { const li = e.target.closest("li[data-i]"); if(!li || tab !== "editar") return; abrir($("#res")._l[+li.dataset.i]); });
+
+/* ---------- editar ---------- */
+function abrir(p){
+  editando = p;
+  $("#edTit").textContent = "Cambiar precio"; $("#edInfo").textContent = `${p.cat} · código ${p.cod}`;
+  $("#edPre").value = p.precio || ""; $("#edCombo").value = p.combo || ""; $("#edNom").value = p.nombre;
+  $("#edAntes").textContent = p.precio ? `Ahora: ${money(p.precio)}` : "Ahora: precio abierto";
+  $("#edErr").hidden = true; $("#ed").hidden = false; setTimeout(() => { $("#edPre").focus(); $("#edPre").select(); }, 30);
+}
+$("#edPre").addEventListener("input", () => { const n = Math.round(toNum($("#edPre").value)), a = editando.precio;
+  $("#edAntes").innerHTML = a && n ? `Ahora: ${money(a)} → <b class="${n > a ? "sube" : n < a ? "baja" : ""}">${money(n)}</b> (${n > a ? "+" : ""}${((n - a) / a * 100).toFixed(1)}%)` : (a ? `Ahora: ${money(a)}` : ""); });
+$("#edX").onclick = () => { $("#ed").hidden = true; };
+$("#fEd").onsubmit = async e => {
+  e.preventDefault();
+  const precio = Math.round(toNum($("#edPre").value)), combo = $("#edCombo").value.trim(), nombre = $("#edNom").value.trim().replace(/\s+/g, " ");
+  const err = m => { $("#edErr").textContent = m; $("#edErr").hidden = false; };
+  if(!(precio > 0)) return err("Poné el precio.");
+  if(combo && !comboTxt(combo)) return err("El combo tiene que ser como 3x2500.");
+  if(editando.precio && Math.abs(precio - editando.precio) / editando.precio > 0.5 && !confirm(`El precio cambia más de 50% (${money(editando.precio)} → ${money(precio)}). ¿Seguro?`)) return;
+  $("#edOk").textContent = "Guardando…"; $("#edOk").disabled = true;
+  try{
+    const r = await api("precio-editar", {clave, cod: editando.cod, nombreOrig: editando.nombre, precio, combo, nombre});
+    Object.assign(editando, r.item); LS("precios", JSON.stringify({items, fecha: Date.now()}));
+    $("#ed").hidden = true; render(); cargarCambios();
+    toast(`✓ ${r.item.nombre}: ${money(r.antes)} → ${money(r.item.precio)}. Las cajas lo toman en hasta 30 min.`, 4500);
+  }catch(e2){ if(/clave/i.test(e2.message)){ clave = ""; SS("clave", ""); $("#ed").hidden = true; vista(); } else err(e2.message === "Failed to fetch" ? "Sin conexión: no se guardó." : e2.message); }
+  finally{ $("#edOk").textContent = "Guardar"; $("#edOk").disabled = false; }
+};
+$("#ed").addEventListener("keydown", e => { if(e.key === "Escape") $("#ed").hidden = true; });
+
+/* ---------- entrar ---------- */
+$("#bUrl").onclick = async () => {
+  const u = $("#iUrl").value.trim();
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)){ $("#eUrl").textContent = "Tiene que ser la dirección de Apps Script (termina en /exec)."; $("#eUrl").hidden = false; return; }
+  url = u; LS("url", u); vista(); cargarPrecios(true);
+};
+$("#bClave").onclick = async () => {
+  const c = $("#iClave").value.trim(); if(c.length < 10){ $("#eClave").textContent = "La clave tiene al menos 10 caracteres."; $("#eClave").hidden = false; return; }
+  clave = c; $("#bClave").textContent = "Entrando…";
+  const ok = await cargarCambios(); $("#bClave").textContent = "Entrar";
+  if(ok === true){ SS("clave", c); $("#iClave").value = ""; $("#eClave").hidden = true; vista(); }
+  else { clave = ""; $("#eClave").textContent = /clave/i.test(ok.message) ? "Clave incorrecta (es la del panel, no la de las cajas)." : ok.message; $("#eClave").hidden = false; }
+};
+$("#iClave").addEventListener("keydown", e => { if(e.key === "Enter") $("#bClave").click(); });
+$("#bSalir").onclick = () => { clave = ""; SS("clave", ""); tab = "buscar"; vista(); };
+$("#bRec").onclick = () => { if(url){ cargarPrecios(true); if(clave) cargarCambios(); } };
+
+vista();
+if(url){ cargarPrecios(); if(clave) cargarCambios(); }
+})();
+</script>
+</body>
+</html>

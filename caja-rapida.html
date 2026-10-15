@@ -77,7 +77,8 @@ td.r,th.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* ---------- 3. Estructura: barra lateral + contenido ---------- */
 .app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
-aside.side{background:var(--side);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh}
+aside.side{background:var(--side);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow-y:auto;overscroll-behavior:contain}
+@media (max-height:760px) and (min-width:901px){aside.side{gap:12px;padding:12px 12px}}   /* pantallas bajas (notebooks): la barra se achica y se puede bajar con la ruedita */
 .logo{display:flex;align-items:center;gap:10px;padding:0 6px;font-weight:700;font-size:15px;color:var(--ink)}
 .logo img{width:40px;height:40px}
 .logo small{display:block;font-size:11px;font-weight:500;color:var(--muted);letter-spacing:0}
@@ -246,6 +247,8 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .medios button{padding:13px 12px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);cursor:pointer;font-weight:600;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px}
 .medios button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .medios button[aria-pressed="true"] kbd{background:rgb(255 255 255 / .18);border-color:transparent;color:inherit}
+.upsell{margin-top:8px;padding:8px 12px;border:1px dashed var(--accent);border-radius:var(--r-sm);background:var(--accent-soft);font-size:13px;display:grid;gap:3px}
+.upsell b.t{font-size:12px;color:var(--muted);font-weight:600}
 .desc-box{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:12px;padding:9px 12px;border-radius:var(--r-sm);background:var(--surface-2);font-size:13.5px;font-weight:500}
 .desc-box.on{background:var(--ok-soft);color:var(--ok)}
 .desc-box .acc{margin-left:auto;display:flex;gap:12px}
@@ -525,6 +528,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
       <ul class="lines" id="lines"></ul>
       <div class="empty" id="tEmpty">🔍 Escribí para buscar o elegí una categoría.</div>
       <div class="desc-box" id="descBox" hidden></div>
+      <div class="upsell" id="upsell" hidden></div>
       <div class="total"><span>Total</span><b id="tTotal">$ 0</b></div>
       <div class="bar2" id="barVenta">
         <button class="btn" id="bVaciar">Vaciar</button>
@@ -800,6 +804,16 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
   </div>
 </div>
 
+<!-- Sucursal con 2 PC: la otra PC cerró la caja -->
+<div class="overlay" id="rcOverlay" hidden>
+  <div class="modal">
+    <h2>🔒 Se cerró la caja en la otra PC</h2>
+    <p id="rcTxt"></p>
+    <p class="note">Las ventas de esta PC ya entraron en ese cierre. Cerrá también el turno acá: no hace falta contar de nuevo.</p>
+    <div class="bar2"><button class="btn" id="rcSigo">Sigo vendiendo (venta después del cierre)</button><button class="btn primary" id="rcOk">Cerrar turno en esta PC</button></div>
+  </div>
+</div>
+
 <!-- Ventas que quedaron después del cierre (se cierran al día siguiente) -->
 <div class="overlay" id="pdOverlay" hidden>
   <div class="modal">
@@ -989,7 +1003,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-10-14 v3.35";
+const VERSION = "2026-10-15 v3.38";
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1048,7 +1062,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 const pad = n => String(n).padStart(2,"0");
 const ymd = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 const hm  = d => pad(d.getHours())+":"+pad(d.getMinutes());
-const fechaAR = f => f.split("-").reverse().join("/");
+const fechaAR = f => { const t = String(f ?? ""); return /^\d{4}-\d{2}-\d{2}/.test(t) ? t.slice(0,10).split("-").reverse().join("/") : t; };
 const medioL = k => (MEDIOS.find(m => m.k === k) || {l:k}).l;
 const inicioHoy = () => { const d=new Date(); d.setHours(0,0,0,0); return d.getTime(); };
 const nro = s => (s.pc ? s.pc+"-" : "") + s.n;
@@ -1232,12 +1246,14 @@ function indexCatalog(){
     p.combo = p._open ? null : leerCombo(p.combo);
   });
 }
+const catDe = r => ({items:r.items, empleados:r.empleados||[], avisos:r.avisos||[], config:r.config||{}, links:r.links||[], tarifas:r.tarifas||{}, descuentos:r.descuentos||null,
+  clientes:r.clientes||[], errores:r.errores||[], saldos:r.saldos||{}, botones:r.botones||null, version:r.version||"", fuente:"planilla", fecha:Date.now()});   // un solo lugar
 async function cargarCatalogo(){ /* también trae empleados y avisos */
   if(DEMO || !cfg.url) return;
   try{
     const r = await api("catalogo");
     if(!r.items || !r.items.length) throw 0;
-    cat = {items:r.items, empleados:r.empleados||[], avisos:r.avisos||[], config:r.config||{}, links:r.links||[], tarifas:r.tarifas||{}, descuentos:r.descuentos||null, clientes:r.clientes||[], errores:r.errores||[], saldos:r.saldos||{}, botones:r.botones||null, version:r.version||"", fuente:"planilla", fecha:Date.now()};
+    cat = catDe(r);
     guardar("catalog", cat); indexCatalog(); renderMeta(); renderAvisos(); renderLinks();
     if(!$("#apertura").hidden) renderApertura();
   }catch(e){ if(e && e.tipo === "clave") claveMal = true; renderMeta(); }
@@ -1356,6 +1372,23 @@ $("#pdOk").onclick = cerrarPendiente;
 $("#pdLuego").onclick = () => { $("#pdOverlay").hidden = true; toast("Queda el botón 🌙 en la barra lateral"); focusQ(); };
 $("#bPend").onclick = cerrarPendiente;
 $("#cPendX").onclick = () => showTab("venta");
+/* Sucursal con 2 PC (Falcon): cada minuto pregunta si la otra PC cerró la caja; si cerró, avisa y ofrece cerrar el turno acá */
+let rcVisto = 0;
+async function revisarCierreOtraPC(){
+  if(DEMO || !cfg.url || !turnoAbierto() || (PCS_POR_SUC[cfg.suc] || 1) < 2 || !$("#rcOverlay").hidden) return;
+  let r; try{ r = await api("cierreSuc", {sucursal:cfg.suc}); }catch(e){ return; }
+  if(!r || r.error || !(r.ts > cfg.turno.desde) || r.ts <= rcVisto || cierres.some(c => c.id === r.id)) return;   // script viejo, cierre anterior al turno o el de esta PC
+  if(r.ts > (cfg.cierreRemoto || 0)){ cfg.cierreRemoto = r.ts; guardar("cfg", cfg); }   // las ventas ya cerradas quedan bloqueadas para anular / cambiar medio
+  rcVisto = r.ts;
+  $("#rcTxt").textContent = `${r.pc ? "La PC " + r.pc : "Otra PC"} cerró la caja de ${cfg.suc[0] + cfg.suc.slice(1).toLowerCase()} a las ${hm(new Date(r.ts))}` + (r.cajero ? ` (${r.cajero})` : "") + ".";
+  $("#rcOverlay").hidden = false; $("#rcOk").focus();
+}
+$("#rcOk").onclick = () => {
+  $("#rcOverlay").hidden = true;
+  if(cart.length && !confirm("Hay una venta sin cobrar en pantalla. ¿Cerrar el turno igual?")) return;
+  cart = []; renderCart(); cfg.turno = null; guardar("cfg", cfg); toast("Turno cerrado en esta PC"); abrirApertura();
+};
+$("#rcSigo").onclick = () => { $("#rcOverlay").hidden = true; toast("🌙 Antes de irte, hacé el cierre chico de lo que vendas"); focusQ(); };
 /* aviso al cerrar la pestaña o el navegador si hay ventas sin cerrar en esta PC */
 window.addEventListener("beforeunload", e => {
   if(DEMO || !turnoAbierto()) return;
@@ -1402,6 +1435,7 @@ $("#gHerr").onclick = () => {
 renderGrupo();
 function showTab(t){
   if(t !== "cierre" && cerrandoPend){ cerrandoPend = false; base = null; }
+  if(t !== "cierre" && !$("#cResultado").hidden){ $("#cResultado").hidden = true; bloquearConteo(false); }   // al volver hay que comparar de nuevo (los números pueden haber cambiado)
   $("#cPend").hidden = !(t === "cierre" && cerrandoPend);
   if(!$("#nota").hidden && $("#notaPin").getAttribute("aria-pressed") !== "true") $("#nota").hidden = true;
   document.querySelectorAll("nav button[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
@@ -1691,6 +1725,30 @@ function renderDesc(){
       + `<span class="acc"><button class="link" id="cliBtn" type="button">👤 ${descCli ? "Cambiar" : "Cliente / otro"}</button>${d ? `<button class="link" id="descTg" type="button">${on ? "Quitar" : "Aplicar"}${$("#cobro").hidden ? "" : " <kbd>D</kbd>"}</button>` : ""}</span>` + tip;
   }
   $("#tTotal").innerHTML = t < tot ? `<s>${money(tot)}</s>${money(t)}` : money(tot);
+  renderUpsell();
+}
+/* 💡 sugerencias para subir el ticket: combos a los que les falta poco y el próximo escalón de descuento por cantidad o monto */
+function sugerencias(){
+  if(!cart.length) return [];
+  const out = [], corto = n => n.length > 30 ? n.slice(0, 28) + "…" : n;
+  cart.forEach(l => {
+    if(!l.combo || l.open || !(l.cant > 0)) return;
+    const resto = l.cant % l.combo.q; if(!resto) return;
+    const falta = l.combo.q - resto, ahorro = l.combo.q * l.precio - l.combo.p;
+    if(ahorro > 0) out.push(`🏷️ <b>${esc(corto(l.nombre))}</b>: llevando ${falta} más paga ${money(l.combo.p)} cada ${l.combo.q} (ahorra ${money(ahorro)})`);
+  });
+  const R = reglas(), el = cart.filter(l => !SIN_DESC(l));
+  const base = el.reduce((a,l) => a + subt(l), 0), uds = el.reduce((a,l) => a + (+l.cant || 0), 0);
+  const ya = Math.max(escala(R.unidades, uds), escala(R.monto, base), descCli ? +descCli.pct || 0 : 0);
+  const prox = (lista, x) => (lista || []).filter(([d,p]) => d > x && p > ya).sort((a,b) => a[0] - b[0])[0];
+  const u = prox(R.unidades, uds); if(u && uds > 0 && u[0] - uds <= Math.max(3, uds)) out.push(`📦 Con ${u[0] - uds} unidad${u[0] - uds > 1 ? "es" : ""} más: <b>${u[1]}% de descuento</b>`);
+  const m = prox(R.monto, base); if(m && base > 0 && m[0] - base <= base) out.push(`🧾 Sumando ${money(m[0] - base)} más: <b>${m[1]}% de descuento</b>`);
+  return out.slice(0, 3);
+}
+function renderUpsell(){
+  const l = sugerencias(), box = $("#upsell");
+  box.hidden = !l.length;
+  box.innerHTML = l.length ? `<b class="t">💡 Ofrecele al cliente</b>` + l.map(x => `<span>${x}</span>`).join("") : "";
 }
 function toggleDesc(){ if(!mejorDesc(medio)) return; descOn = !descOn; renderDesc(); updVuelto(); if(medio === "efectivo") $("#pagaCon").focus(); }
 $("#descBox").addEventListener("click", e => {
@@ -1992,6 +2050,7 @@ function updVuelto(){ const tot=aCobrar(), p=toNum($("#pagaCon").value);
   $("#vuelto").textContent = p ? (p>=tot ? money(p-tot) : "falta "+money(tot-p)) : "—"; }
 function confirmar(){
   if(!medio) return;
+  if(cart.some(l => !(l.precio > 0) || !(l.cant > 0))){ $("#cobroErr").textContent = "Falta precio o cantidad en una línea."; $("#cobroErr").hidden = false; return; }
   const tot = aCobrar(), p = toNum($("#pagaCon").value), d = descAplicado() ? mejorDesc(medio) : null;
   if(medio==="efectivo" && p && p<tot){ $("#cobroErr").textContent="El monto recibido es menor al total."; $("#cobroErr").hidden=false; return; }
   const t = new Date(), fecha = ymd(t);
@@ -2095,6 +2154,7 @@ document.addEventListener("keydown", e => {
     if(e.key==="Enter"){ e.preventDefault(); confirmar(); return; }
     if(e.key==="Tab"){ e.preventDefault(); const i = MEDIOS.findIndex(x => x.k === medio), n = MEDIOS.length;
       setMedio(MEDIOS[(i + (e.shiftKey ? n-1 : 1)) % n].k); return; }
+    if(e.target.closest && e.target.closest("#lines, textarea, #ccOverlay, #cliOverlay")) return;   // escribiendo en una línea u otro campo: las letras no cambian el medio
     if(e.key.toLowerCase() === "d" && !e.ctrlKey && !e.altKey && !e.metaKey){ e.preventDefault(); toggleDesc(); return; }
     const m = MEDIOS.find(x => x.tecla.toLowerCase() === e.key.toLowerCase());
     if(m && !e.ctrlKey && !e.altKey && !e.metaKey){ e.preventDefault(); setMedio(m.k); }
@@ -3077,7 +3137,7 @@ $("#bSave").onclick = async () => {
   try{
     const r = await api("catalogo");
     if(r.error){ $("#syncMsg").textContent = "La planilla respondió: "+r.error; return; }
-    cat = {items:r.items, empleados:r.empleados||[], avisos:r.avisos||[], config:r.config||{}, links:r.links||[], tarifas:r.tarifas||{}, descuentos:r.descuentos||null, clientes:r.clientes||[], errores:r.errores||[], saldos:r.saldos||{}, fuente:"planilla", fecha:Date.now()}; guardar("catalog", cat); indexCatalog(); renderAvisos(); renderLinks();
+    cat = catDe(r); guardar("catalog", cat); indexCatalog(); renderAvisos(); renderLinks();
     claveMal = false; verificada = Date.now();
     $("#syncMsg").textContent = `✓ Conectado. Catálogo: ${r.items.length} productos · ${(r.empleados||[]).length} empleados · ${(r.links||[]).length} links · ` +
       (r.version ? `script v${r.version} · descuentos: ${descTxt()}.` : `⚠ la planilla responde con un script VIEJO: en Apps Script → Implementar → Administrar implementaciones → ✏️ (la de esta misma URL) → Versión: Nueva versión.`);
@@ -3099,6 +3159,7 @@ $("#bReenviar").onclick = e => {
     faltantes.forEach(f => sumar("faltante", f.id));
     errores.forEach(x => sumar("error", x.id));
     pagosCC.forEach(x => { sumar("pagoCC", x.id); if(x.anulado) sumar("pagoCCAnul", x.id); });
+    ((cat && cat.clientes) || []).forEach(c => { if(c.id) sumar("cliente", c.id); });   // clientes creados en esta PC
     gastos.forEach(g => { sumar("gasto", g.id); if(g.anulado) sumar("gastoAnul", g.id); });
     verificada = 0; guardar("queue", queue); renderAjustes(); flush();
     toast(`🔁 ${queue.length - n0} envíos en camino. Dejá la caja abierta unos minutos.`, 5000);
@@ -3123,7 +3184,7 @@ setTimeout(() => {               // espera la respuesta de otras pestañas antes
   if(!turnoAbierto()) abrirApertura(); else { focusQ(); cargarNota(); setTimeout(() => buscarPendiente(false), 3000); }
   renderAvisos(); renderLinks();
   flush(); cargarCatalogo();
-  setInterval(() => { flush(); enviarEstado(); renderMeta(); renderAvisos(); renderLinks(); }, 60000);
+  setInterval(() => { flush(); enviarEstado(); renderMeta(); renderAvisos(); renderLinks(); revisarCierreOtraPC(); }, 60000);
   setInterval(cargarCatalogo, 30*60000);
   window.addEventListener("online", flush);
 }, 400);

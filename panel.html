@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v1.6
+   PANEL · DA BOX                                                 v1.7
    Para MIRAR números (solo lee). Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
    ===================================================================== */
@@ -167,7 +167,7 @@ function rVentas(){
   const hoy = ymd(new Date()), fHoy = filas.filter(f => f[0] === hoy), tHoy = fHoy.reduce((a,f) => a + f[4], 0);
   const porDia = {}; filas.forEach(f => porDia[f[0]] = (porDia[f[0]] || 0) + f[4]);
   const diasConVenta = Object.keys(porDia).length;
-  const porMedio = {efectivo:0, postnet:0, transf:0}; filas.forEach(f => porMedio[f[2]] = (porMedio[f[2]] || 0) + f[4]);
+  const porMedio = {efectivo:0, postnet:0, transf:0, ctacte:0}; filas.forEach(f => porMedio[f[2]] = (porMedio[f[2]] || 0) + f[4]);
   const porSuc = {}; filas.forEach(f => porSuc[f[1]] = (porSuc[f[1]] || 0) + f[4]);
 
   $("#s-ventas").innerHTML = `<div class="grid">

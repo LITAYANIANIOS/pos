@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Compras · Lita &amp; Añaños</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f6c445'/%3E%3Cg fill='none' stroke='%231f2a24' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 13h8l6 28h26l5-19H19'/%3E%3C/g%3E%3Ccircle cx='25' cy='50' r='4.5' fill='%231f2a24'/%3E%3Ccircle cx='45' cy='50' r='4.5' fill='%231f2a24'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#f6c445">
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   COMPRAS · DA BOX                                                v1.0
+   COMPRAS · DA BOX                                                v1.2
    Tablero estilo Keep / Trello para TRABAJAR los pedidos de mercadería.
    📥 Entrada = lo que avisan las cajas · las demás listas las arma compras (proveedor o tema).
    Tildar = llegó (lo hace quien recibe la mercadería). Lo compartido está en comun/.
@@ -174,14 +175,17 @@ function render(){
   const nDesc = grupos(D.tarjetas.filter(descartada)).length;
   $("#bPapelera").textContent = "🗑 Descartadas" + (nDesc ? " · " + nDesc : "");
   const abiertas = grupos(D.tarjetas.filter(abierta)), hechas = grupos(D.tarjetas.filter(f => !abierta(f) && !descartada(f)));
-  const listas = [[ENTRADA, ""], ...D.listas];
-  $("#tablero").innerHTML = listas.map(([nombre, color]) => {
+  /* si alguien escribió en la planilla una lista que no existe en la hoja Listas, igual se muestra (con aviso) */
+  const conocidas = new Set(D.listas.map(l => l[0]));
+  const huerfanas = [...new Set(D.tarjetas.filter(f => abierta(f) && f[10] && !conocidas.has(f[10])).map(f => f[10]))];
+  const listas = [[ENTRADA, ""], ...D.listas, ...huerfanas.map(n => [n, "gris", true])];
+  $("#tablero").innerHTML = listas.map(([nombre, color, huerfana]) => {
     const ab = abiertas.filter(g => g.lista === nombre).filter(visible).sort((a,b) => b.urg - a.urg || b.filas.length - a.filas.length || (b.ult > a.ult ? 1 : -1));
     const he = hechas.filter(g => g.lista === nombre).filter(visible).sort((a,b) => b.act - a.act);
     const verHechas = leerLS("hechas." + nombre, "0") === "1", ent = nombre === ENTRADA;
     return `<section class="lista${ent ? " entrada" : ""}" data-lista="${esc(nombre)}" data-color="${esc(color)}">
       <div class="lista-h">${ent ? `<b>📥 Entrada</b>` : `<b title="${esc(nombre)}">${esc(nombre)}</b>`}<span class="n">${ab.length}</span>
-        ${ent ? `<span class="m" title="Lo que avisan las cajas">avisos</span>` : `<button class="ico" data-editar-lista="${esc(nombre)}" title="Editar lista">⋯</button>`}</div>
+        ${ent ? `<span class="m" title="Lo que avisan las cajas">avisos</span>` : huerfana ? `<span class="pill warn" title="Esta lista se escribió en la planilla y no está en la hoja Listas. Movés sus tarjetas o creás la lista con este mismo nombre.">⚠ sin crear</span>` : `<button class="ico" data-editar-lista="${esc(nombre)}" title="Editar lista">⋯</button>`}</div>
       <div class="tarjetas">${ab.map(g => tarjeta(g)).join("") || (ent ? `<div class="m" style="padding:6px">🎉 Nada nuevo. Lo que avisen las cajas aparece acá.</div>` : "")}</div>
       <div class="agregar"><textarea rows="1" data-agregar="${esc(nombre)}" placeholder="＋ Agregar" title="Enter agrega · pegá una lista y se crea una tarjeta por renglón"></textarea></div>
       ${he.length ? `<button class="hechas-t" data-hechas="${esc(nombre)}">${verHechas ? "▾" : "▸"} ✓ ${he.length} llegaron</button>${verHechas ? `<div class="tarjetas">${he.map(g => tarjeta(g, true)).join("")}</div>` : ""}` : ""}
@@ -276,7 +280,7 @@ function abrirTarjeta(k){
   $("#tInfo").innerHTML = [g.cod && esc(g.cod), g.filas.length > 1 && `${g.filas.length} avisos`, [...g.suc].map(sucTag).join(" "),
     g.filas[0][4] && `avisó ${esc(g.filas.map(f => f[4]).filter(Boolean).join(", "))}`, g.obs.length && `“${g.obs.map(esc).join(" · ")}”`].filter(Boolean).join(" · ");
   $("#tNota").value = g.nota; $("#tUrg").checked = g.urg;
-  $("#tLista").innerHTML = [[ENTRADA,"📥 Entrada"], ...D.listas.map(l => [l[0], l[0]])].map(([v,l]) => `<option value="${esc(v)}"${v === g.lista ? " selected" : ""}>${esc(l)}</option>`).join("");
+  $("#tLista").innerHTML = [[ENTRADA,"📥 Entrada"], ...D.listas.map(l => [l[0], l[0]]), ...(g.lista && !D.listas.some(l => l[0] === g.lista) ? [[g.lista, g.lista + " (sin crear)"]] : [])].map(([v,l]) => `<option value="${esc(v)}"${v === g.lista ? " selected" : ""}>${esc(l)}</option>`).join("");
   abrir("#mTar"); setTimeout(() => $("#tNota").focus(), 30);
 }
 $("#fTar").onsubmit = e => {
