@@ -10,9 +10,10 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v1.7
-   Para MIRAR números (solo lee). Lo compartido está en comun/.
+   PANEL · DA BOX                                                 v1.8
+   Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v1.8: 💰 Sobres (solo Encargado): contar el retiro de cada cierre. Es lo único que escribe en la planilla (hoja Conteos).
    ===================================================================== */
 /* ---------- 1. Gráficos y tarjetas de números ---------- */
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
@@ -49,6 +50,17 @@ svg.chart .hit:hover + .mk, svg.chart g.col:hover .mk{opacity:.8}
 .pc{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
 .pc b{display:block} .pc span{font-size:12px;color:var(--muted)}
 .grid{display:grid;gap:16px}
+/* ---------- 3. Sobres ---------- */
+.acc{white-space:nowrap;text-align:right}
+.acc .btn{margin-left:4px}
+.tile.alerta{border-color:var(--bad)} .tile.alerta b{color:var(--bad)}
+tr.sb-abierto td{background:var(--surface-2)}
+.sbf{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;padding:6px 0 4px}
+.sbf label{display:grid;gap:4px;font-size:12px;color:var(--muted);font-weight:500}
+.sbf .campo{background:var(--surface)}
+.sbf .pie-f{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.sbf .pie-f .btn{flex:0 0 auto;width:auto;margin:0}
+.sbf #sbRes{margin-right:auto;font-size:14px}
 .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
 </style>
 </head>
@@ -71,6 +83,7 @@ svg.chart .hit:hover + .mk, svg.chart g.col:hover .mk{opacity:.8}
   <section id="s-ventas" hidden></section>
   <section id="s-mensual" hidden></section>
   <section id="s-cierres" hidden></section>
+  <section id="s-sobres" hidden></section>
   <section id="s-cobros" hidden></section>
   <section id="s-productos" hidden></section>
 </main>
@@ -85,7 +98,7 @@ const {$, esc, money, millones, pct, pad, ymd, fechaAR, norm, hace, leerLS, guar
 /* =====================================================================
    1. CONFIGURACIÓN
    ===================================================================== */
-const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], cobros:["💳","Cobros"], productos:["📦","Productos"]};
+const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], sobres:["💰","Sobres"], cobros:["💳","Cobros"], productos:["📦","Productos"]};
 const ROLES = {admin:"Encargado", dueno:"Dueño", compras:"Compras"};
 const CON_COMPRAS = ["admin","compras"];                    // roles que ven el link al tablero de compras
 const PERIODOS = [[1,"Hoy"],[7,"7 días"],[30,"30 días"],[90,"90 días"],[365,"1 año"]];
@@ -121,14 +134,14 @@ $("#nav").addEventListener("click", e => { const b = e.target.closest("button");
 function renderFiltros(){
   $("#fDias").innerHTML = PERIODOS.map(([d,l]) => `<button data-d="${d}" aria-pressed="${d===dias}">${l}</button>`).join("");
   $("#fSuc").innerHTML = ["TODAS", ...SUCS].map(s => `<button data-s="${s}" aria-pressed="${s===suc}">${s==="TODAS" ? "Todas" : `<i class="dot" style="background:${SUC_COLOR[s]}"></i>${sucNom(s)}`}</button>`).join("");
-  $("#fDias").hidden = ["vivo","mensual","cobros"].includes(tab);           // esas secciones no dependen del período
+  $("#fDias").hidden = ["vivo","mensual","cobros","sobres"].includes(tab);          // esas secciones no dependen del período
   $("#fSuc").hidden = tab === "vivo";
 }
 $("#fDias").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; dias = +b.dataset.d; guardarLS("dias", dias); actualizar(); });
 $("#fSuc").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; suc = b.dataset.s; render(); });
 $("#bAct").onclick = actualizar;
 $("#bSalir").onclick = () => LA.salir();
-setInterval(() => { if(D && !document.hidden && !$("#app").hidden) actualizar(); }, REFRESCO_MIN*60000);
+setInterval(() => { if(D && !document.hidden && !$("#app").hidden && !sbAbierto) actualizar(); }, REFRESCO_MIN*60000);   // no refresca con un sobre a medio cargar
 const deSuc = s => suc === "TODAS" || s === suc;
 
 function render(){
@@ -137,7 +150,7 @@ function render(){
   Object.keys(SECCIONES).forEach(s => $("#s-"+s).hidden = s !== tab);
   $("#titulo").innerHTML = `<i class="emo">${SECCIONES[tab][0]}</i>${SECCIONES[tab][1]}`;
   $("#sAct").textContent = "Actualizado " + new Date(D.generado).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
-  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, cobros:rCobros, productos:rProductos})[tab]();
+  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, sobres:rSobres, cobros:rCobros, productos:rProductos})[tab]();
 }
 
 /* =====================================================================
@@ -349,6 +362,108 @@ function rCobros(){
 }
 
 /* =====================================================================
+   6c. SOBRES — el retiro de cada cierre va en un sobre; el encargado lo cuenta acá (hoja Conteos).
+       Diferencia = retiro − extracción − contado (+ falta · − sobra). Extracción = pago hecho con plata del sobre.
+       Se cuenta de nuevo para corregir (vale el último) y ↩ lo vuelve a "sin contar". Nada se borra.
+   ===================================================================== */
+const DESTINOS = ["Juani","Reserva"];
+const MOTIVOS = ["Billete falso","Error de conteo","Error de tipeo","Pago o transferencia","Faltante sin explicar","Otro"];
+const DIAS_DEMORA = 3;                                       // un sobre sin contar hace más días que esto se marca en rojo
+const toNum = s => Number(String(s ?? "").replace(/[^\d]/g,"")) || 0;
+const fechaHM = ts => { const d = new Date(ts); return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const difSobre = d => !d ? `<span class="dif-ok">OK</span>` : `<span class="${Math.abs(d) >= DIF_MINIMA ? "dif-mal" : "dif-nc"}">${d > 0 ? "falta " : "sobra "}${money(Math.abs(d))}</span>`;
+let sbAbierto = null, sbDest = "Juani", sbEnvio = false, sbArmado = null;
+// sobre: [id, ts cierre, sucursal, cajero, retiro, conteo] · conteo: null o [ts, extracción, concepto, contado, diferencia, motivo, destino, obs]
+function rSobres(){
+  const todos = (D.sobres || []).filter(s => deSuc(s[2]));
+  const pend = todos.filter(s => !s[5]).sort((a,b) => a[1] - b[1]);              // el más viejo arriba
+  const hechos = todos.filter(s => s[5]).sort((a,b) => b[5][0] - a[5][0]);
+  const mes = ymd(new Date()).slice(0,7), delMes = hechos.filter(s => ymd(new Date(s[5][0])).slice(0,7) === mes);
+  const aDest = d => delMes.filter(s => s[5][6] === d).reduce((a,s) => a + s[5][3], 0);
+  const difMes = delMes.reduce((a,s) => a + s[5][4], 0), conDifMes = delMes.filter(s => s[5][4]).length;
+  const viejos = pend.filter(s => Date.now() - s[1] > DIAS_DEMORA*864e5).length;
+  const filaPend = s => {
+    const dias = Math.floor((Date.now() - s[1]) / 864e5), abierto = sbAbierto === s[0];
+    return `<tr${abierto ? ' class="sb-abierto"' : ""}><td class="num">${fechaHM(s[1])}<br><small class="${dias > DIAS_DEMORA ? "dif-mal" : "m"}">${dias ? `hace ${dias} día${dias > 1 ? "s" : ""}` : "hoy"}</small></td>
+      <td>${sucTag(s[2])}</td><td>${esc(s[3])}</td><td class="r"><b>${money(s[4])}</b></td>
+      <td class="acc">${abierto ? "" : `<button class="btn sm" data-ok="${esc(s[0])}" title="Había justo ${money(s[4])}">✓ Coincide · ${esc(sbDest)}</button><button class="btn sm" data-ed="${esc(s[0])}">✏️ Otro monto</button>`}</td></tr>
+      ${abierto ? `<tr class="sb-abierto"><td colspan="5">${formSobre(s)}</td></tr>` : ""}`;
+  };
+  const filaHecha = s => { const c = s[5], armado = sbArmado === s[0];
+    return `<tr><td class="num">${fechaHM(s[1])}</td><td>${sucTag(s[2])}</td><td>${esc(s[3])}</td><td class="r">${money(s[4])}</td>
+      <td class="r">${c[1] ? `<span data-tip="${esc(c[2])}">${money(c[1])}</span><br><small class="m">${esc(c[2])}</small>` : "—"}</td>
+      <td class="r">${money(c[3])}</td><td class="r">${difSobre(c[4])}</td><td class="m">${esc([c[5], c[7]].filter(Boolean).join(" · "))}</td>
+      <td><span class="pill">${esc(c[6])}</span></td><td class="m num">${fechaHM(c[0])}</td>
+      <td class="acc"><button class="btn sm" data-un="${esc(s[0])}" title="Vuelve a sin contar">${armado ? "¿Seguro? ↩" : "↩"}</button></td></tr>`; };
+  $("#s-sobres").innerHTML = `<div class="grid">
+    <div class="tiles">
+      <div class="tile${viejos ? " alerta" : ""}"><span>Sin contar</span><b>${pend.length}</b><small>${money(pend.reduce((a,s) => a + s[4], 0))}${viejos ? ` · ${viejos} con más de ${DIAS_DEMORA} días` : ""}</small></div>
+      <div class="tile"><span>A Juani este mes</span><b>${millones(aDest("Juani"))}</b><small>${money(aDest("Juani"))}</small></div>
+      <div class="tile"><span>A Reserva este mes</span><b>${millones(aDest("Reserva"))}</b><small>${money(aDest("Reserva"))}</small></div>
+      <div class="tile"><span>Diferencias del mes</span><b class="${Math.abs(difMes) >= DIF_MINIMA ? "dif-mal" : ""}">${difMes > 0 ? "falta " : difMes < 0 ? "sobra " : ""}${money(Math.abs(difMes))}</b><small>${conDifMes} de ${delMes.length} sobres con diferencia</small></div>
+    </div>
+    <div class="card"><h3><span>Sin contar</span><span class="seg" id="sbDest" aria-label="Destino de la plata">${DESTINOS.map(d => `<button data-d="${d}" aria-pressed="${d===sbDest}">→ ${d}</button>`).join("")}</span></h3>
+      <p class="note">Contá el sobre. Si hay justo lo que dice, tocá <b>✓ Coincide</b> (va a ${esc(sbDest)}; cambialo arriba). Si no, <b>✏️ Otro monto</b>: la diferencia sale sola. Si pagaste algo con esa plata, anotalo en <b>Extracción</b>.</p>
+      ${pend.length ? `<div class="tw"><table><tr><th>Cierre</th><th>Sucursal</th><th>Cajero</th><th class="r">Retiro</th><th></th></tr>${pend.map(filaPend).join("")}</table></div>`
+        : `<div class="empty">🎉 No hay sobres para contar${suc !== "TODAS" ? " en " + sucNom(suc) : ""}.</div>`}</div>
+    <div class="card"><h3>Contados</h3><p class="note">Últimos ${Math.min(hechos.length, 200)}. <b>Falta</b>: había menos plata que el retiro (menos lo extraído). <b>Sobra</b>: había más. ↩ lo vuelve a "sin contar" para contarlo de nuevo.</p>
+      ${hechos.length ? `<div class="tw"><table><tr><th>Cierre</th><th>Sucursal</th><th>Cajero</th><th class="r">Retiro</th><th class="r">Extracción</th><th class="r">Contado</th><th class="r">Diferencia</th><th>Motivo / obs.</th><th>Destino</th><th>Contado el</th><th></th></tr>${hechos.slice(0,200).map(filaHecha).join("")}</table></div>`
+        : `<div class="empty">Todavía no contaste ningún sobre.</div>`}</div>
+  </div>`;
+  if(sbAbierto){ const i = $("#sbCont"); if(i){ i.focus(); i.select(); } difForm(); }
+}
+function formSobre(s){
+  return `<div class="sbf" data-id="${esc(s[0])}" data-ret="${s[4]}">
+    <label>Contado (lo que había)<input class="campo num" id="sbCont" inputmode="numeric" value="${money(s[4])}"></label>
+    <label>Extracción (pagos)<input class="campo num" id="sbExt" inputmode="numeric" placeholder="$ 0" title="Lo que pagaste con plata de este sobre antes de contarlo"></label>
+    <label>¿En qué se usó?<input class="campo" id="sbCon" maxlength="80" placeholder="ej. flete, bolsas"></label>
+    <label>Motivo de la diferencia<select class="campo" id="sbMot"><option value="">—</option>${MOTIVOS.map(m => `<option>${m}</option>`).join("")}</select></label>
+    <label>Observación<input class="campo" id="sbObs" maxlength="200" placeholder="opcional"></label>
+    <div class="pie-f"><span id="sbRes"></span><span class="seg" id="sbFDest">${DESTINOS.map(d => `<button type="button" data-d="${d}" aria-pressed="${d===sbDest}">→ ${d}</button>`).join("")}</span>
+      <button class="btn sm" id="sbCancel" type="button">Cancelar</button><button class="btn primary" id="sbGuardar" type="button">Guardar</button></div>
+  </div>`;
+}
+function difForm(){
+  const f = $(".sbf"); if(!f) return;
+  const ret = +f.dataset.ret, ext = toNum($("#sbExt").value), d = ret - ext - toNum($("#sbCont").value);
+  $("#sbRes").innerHTML = `Retiro ${money(ret)}${ext ? ` − extracción ${money(ext)}` : ""} → ${d ? difSobre(d) : '<span class="dif-ok">Coincide ✓</span>'}`;
+}
+async function contarSobre(id, datos){
+  if(sbEnvio) return; sbEnvio = true; LA.toast("Guardando…", 20000);
+  try{
+    if(LA.demo){                                              // datos de prueba: solo cambia en pantalla
+      const s = D.sobres.find(x => x[0] === id);
+      s[5] = datos.deshacer ? null : [Date.now(), datos.extraccion, datos.concepto, datos.contado, s[4] - datos.extraccion - datos.contado, datos.motivo, datos.destino, datos.obs];
+    } else D.sobres = (await LA.api("sobre-contar", {id, ...datos, _sinReintento:1})).sobres;
+    sbAbierto = null; sbArmado = null;
+    LA.toast(datos.deshacer ? "↩ Sobre de nuevo sin contar" : "💰 Sobre guardado");
+  }catch(e){
+    if(e === "clave"){ LA.salir(LA.ERR.clave); return; }
+    LA.toast("❌ " + ((e && e.msg) || LA.ERR[e] || "No se pudo guardar"), 6000);
+  }finally{ sbEnvio = false; if(tab === "sobres") rSobres(); }
+}
+$("#s-sobres").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b || sbEnvio) return;
+  if(b.closest("#sbDest") || b.closest("#sbFDest")){ sbDest = b.dataset.d; guardarLS("sbDest", sbDest);
+    if(!sbAbierto) return rSobres();                          // con un sobre a medio cargar no se redibuja (no se pierde lo escrito)
+    document.querySelectorAll("#sbDest button, #sbFDest button").forEach(x => x.setAttribute("aria-pressed", x.dataset.d === sbDest)); return; }
+  if(b.dataset.ok) return contarSobre(b.dataset.ok, {contado: D.sobres.find(x => x[0] === b.dataset.ok)[4], extraccion:0, concepto:"", motivo:"", destino:sbDest, obs:""});
+  if(b.dataset.ed){ sbAbierto = b.dataset.ed; sbArmado = null; return rSobres(); }
+  if(b.id === "sbCancel"){ sbAbierto = null; return rSobres(); }
+  if(b.dataset.un){ if(sbArmado !== b.dataset.un){ sbArmado = b.dataset.un; return rSobres(); } return contarSobre(b.dataset.un, {deshacer:1}); }
+  if(b.id === "sbGuardar"){
+    const ext = toNum($("#sbExt").value), con = $("#sbCon").value.trim(), ret = +$(".sbf").dataset.ret, contado = toNum($("#sbCont").value);
+    if(!$("#sbCont").value.trim()) return LA.toast("Poné cuánto había en el sobre");
+    if(ext > ret) return LA.toast("La extracción no puede ser mayor que el retiro");
+    if(ext && con.length < 3) { $("#sbCon").focus(); return LA.toast("Escribí en qué se usó la extracción"); }
+    return contarSobre(sbAbierto, {contado, extraccion:ext, concepto:con, motivo:$("#sbMot").value, destino:sbDest, obs:$("#sbObs").value.trim()});
+  }
+});
+$("#s-sobres").addEventListener("input", e => { if(e.target.closest(".sbf")) difForm(); });
+$("#s-sobres").addEventListener("keydown", e => { if(e.key === "Enter" && e.target.closest(".sbf input")) $("#sbGuardar").click(); if(e.key === "Escape" && sbAbierto){ sbAbierto = null; rSobres(); } });
+sbDest = DESTINOS.includes(leerLS("sbDest", "")) ? leerLS("sbDest", "") : "Juani";
+
+/* =====================================================================
    7. PRODUCTOS — más vendidos (para compras)
    ===================================================================== */
 let pOrden = "cant", pBusca = "", pAbiertos = false;
@@ -411,7 +526,10 @@ function datosDemo(){
     cobros.movimientos.push([w, lotes + (rnd() < .3 ? 4200 : 0)]); }
   for(let i = 0; i < 3; i++){ const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); const m = ymd(d).slice(0,7);
     [["VISA",1.8e6,.02,.02],["MASTERCARD",.5e6,.018,.02],["CABAL",.08e6,.09,.035]].forEach(([b,t,c,im]) => cobros.liquidaciones.push([m, b, t, t*c, t*im])); }
-  return {rol:"admin", dias, generado:ahora, secciones:["vivo","ventas","mensual","cierres","cobros","productos"], cobros, sinCierre,
+  const sobres = cierres.filter(c => c[0] > ahora - 20*864e5).map((c,i) => { const id = "C-DEMO-" + i, r = rnd();
+    return [id, c[0], c[1], c[2], c[6], i < 5 ? null : r < .8 ? [c[0] + 864e5, 0, "", c[6], 0, "", r < .5 ? "Juani" : "Reserva", ""]
+      : r < .9 ? [c[0] + 864e5, 35000, "flete", c[6] - 35000 - 500, 500, "Error de conteo", "Reserva", ""] : [c[0] + 864e5, 0, "", c[6] - 20000, 20000, "Billete falso", "Juani", "billete de 20 mil"]]; });
+  return {rol:"admin", dias, generado:ahora, secciones:["vivo","ventas","mensual","cierres","sobres","cobros","productos"], cobros, sinCierre, sobres,
     vivo:[["FALCON","1","Celi","08:58",0,ahora-4e4],["FALCON","2","Joa","09:05",2,ahora-9e4],["MORENO","","Manu R","08:30",0,ahora-3e4],["NACION","","Delfi","09:00",0,ahora-36e5],["SOMISA","","Luka","13:30",0,ahora-2e4]],
     dia, horas:Object.values(horas), productos:prod, mensual, cierres};
 
