@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PRECIOS · DA BOX                                               v1.0
+   PRECIOS · DA BOX                                               v1.1
    Para el celular de Roman y de la dueña:
    🔎 Buscar: sin clave, solo mira precios.  ✏️ Actualizar: con la clave del panel, cambia precio/combo/nombre.
    Los cambios quedan en la hoja "Cambios de precio" y las cajas los toman en hasta 30 minutos.
@@ -72,6 +72,7 @@ body{background:var(--bg)}
     <div class="busca"><input class="campo" id="q" type="search" autocomplete="off" placeholder="Buscar: nombre, código o categoría" enterkeyhint="search"></div>
     <p class="info" id="info"></p>
     <ul class="res" id="res"></ul>
+    <button class="btn" id="bLink" type="button" style="width:100%;margin-top:18px">📱 Pasar a otro celular (link sin pegar nada)</button>
     <div id="cCambios" hidden>
       <h3 style="margin:22px 2px 8px;font-size:14px">Últimos cambios</h3>
       <ul class="cambios" id="cambios"></ul>
@@ -110,6 +111,11 @@ let toastT; function toast(m, ms=3000){ const t = $("#toast"); t.textContent = m
 const comboTxt = c => { const m = String(c||"").match(/^\s*(\d+)\s*[xX×]\s*\$?\s*([\d.,]+)\s*$/); return m ? `${m[1]} × ${money(toNum(m[2]))}` : ""; };
 
 /* ---------- conexión: url en el celular (la misma del panel), clave solo en esta pestaña ---------- */
+/* Link para celulares: …/precios.html#s=<ID del script> guarda la dirección una sola vez y la borra de la barra.
+   El ID no es una clave: para ver datos del panel o cambiar precios igual hace falta la clave. */
+(() => { const m = location.hash.match(/[#&]s=([\w-]{20,})/); if(!m) return;
+  try{ localStorage.setItem("dabox.url", `https://script.google.com/macros/s/${m[1]}/exec`); }catch(e){}
+  history.replaceState(null, "", location.pathname + location.search); })();
 let url = LS("url") || "", clave = SS("clave"), tab = "buscar", items = [], cambios = [], editando = null;
 async function api(accion, params = {}){
   const u = new URL(url); u.search = new URLSearchParams({accion, ...params});
@@ -134,7 +140,7 @@ function vista(){
   $("#cClave").hidden = !url || tab !== "editar" || !!clave;
   $("#cLista").hidden = !url || (tab === "editar" && !clave);
   $("#cCambios").hidden = tab !== "editar";
-  $("#bSalir").hidden = !clave;
+  $("#bSalir").hidden = !clave; $("#bLink").hidden = !url || tab !== "editar" || !clave;
   if(!$("#cLista").hidden){ render(); setTimeout(() => $("#q").focus(), 30); }
 }
 document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; tab = b.dataset.t; vista(); });
@@ -199,6 +205,12 @@ $("#bClave").onclick = async () => {
   else { clave = ""; $("#eClave").textContent = /clave/i.test(ok.message) ? "Clave incorrecta (es la del panel, no la de las cajas)." : ok.message; $("#eClave").hidden = false; }
 };
 $("#iClave").addEventListener("keydown", e => { if(e.key === "Enter") $("#bClave").click(); });
+$("#bLink").onclick = async () => {   // link con el ID del script: el otro celular lo abre una vez y queda conectado
+  const id = (url.match(/\/s\/([\w-]+)\/exec/) || [])[1]; if(!id) return;
+  const link = location.origin + location.pathname + "#s=" + id;
+  try{ if(navigator.share){ await navigator.share({title:"Precios Lita & Añaños", text:"Abrilo una vez en el celular y agregalo a la pantalla de inicio:", url:link}); return; } }catch(e){ return; }
+  try{ await navigator.clipboard.writeText(link); toast("📋 Link copiado: mandalo por WhatsApp"); }catch(e){ prompt("Copiá este link:", link); }
+};
 $("#bSalir").onclick = () => { clave = ""; SS("clave", ""); tab = "buscar"; vista(); };
 $("#bRec").onclick = () => { if(url){ cargarPrecios(true); if(clave) cargarCambios(); } };
 
