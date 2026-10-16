@@ -42,6 +42,11 @@ document.addEventListener("pointermove", e => { if(tip.hidden) return; tip.style
 document.addEventListener("scroll", () => tip.hidden = true, true);
 
 /* ---------- 4. CONEXIÓN (Apps Script). La clave nunca se guarda en la PC: solo en esta pestaña ---------- */
+/* Link para celulares: …/precios.html#s=<ID del script> guarda la dirección una sola vez y la borra de la barra.
+   El ID no es una clave: para ver datos del panel o cambiar precios igual hace falta la clave. */
+(() => { const m = location.hash.match(/[#&]s=([\w-]{20,})/); if(!m) return;
+  try{ localStorage.setItem("dabox.url", `https://script.google.com/macros/s/${m[1]}/exec`); }catch(e){}
+  history.replaceState(null, "", location.pathname + location.search); })();
 let url = leerLS("url",""), clave = leerSS("clave");
 const ERR = {clave:"🔑 Clave incorrecta (la clave de las cajas no sirve acá).", url:"🔗 La dirección no responde o el script está desactualizado.",
              tiempo:"⏳ La planilla tardó en responder. Probá de nuevo.", internet:"📡 Sin internet."};
