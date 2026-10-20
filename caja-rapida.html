@@ -179,6 +179,7 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .fijos button{display:flex;flex-direction:column;align-items:flex-start;gap:10px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:12px;cursor:pointer;text-align:left;font-weight:600}
 .fijos button:hover{background:var(--sel)}
 .favs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.alt{display:block;color:var(--muted);font-size:11px;font-weight:400;line-height:1.3;margin-top:2px}
 .favs .t{font-size:13px;color:var(--muted);font-weight:600}
 .favs .btn kbd{margin-left:6px}
 .vcard .pc-tag{font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;background:var(--sel);margin-left:6px}
@@ -1009,7 +1010,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-10-19 v3.40";
+const VERSION = "2026-10-20 v3.41";
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1468,9 +1469,13 @@ function buscar(texto, conFijos=true){   // devuelve TODOS los que coinciden, or
   const t = norm(texto).trim(); if(!t) return [];
   const toks = t.split(/\s+/), base = conFijos ? pool : pool.slice(FIJOS.length);
   const exact = base.filter(p => p._codes.includes(t));            // código o código alternativo exacto
+  /* parte de un código (sin lectora): solo números de 4 dígitos o más, para no llenar de ruido búsquedas como "cuaderno 50".
+     Primero los códigos que TERMINAN así (lo más común: tipear los últimos dígitos del código de barras) */
+  const parcial = /^\d{4,}$/.test(t) ? base.filter(p => !exact.includes(p) && p._codes.some(c => c.includes(t)))
+    .sort((a,b) => (a._codes.some(c => c.endsWith(t)) ? 0 : 1) - (b._codes.some(c => c.endsWith(t)) ? 0 : 1)) : [];
   const r = base.filter(p => toks.every(k => p._k.includes(k)));
   r.sort((a,b) => (norm(a.nombre).startsWith(toks[0])?0:1) - (norm(b.nombre).startsWith(toks[0])?0:1) || a.nombre.localeCompare(b.nombre));
-  return [...exact, ...r.filter(p => !exact.includes(p))];
+  return [...exact, ...parcial, ...r.filter(p => !exact.includes(p) && !parcial.includes(p))];
 }
 let foundTotal = 0;
 function search(){
@@ -2308,13 +2313,14 @@ $("#faOk").onclick = () => {
   toast("⚠️ Faltante anotado: " + faProd.nombre, 2200); cerrarFaltante();
 };
 $("#faObs").addEventListener("keydown", e => { if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); $("#faOk").click(); } });                       // [{cod, nombre, precio, cant}]
+const altTxt = p => String(p.alt || "").split(/[\s,;|]+/).filter(c => c && c !== p.cod).join(" · ");   // códigos alternativos, para controlarlos
 function renderCatalogo(){
   const txt = $("#cq").value, todos = txt.trim() ? buscar(txt, false) : [], lista = todos.slice(0, MAX_TABLA);
   const total = pool.length - FIJOS.length;
   $("#cCuenta").textContent = !txt.trim() ? `${total} productos en el catálogo · escribí para buscar` :
     todos.length > lista.length ? `Mostrando ${lista.length} de ${todos.length} · escribí otra palabra para achicar` : `${todos.length} resultado${todos.length===1?"":"s"}`;
   $("#tCat").innerHTML = lista.length ? `<tr><th>Código</th><th>Producto</th><th>Categoría</th><th class="r">Precio</th><th></th></tr>` +
-    lista.map((p,i) => `<tr><td class="cod">${esc(p.cod)}</td><td>${esc(p.nombre)}</td><td class="cod">${esc(p.cat)}</td><td class="r pr">${p._open ? "abierto" : money(p.precio)}${p.combo ? `<br><span class="cod">${comboTxt(p.combo)}</span>` : ""}</td>
+    lista.map((p,i) => `<tr><td class="cod">${esc(p.cod)}${altTxt(p) ? `<br><small class="alt" title="Códigos alternativos (columna Códigos alt. del Catálogo)">${esc(altTxt(p))}</small>` : ""}</td><td>${esc(p.nombre)}</td><td class="cod">${esc(p.cat)}</td><td class="r pr">${p._open ? "abierto" : money(p.precio)}${p.combo ? `<br><span class="cod">${comboTxt(p.combo)}</span>` : ""}</td>
       <td class="r acc">${p._open ? "" : `<button class="btn sm${esFav(p) ? "" : " soft"}" data-fav="${i}" title="${esFav(p) ? "Sacar de mis favoritos" : "Agregar a mis favoritos (hasta 3)"}">${esFav(p) ? "⭐" : "☆"}</button> `}${p._open ? "" : `<button class="btn sm soft" data-e="${i}" title="Sumar etiqueta">＋ 🏷️</button>`}${p.combo ? ` <button class="btn sm soft" data-ec="${i}" title="Sumar etiqueta del combo">＋ 🏷️ combo</button>` : ""} <button class="btn sm" data-f="${i}" title="Avisar que falta">⚠️ Falta</button>${p._open ? "" : ` <button class="btn sm${enRevision(p.cod) ? " soft" : ""}" data-pb="${i}" title="${enRevision(p.cod) ? "Ya avisado: precio en revisión" : "Avisar que el precio está mal"}">🔔${enRevision(p.cod) ? " En revisión" : ""}</button>`}</td></tr>`).join("") : "";
   $("#tCat")._lista = lista;
 }
