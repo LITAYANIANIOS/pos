@@ -1,5 +1,5 @@
 /* =====================================================================
-   COMÚN · PANEL Y COMPRAS · DA BOX                                 v1.0
+   COMÚN · PANEL Y COMPRAS · DA BOX                                 v1.1
    Lo que comparten panel.html y compras.html, para no repetirlo en cada archivo:
    1. Utilidades   2. Sucursales   3. Avisos y tooltip   4. Conexión con la planilla
    5. Ingreso con clave (y cierre por inactividad)
@@ -26,9 +26,9 @@ const leerSS = k => { try{ return sessionStorage.getItem("dabox."+k) || ""; }cat
 const guardarSS = (k, v) => { try{ v ? sessionStorage.setItem("dabox."+k, v) : sessionStorage.removeItem("dabox."+k); }catch(e){} };
 
 /* ---------- 2. SUCURSALES (el orden define el color, fijo) ---------- */
-const SUCS = ["FALCON","MORENO","NACION","SOMISA"];
-const NOMBRE_SUC = {FALCON:"Falcon", MORENO:"Moreno", NACION:"Nación", SOMISA:"Somisa"};
-const SUC_COLOR = {FALCON:"var(--s1)", MORENO:"var(--s2)", NACION:"var(--s3)", SOMISA:"var(--s4)"};
+const SUCS = ["FALCON","MORENO","NACION","SOMISA","DEPOSITO"];   // v1.1: DEPOSITO (caja de atrás)
+const NOMBRE_SUC = {FALCON:"Falcon", MORENO:"Moreno", NACION:"Nación", SOMISA:"Somisa", DEPOSITO:"Depósito"};
+const SUC_COLOR = {FALCON:"var(--s1)", MORENO:"var(--s2)", NACION:"var(--s3)", SOMISA:"var(--s4)", DEPOSITO:"#8e6bd1"};
 const sucNom = s => NOMBRE_SUC[s] || s || "";
 const sucTag = s => `<span class="suc-tag"><i class="dot" style="background:${SUC_COLOR[s]||"var(--muted)"}"></i>${esc(sucNom(s))}</span>`;
 
