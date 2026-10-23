@@ -10,9 +10,13 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v1.8
-   Para MIRAR números (solo lee). Lo compartido está en comun/.
+   PANEL · DA BOX                                                 v2.1
+   Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.0: Ventas → Ventas / Ingresos (sin cta. cte. + pagos de cta. cte.), filtro por medio de pago, 📅 rango Desde/Hasta,
+         ventas a cuenta sin facturar · Sobres: el Contado acepta sumas (20000x7 + 10000x3) y muestra los billetes del cajero.
+   v1.9: 🌙 ventas sin cierre también arriba en 🟢 En vivo · sucursal Depósito.
+   v1.8: 💰 Sobres (solo Encargado): contar el retiro de cada cierre. Es lo único que escribe en la planilla (hoja Conteos).
    ===================================================================== */
 /* ---------- 1. Gráficos y tarjetas de números ---------- */
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
@@ -49,6 +53,20 @@ svg.chart .hit:hover + .mk, svg.chart g.col:hover .mk{opacity:.8}
 .pc{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
 .pc b{display:block} .pc span{font-size:12px;color:var(--muted)}
 .grid{display:grid;gap:16px}
+#fRango{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+#fRango .campo{width:auto;padding:5px 8px}
+.vbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+/* ---------- 3. Sobres ---------- */
+.acc{white-space:nowrap;text-align:right}
+.acc .btn{margin-left:4px}
+.tile.alerta{border-color:var(--bad)} .tile.alerta b{color:var(--bad)}
+tr.sb-abierto td{background:var(--surface-2)}
+.sbf{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;padding:6px 0 4px}
+.sbf label{display:grid;gap:4px;font-size:12px;color:var(--muted);font-weight:500}
+.sbf .campo{background:var(--surface)}
+.sbf .pie-f{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.sbf .pie-f .btn{flex:0 0 auto;width:auto;margin:0}
+.sbf #sbRes{margin-right:auto;font-size:14px}
 .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
 </style>
 </head>
@@ -64,6 +82,7 @@ svg.chart .hit:hover + .mk, svg.chart g.col:hover .mk{opacity:.8}
   <div class="aviso" id="aviso" hidden></div>
   <div class="filtros">
     <div class="seg" id="fDias" aria-label="Período"></div>
+    <span id="fRango" hidden><input type="date" class="campo" id="rD" aria-label="Desde"> a <input type="date" class="campo" id="rH" aria-label="Hasta"><button class="btn sm" id="rOk" type="button">Ver</button></span>
     <div class="seg" id="fSuc" aria-label="Sucursal"></div>
     <div class="der"><button class="btn sm" id="bAct">↻ Actualizar</button></div>
   </div>
@@ -71,12 +90,13 @@ svg.chart .hit:hover + .mk, svg.chart g.col:hover .mk{opacity:.8}
   <section id="s-ventas" hidden></section>
   <section id="s-mensual" hidden></section>
   <section id="s-cierres" hidden></section>
+  <section id="s-sobres" hidden></section>
   <section id="s-cobros" hidden></section>
   <section id="s-productos" hidden></section>
 </main>
 </div>
 
-<script src="comun/base.js?v=2"></script>
+<script src="comun/base.js?v=3"></script>
 <script>
 (()=>{
 "use strict";
@@ -85,11 +105,12 @@ const {$, esc, money, millones, pct, pad, ymd, fechaAR, norm, hace, leerLS, guar
 /* =====================================================================
    1. CONFIGURACIÓN
    ===================================================================== */
-const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], cobros:["💳","Cobros"], productos:["📦","Productos"]};
+const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], sobres:["💰","Sobres"], cobros:["💳","Cobros"], productos:["📦","Productos"]};
 const ROLES = {admin:"Encargado", dueno:"Dueño", compras:"Compras"};
 const CON_COMPRAS = ["admin","compras"];                    // roles que ven el link al tablero de compras
 const PERIODOS = [[1,"Hoy"],[7,"7 días"],[30,"30 días"],[90,"90 días"],[365,"1 año"]];
-const enPer = () => dias === 1 ? "hoy" : `en ${dias} días`;   // texto del período elegido
+const enPer = () => rango ? `del ${fechaAR(rango[0])} al ${fechaAR(rango[1])}` : dias === 1 ? "hoy" : `en ${dias} días`;   // texto del período elegido
+const unDia = () => rango ? rango[0] === rango[1] : dias === 1;
 const MEDIOS = {efectivo:"💵 Efectivo", postnet:"💳 Postnet / QR", transf:"🏦 Transferencia", ctacte:"📒 Cta. cte."};
 const DIAS_SEM = ["","Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -102,8 +123,8 @@ const REFRESCO_MIN = 5;                                      // se actualiza sol
 /* =====================================================================
    2. DATOS, NAVEGACIÓN Y FILTROS
    ===================================================================== */
-let D = null, dias = +leerLS("dias", 30) || 30, suc = "TODAS", tab = null, cargando = false;
-const cargar = () => LA.api("panel", {dias});
+let D = null, dias = +leerLS("dias", 30) || 30, suc = "TODAS", tab = null, cargando = false, rango = null;   // rango: [desde, hasta] (yyyy-mm-dd) o null
+const cargar = () => LA.api("panel", rango ? {dias, desde:rango[0], hasta:rango[1]} : {dias});
 async function actualizar(){
   if(cargando) return; cargando = true; $("#bAct").textContent = "Cargando…";
   try{ D = LA.demo ? datosDemo() : await cargar(); $("#aviso").textContent = AVISO_DEMO; $("#aviso").hidden = !LA.demo; armarNav(); render(); }
@@ -118,17 +139,23 @@ function armarNav(){
   $("#sRol").textContent = "Panel · " + (ROLES[D.rol] || D.rol);
 }
 $("#nav").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; tab = b.dataset.s; armarNav(); render(); });
+$("#s-vivo").addEventListener("click", e => { if(e.target.id === "vIrCierres"){ tab = "cierres"; armarNav(); render(); } });
 function renderFiltros(){
-  $("#fDias").innerHTML = PERIODOS.map(([d,l]) => `<button data-d="${d}" aria-pressed="${d===dias}">${l}</button>`).join("");
+  $("#fDias").innerHTML = PERIODOS.map(([d,l]) => `<button data-d="${d}" aria-pressed="${!rango && d===dias}">${l}</button>`).join("") + `<button data-d="r" aria-pressed="${!!rango}" title="Elegir fechas">📅 ${rango ? enPer().slice(4) : "Fechas"}</button>`;
   $("#fSuc").innerHTML = ["TODAS", ...SUCS].map(s => `<button data-s="${s}" aria-pressed="${s===suc}">${s==="TODAS" ? "Todas" : `<i class="dot" style="background:${SUC_COLOR[s]}"></i>${sucNom(s)}`}</button>`).join("");
-  $("#fDias").hidden = ["vivo","mensual","cobros"].includes(tab);           // esas secciones no dependen del período
+  $("#fDias").hidden = ["vivo","mensual","cobros","sobres"].includes(tab); if($("#fDias").hidden) $("#fRango").hidden = true;         // esas secciones no dependen del período
   $("#fSuc").hidden = tab === "vivo";
 }
-$("#fDias").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; dias = +b.dataset.d; guardarLS("dias", dias); actualizar(); });
+$("#fDias").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.d === "r"){ const f = $("#fRango"); f.hidden = !f.hidden; if(!f.hidden){ const r = rango || (D && D.r) || [ymd(new Date()), ymd(new Date())]; $("#rD").value = r[0]; $("#rH").value = r[1]; $("#rD").focus(); } return; }
+  rango = null; $("#fRango").hidden = true; dias = +b.dataset.d; guardarLS("dias", dias); actualizar(); });
+$("#rOk").onclick = () => { const d = $("#rD").value, h = $("#rH").value;
+  if(!d || !h || d > h) return LA.toast("Elegí Desde y Hasta (Desde antes que Hasta)");
+  rango = [d, h]; $("#fRango").hidden = true; actualizar(); };
 $("#fSuc").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; suc = b.dataset.s; render(); });
 $("#bAct").onclick = actualizar;
 $("#bSalir").onclick = () => LA.salir();
-setInterval(() => { if(D && !document.hidden && !$("#app").hidden) actualizar(); }, REFRESCO_MIN*60000);
+setInterval(() => { if(D && !document.hidden && !$("#app").hidden && !sbAbierto) actualizar(); }, REFRESCO_MIN*60000);   // no refresca con un sobre a medio cargar
 const deSuc = s => suc === "TODAS" || s === suc;
 
 function render(){
@@ -137,15 +164,17 @@ function render(){
   Object.keys(SECCIONES).forEach(s => $("#s-"+s).hidden = s !== tab);
   $("#titulo").innerHTML = `<i class="emo">${SECCIONES[tab][0]}</i>${SECCIONES[tab][1]}`;
   $("#sAct").textContent = "Actualizado " + new Date(D.generado).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
-  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, cobros:rCobros, productos:rProductos})[tab]();
+  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, sobres:rSobres, cobros:rCobros, productos:rProductos})[tab]();
 }
 
 /* =====================================================================
    3. EN VIVO — cada PC avisa a la planilla cada minuto (hoja Estado)
    ===================================================================== */
 function rVivo(){
-  const filas = D.vivo || [];
-  $("#s-vivo").innerHTML = `<p class="note">Cada caja abierta avisa cada minuto. Si una PC no avisa hace más de ${MIN_SEÑAL} min: está cerrada, sin internet o con la pestaña cerrada.</p>
+  const filas = D.vivo || [], sc = D.sinCierre || [];
+  const alerta = sc.length ? `<div class="aviso" style="margin-bottom:14px"><span>🌙 <b>Ventas sin cierre:</b> ${sc.map(x => `${esc(sucNom(x[1]))} ${fechaAR(x[0])} · ${x[2]} ventas · ${money(x[3])}`).join(" · ")}.
+    Se cierran desde la caja de esa sucursal con el botón 🌙 (no con el cierre normal).</span> <button class="link" id="vIrCierres" type="button">Ver en 💵 Cierres →</button></div>` : "";
+  $("#s-vivo").innerHTML = alerta + `<p class="note">Cada caja abierta avisa cada minuto. Si una PC no avisa hace más de ${MIN_SEÑAL} min: está cerrada, sin internet o con la pestaña cerrada.</p>
   <div class="vivo">${SUCS.map(s => {
     const pcs = filas.filter(f => f[0] === s);
     const items = pcs.map(f => {
@@ -160,9 +189,27 @@ function rVivo(){
 /* =====================================================================
    4. VENTAS — por día, medio, sucursal y horario (solo ventas de DA BOX)
    ===================================================================== */
+/* Ventas = lo vendido (la cta. cte. cuenta el día de la venta) · Ingresos = la plata que entró: sin ventas a cuenta + pagos de cta. cte. el día que se pagan */
+let vModo = "ventas", vMedio = "todos";
+const filasVentas = () => (vModo === "ventas" ? (D.dia || []) : [...(D.dia || []).filter(f => f[2] !== "ctacte"), ...(D.cobrosCC || [])])
+  .filter(f => deSuc(f[1]) && (vMedio === "todos" || f[2] === vMedio));
+function barraVentas(){
+  const meds = Object.keys(MEDIOS).filter(k => vModo === "ventas" || k !== "ctacte");
+  return `<div class="vbar"><span class="seg" id="vModo"><button data-m="ventas" aria-pressed="${vModo==="ventas"}">🧾 Ventas</button><button data-m="ingresos" aria-pressed="${vModo==="ingresos"}">💵 Ingresos</button></span>
+    <span class="seg" id="vMedio"><button data-v="todos" aria-pressed="${vMedio==="todos"}">Todos</button>${meds.map(k => `<button data-v="${k}" aria-pressed="${vMedio===k}">${MEDIOS[k]}</button>`).join("")}</span></div>
+    <p class="note">${vModo === "ventas" ? "<b>Ventas</b>: todo lo vendido; las ventas a cuenta corriente cuentan el día de la venta aunque todavía no se hayan pagado." : "<b>Ingresos</b>: la plata que entró. Sin las ventas a cuenta corriente y con los <b>pagos de cuenta corriente</b> el día que se cobraron."}</p>`;
+}
+function sinFacturarHTML(){
+  const l = (D.sinFacturar || []).filter(x => deSuc(x[2])); if(!D.sinFacturar) return "";
+  return `<div class="card"><h3>🧾 Ventas a cuenta sin facturar</h3><p class="note">Compras a cuenta corriente que todavía no tienen factura. Se marcan desde la caja (📒 → cliente → 🧾). ${l.length ? `${l.length} · ${money(l.reduce((a,x) => a + x[4], 0))}` : ""}</p>
+    ${l.length ? `<div class="tw"><table><tr><th>Fecha</th><th>Sucursal</th><th>Cliente</th><th class="r">Monto</th><th class="r">Hace</th></tr>${l.slice(0,150).map(x => `<tr><td class="num">${fechaAR(x[1])}</td><td>${sucTag(x[2])}</td><td>${esc(x[3])}</td><td class="r">${money(x[4])}</td><td class="r m">${x[5] ? hace(x[5]) : ""}</td></tr>`).join("")}</table></div>` : `<div class="empty">🎉 Todo facturado.</div>`}</div>`;
+}
+$("#s-ventas").addEventListener("click", e => { const b = e.target.closest("#vModo button, #vMedio button"); if(!b) return;
+  if(b.dataset.m){ vModo = b.dataset.m; if(vModo === "ingresos" && vMedio === "ctacte") vMedio = "todos"; } else vMedio = b.dataset.v; rVentas(); });
 function rVentas(){
-  const filas = (D.dia || []).filter(f => deSuc(f[1]));
-  if(!filas.length){ $("#s-ventas").innerHTML = `<div class="card empty">🌱 No hay ventas de DA BOX en este período${suc!=="TODAS" ? " para "+sucNom(suc) : ""}.</div>`; return; }
+  const filas = filasVentas();
+  if(!filas.length){ $("#s-ventas").innerHTML = `<div class="grid">${barraVentas()}<div class="card empty">🌱 No hay ${vModo === "ventas" ? "ventas" : "ingresos"} de DA BOX en este período${suc!=="TODAS" ? " para "+sucNom(suc) : ""}.</div>${sinFacturarHTML()}</div>`; return; }
+  const cc = vModo === "ingresos" ? filas.filter(f => (D.cobrosCC || []).includes(f)).reduce((a,f) => a + f[4], 0) : 0;
   const total = filas.reduce((a,f) => a + f[4], 0), n = filas.reduce((a,f) => a + f[3], 0);
   const hoy = ymd(new Date()), fHoy = filas.filter(f => f[0] === hoy), tHoy = fHoy.reduce((a,f) => a + f[4], 0);
   const porDia = {}; filas.forEach(f => porDia[f[0]] = (porDia[f[0]] || 0) + f[4]);
@@ -170,19 +217,21 @@ function rVentas(){
   const porMedio = {efectivo:0, postnet:0, transf:0, ctacte:0}; filas.forEach(f => porMedio[f[2]] = (porMedio[f[2]] || 0) + f[4]);
   const porSuc = {}; filas.forEach(f => porSuc[f[1]] = (porSuc[f[1]] || 0) + f[4]);
 
-  $("#s-ventas").innerHTML = `<div class="grid">
+  const V = vModo === "ventas";
+  $("#s-ventas").innerHTML = `<div class="grid">${barraVentas()}
     <div class="tiles">
-      <div class="tile"><span>Vendido ${enPer()}</span><b>${millones(total)}</b><small>${money(total)}</small></div>
-      <div class="tile"><span>Ventas</span><b>${n.toLocaleString("es-AR")}</b><small>${dias === 1 ? "desde las 0 h" : diasConVenta + " días con ventas"}</small></div>
-      <div class="tile"><span>Ticket promedio</span><b>${money(total/n)}</b><small>por venta</small></div>
-      ${dias === 1 ? "" : `<div class="tile"><span>Hoy</span><b>${millones(tHoy)}</b><small>${fHoy.reduce((a,f) => a + f[3], 0)} ventas</small></div>`}
+      <div class="tile"><span>${V ? "Vendido" : "Ingresó"} ${enPer()}</span><b>${millones(total)}</b><small>${money(total)}</small></div>
+      <div class="tile"><span>${V ? "Ventas" : "Cobros"}</span><b>${n.toLocaleString("es-AR")}</b><small>${unDia() ? "en el día" : diasConVenta + " días con movimiento"}</small></div>
+      ${V ? `<div class="tile"><span>Ticket promedio</span><b>${money(total/n)}</b><small>por venta</small></div>` : `<div class="tile"><span>Pagos de cta. cte.</span><b>${millones(cc)}</b><small>${money(cc)}</small></div>`}
+      ${unDia() || rango ? "" : `<div class="tile"><span>Hoy</span><b>${millones(tHoy)}</b><small>${fHoy.reduce((a,f) => a + f[3], 0)} ${V ? "ventas" : "cobros"}</small></div>`}
     </div>
-    <div class="card"${dias === 1 ? " hidden" : ""}><h3>Venta por día</h3><p class="note">Total de cada día${suc!=="TODAS" ? " en "+sucNom(suc) : " (todas las sucursales)"}. Pasá el mouse por una barra para ver el detalle.</p>${chartDias(porDia)}</div>
+    <div class="card"${unDia() ? " hidden" : ""}><h3>${V ? "Venta" : "Ingresos"} por día</h3><p class="note">Total de cada día${suc!=="TODAS" ? " en "+sucNom(suc) : " (todas las sucursales)"}. Pasá el mouse por una barra para ver el detalle.</p>${chartDias(porDia)}</div>
     <div class="g2">
-      <div class="card"><h3>Por medio de pago</h3><p class="note">Transferencias: se controlan con el banco.</p>${barras(Object.keys(MEDIOS).map(k => [MEDIOS[k], porMedio[k]]), total)}</div>
+      <div class="card"><h3>Por medio de pago</h3><p class="note">Transferencias: se controlan con el banco.</p>${barras(Object.keys(MEDIOS).filter(k => V || k !== "ctacte").map(k => [MEDIOS[k], porMedio[k]]), total)}</div>
       ${suc === "TODAS" ? `<div class="card"><h3>Por sucursal</h3><p class="note">Parte de la venta total del período.</p>${barras(SUCS.map(s => [sucTag(s), porSuc[s]||0, SUC_COLOR[s]]), total, true)}</div>` : ""}
     </div>
-    <div class="card"><h3>¿A qué hora se vende?</h3><p class="note">Monto vendido por día de la semana y hora. Más oscuro = más venta. Sirve para armar horarios.</p>${mapaCalor()}</div>
+    <div class="card"><h3>¿A qué hora se vende?</h3><p class="note">Monto vendido por día de la semana y hora (solo ventas${vMedio !== "todos" ? ", " + MEDIOS[vMedio] : ""}). Más oscuro = más venta. Sirve para armar horarios.</p>${mapaCalor()}</div>
+    ${sinFacturarHTML()}
   </div>`;
 }
 function barras(items, total, html){
@@ -191,8 +240,8 @@ function barras(items, total, html){
     <span class="pista"><i style="width:${v/max*100}%;${c ? "background:"+c : ""}"></i></span><span class="val">${millones(v)}<small>${pct(v,total)}</small></span></div>`).join("")}</div>`;
 }
 function chartDias(porDia){
-  const desde = new Date(); desde.setHours(0,0,0,0); desde.setDate(desde.getDate() - dias + 1);
-  const lista = []; for(let d = new Date(desde); d <= new Date(); d.setDate(d.getDate()+1)) lista.push(ymd(d));
+  const desde = D.r ? new Date(D.r[0] + "T12:00") : (d => (d.setHours(12,0,0,0), d.setDate(d.getDate() - dias + 1), d))(new Date()), fin = D.r ? D.r[1] : ymd(new Date());
+  const lista = []; for(let d = new Date(desde); ymd(d) <= fin; d.setDate(d.getDate()+1)) lista.push(ymd(d));
   const W = 900, H = 200, PL = 56, PB = 22, max = Math.max(...lista.map(f => porDia[f] || 0), 1), paso = (W - PL) / lista.length, bw = Math.max(1.5, paso - 2);
   const y = v => H - PB - v / max * (H - PB - 8);
   const grid = [0, .5, 1].map(p => `<line class="grid-l" x1="${PL}" x2="${W}" y1="${y(max*p)}" y2="${y(max*p)}"/><text x="${PL-8}" y="${y(max*p)+4}" text-anchor="end">${millones(max*p)}</text>`).join("");
@@ -206,7 +255,7 @@ function chartDias(porDia){
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Venta por día">${grid}${cols}</svg>`;
 }
 function mapaCalor(){
-  const filas = (D.horas || []).filter(f => deSuc(f[0]));
+  const filas = (D.horas || []).filter(f => deSuc(f[0]) && (f[5] == null || ((vMedio === "todos" || f[5] === vMedio) && !(vModo === "ingresos" && f[5] === "ctacte"))));
   const m = {}; filas.forEach(f => { const k = f[1]+"|"+f[2]; m[k] = m[k] || [0,0]; m[k][0] += f[3]; m[k][1] += f[4]; });
   const horas = filas.map(f => f[2]), h0 = Math.min(8, ...horas), h1 = Math.max(20, ...horas);
   const max = Math.max(...Object.values(m).map(v => v[1]), 1), cols = h1 - h0 + 1;
@@ -350,6 +399,121 @@ function rCobros(){
 }
 
 /* =====================================================================
+   6c. SOBRES — el retiro de cada cierre va en un sobre; el encargado lo cuenta acá (hoja Conteos).
+       Diferencia = retiro − extracción − contado (+ falta · − sobra). Extracción = pago hecho con plata del sobre.
+       Se cuenta de nuevo para corregir (vale el último) y ↩ lo vuelve a "sin contar". Nada se borra.
+   ===================================================================== */
+const DESTINOS = ["Juani","Reserva"];
+const MOTIVOS = ["Billete falso","Error de conteo","Error de tipeo","Pago o transferencia","Faltante sin explicar","Otro"];
+const DIAS_DEMORA = 3;                                       // un sobre sin contar hace más días que esto se marca en rojo
+const toNum = s => Number(String(s ?? "").replace(/[^\d]/g,"")) || 0;
+/* Contado con cuentas: "20000x7 + 10000x3 + 2000x15" o "140.000 + 30000". Solo números, +, x (o ×, *). Nada se ejecuta como código.
+   Devuelve el total, o null si hay algo que no entiende. */
+function evalConteo(t){
+  const partes = String(t ?? "").split("+").map(x => x.trim()).filter(Boolean); if(!partes.length) return null;
+  let tot = 0;
+  for(const p of partes){ const m = p.match(/^\$?\s*([\d.,]+)\s*(?:[x×*]\s*(\d+))?$/i); if(!m) return null; tot += toNum(m[1]) * (m[2] ? +m[2] : 1); }
+  return tot;
+}
+const esCuenta = t => /[+x×*]/i.test(String(t || ""));
+const fechaHM = ts => { const d = new Date(ts); return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const difSobre = d => !d ? `<span class="dif-ok">OK</span>` : `<span class="${Math.abs(d) >= DIF_MINIMA ? "dif-mal" : "dif-nc"}">${d > 0 ? "falta " : "sobra "}${money(Math.abs(d))}</span>`;
+let sbAbierto = null, sbDest = "Juani", sbEnvio = false, sbArmado = null;
+// sobre: [id, ts cierre, sucursal, cajero, retiro, conteo] · conteo: null o [ts, extracción, concepto, contado, diferencia, motivo, destino, obs]
+function rSobres(){
+  const todos = (D.sobres || []).filter(s => deSuc(s[2]));
+  const pend = todos.filter(s => !s[5]).sort((a,b) => a[1] - b[1]);              // el más viejo arriba
+  const hechos = todos.filter(s => s[5]).sort((a,b) => b[5][0] - a[5][0]);
+  const mes = ymd(new Date()).slice(0,7), delMes = hechos.filter(s => ymd(new Date(s[5][0])).slice(0,7) === mes);
+  const aDest = d => delMes.filter(s => s[5][6] === d).reduce((a,s) => a + s[5][3], 0);
+  const difMes = delMes.reduce((a,s) => a + s[5][4], 0), conDifMes = delMes.filter(s => s[5][4]).length;
+  const viejos = pend.filter(s => Date.now() - s[1] > DIAS_DEMORA*864e5).length;
+  const filaPend = s => {
+    const dias = Math.floor((Date.now() - s[1]) / 864e5), abierto = sbAbierto === s[0];
+    return `<tr${abierto ? ' class="sb-abierto"' : ""}><td class="num">${fechaHM(s[1])}<br><small class="${dias > DIAS_DEMORA ? "dif-mal" : "m"}">${dias ? `hace ${dias} día${dias > 1 ? "s" : ""}` : "hoy"}</small></td>
+      <td>${sucTag(s[2])}</td><td>${esc(s[3])}</td><td class="r"><b>${money(s[4])}</b></td>
+      <td class="acc">${abierto ? "" : `<button class="btn sm" data-ok="${esc(s[0])}" title="Había justo ${money(s[4])}">✓ Coincide · ${esc(sbDest)}</button><button class="btn sm" data-ed="${esc(s[0])}">✏️ Otro monto</button>`}</td></tr>
+      ${abierto ? `<tr class="sb-abierto"><td colspan="5">${formSobre(s)}</td></tr>` : ""}`;
+  };
+  const filaHecha = s => { const c = s[5], armado = sbArmado === s[0];
+    return `<tr><td class="num">${fechaHM(s[1])}</td><td>${sucTag(s[2])}</td><td>${esc(s[3])}</td><td class="r">${money(s[4])}</td>
+      <td class="r">${c[1] ? `<span data-tip="${esc(c[2])}">${money(c[1])}</span><br><small class="m">${esc(c[2])}</small>` : "—"}</td>
+      <td class="r">${money(c[3])}</td><td class="r">${difSobre(c[4])}</td><td class="m">${esc([c[5], c[7]].filter(Boolean).join(" · "))}${c[4] && (s[6] || c[8]) ? `<br><span title="Para buscar el error billete por billete">🧾 Cajero: ${esc(s[6] || "—")}<br>🖐️ Vos: ${esc(c[8] || money(c[3]))}</span>` : ""}</td>
+      <td><span class="pill">${esc(c[6])}</span></td><td class="m num">${fechaHM(c[0])}</td>
+      <td class="acc"><button class="btn sm" data-un="${esc(s[0])}" title="Vuelve a sin contar">${armado ? "¿Seguro? ↩" : "↩"}</button></td></tr>`; };
+  $("#s-sobres").innerHTML = `<div class="grid">
+    <div class="tiles">
+      <div class="tile${viejos ? " alerta" : ""}"><span>Sin contar</span><b>${pend.length}</b><small>${money(pend.reduce((a,s) => a + s[4], 0))}${viejos ? ` · ${viejos} con más de ${DIAS_DEMORA} días` : ""}</small></div>
+      <div class="tile"><span>A Juani este mes</span><b>${millones(aDest("Juani"))}</b><small>${money(aDest("Juani"))}</small></div>
+      <div class="tile"><span>A Reserva este mes</span><b>${millones(aDest("Reserva"))}</b><small>${money(aDest("Reserva"))}</small></div>
+      <div class="tile"><span>Diferencias del mes</span><b class="${Math.abs(difMes) >= DIF_MINIMA ? "dif-mal" : ""}">${difMes > 0 ? "falta " : difMes < 0 ? "sobra " : ""}${money(Math.abs(difMes))}</b><small>${conDifMes} de ${delMes.length} sobres con diferencia</small></div>
+    </div>
+    <div class="card"><h3><span>Sin contar</span><span class="seg" id="sbDest" aria-label="Destino de la plata">${DESTINOS.map(d => `<button data-d="${d}" aria-pressed="${d===sbDest}">→ ${d}</button>`).join("")}</span></h3>
+      <p class="note">Contá el sobre. Si hay justo lo que dice, tocá <b>✓ Coincide</b> (va a ${esc(sbDest)}; cambialo arriba). Si no, <b>✏️ Otro monto</b>: la diferencia sale sola. Si pagaste algo con esa plata, anotalo en <b>Extracción</b>.</p>
+      ${pend.length ? `<div class="tw"><table><tr><th>Cierre</th><th>Sucursal</th><th>Cajero</th><th class="r">Retiro</th><th></th></tr>${pend.map(filaPend).join("")}</table></div>`
+        : `<div class="empty">🎉 No hay sobres para contar${suc !== "TODAS" ? " en " + sucNom(suc) : ""}.</div>`}</div>
+    <div class="card"><h3>Contados</h3><p class="note">Últimos ${Math.min(hechos.length, 200)}. <b>Falta</b>: había menos plata que el retiro (menos lo extraído). <b>Sobra</b>: había más. ↩ lo vuelve a "sin contar" para contarlo de nuevo.</p>
+      ${hechos.length ? `<div class="tw"><table><tr><th>Cierre</th><th>Sucursal</th><th>Cajero</th><th class="r">Retiro</th><th class="r">Extracción</th><th class="r">Contado</th><th class="r">Diferencia</th><th>Motivo / obs.</th><th>Destino</th><th>Contado el</th><th></th></tr>${hechos.slice(0,200).map(filaHecha).join("")}</table></div>`
+        : `<div class="empty">Todavía no contaste ningún sobre.</div>`}</div>
+  </div>`;
+  if(sbAbierto){ const i = $("#sbCont"); if(i){ i.focus(); i.select(); } difForm(); }
+}
+function formSobre(s){
+  return `<div class="sbf" data-id="${esc(s[0])}" data-ret="${s[4]}">
+    <label>Contado (podés sumar: 20000x7 + 10000x3)<input class="campo num" id="sbCont" autocomplete="off" value="${money(s[4])}"></label>
+    <label>Extracción (pagos)<input class="campo num" id="sbExt" inputmode="numeric" placeholder="$ 0" title="Lo que pagaste con plata de este sobre antes de contarlo"></label>
+    <label>¿En qué se usó?<input class="campo" id="sbCon" maxlength="80" placeholder="ej. flete, bolsas"></label>
+    <label>Motivo de la diferencia<select class="campo" id="sbMot"><option value="">—</option>${MOTIVOS.map(m => `<option>${m}</option>`).join("")}</select></label>
+    <label>Observación<input class="campo" id="sbObs" maxlength="200" placeholder="opcional"></label>
+    ${s[6] ? `<p class="note" style="grid-column:1/-1;margin:0">🧾 Billetes que contó ${esc(s[3])} en el cierre: <b class="num">${esc(s[6])}</b></p>` : ""}
+    <div class="pie-f"><span id="sbRes"></span><span class="seg" id="sbFDest">${DESTINOS.map(d => `<button type="button" data-d="${d}" aria-pressed="${d===sbDest}">→ ${d}</button>`).join("")}</span>
+      <button class="btn sm" id="sbCancel" type="button">Cancelar</button><button class="btn primary" id="sbGuardar" type="button">Guardar</button></div>
+  </div>`;
+}
+function difForm(){
+  const f = $(".sbf"); if(!f) return;
+  const ret = +f.dataset.ret, ext = toNum($("#sbExt").value), t = $("#sbCont").value, c = evalConteo(t);
+  if(c == null){ $("#sbRes").innerHTML = `<span class="dif-mal">No entiendo el contado: usá números, + y x (ej. 20000x7 + 10000x3)</span>`; return; }
+  const d = ret - ext - c;
+  $("#sbRes").innerHTML = `${esCuenta(t) ? `Contaste <b>${money(c)}</b> · ` : ""}Retiro ${money(ret)}${ext ? ` − extracción ${money(ext)}` : ""} → ${d ? difSobre(d) : '<span class="dif-ok">Coincide ✓</span>'}`;
+}
+async function contarSobre(id, datos){
+  if(sbEnvio) return; sbEnvio = true; LA.toast("Guardando…", 20000);
+  try{
+    if(LA.demo){                                              // datos de prueba: solo cambia en pantalla
+      const s = D.sobres.find(x => x[0] === id);
+      s[5] = datos.deshacer ? null : [Date.now(), datos.extraccion, datos.concepto, datos.contado, s[4] - datos.extraccion - datos.contado, datos.motivo, datos.destino, datos.obs, datos.detalle || ""];
+    } else D.sobres = (await LA.api("sobre-contar", {id, ...datos, _sinReintento:1})).sobres;
+    sbAbierto = null; sbArmado = null;
+    LA.toast(datos.deshacer ? "↩ Sobre de nuevo sin contar" : "💰 Sobre guardado");
+  }catch(e){
+    if(e === "clave"){ LA.salir(LA.ERR.clave); return; }
+    LA.toast("❌ " + ((e && e.msg) || LA.ERR[e] || "No se pudo guardar"), 6000);
+  }finally{ sbEnvio = false; if(tab === "sobres") rSobres(); }
+}
+$("#s-sobres").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b || sbEnvio) return;
+  if(b.closest("#sbDest") || b.closest("#sbFDest")){ sbDest = b.dataset.d; guardarLS("sbDest", sbDest);
+    if(!sbAbierto) return rSobres();                          // con un sobre a medio cargar no se redibuja (no se pierde lo escrito)
+    document.querySelectorAll("#sbDest button, #sbFDest button").forEach(x => x.setAttribute("aria-pressed", x.dataset.d === sbDest)); return; }
+  if(b.dataset.ok) return contarSobre(b.dataset.ok, {contado: D.sobres.find(x => x[0] === b.dataset.ok)[4], extraccion:0, concepto:"", motivo:"", destino:sbDest, obs:""});
+  if(b.dataset.ed){ sbAbierto = b.dataset.ed; sbArmado = null; return rSobres(); }
+  if(b.id === "sbCancel"){ sbAbierto = null; return rSobres(); }
+  if(b.dataset.un){ if(sbArmado !== b.dataset.un){ sbArmado = b.dataset.un; return rSobres(); } return contarSobre(b.dataset.un, {deshacer:1}); }
+  if(b.id === "sbGuardar"){
+    const t = $("#sbCont").value.trim(), ext = toNum($("#sbExt").value), con = $("#sbCon").value.trim(), ret = +$(".sbf").dataset.ret, contado = evalConteo(t);
+    if(!t) return LA.toast("Poné cuánto había en el sobre");
+    if(contado == null) return LA.toast("No entiendo el contado: usá números, + y x");
+    if(ext > ret) return LA.toast("La extracción no puede ser mayor que el retiro");
+    if(ext && con.length < 3) { $("#sbCon").focus(); return LA.toast("Escribí en qué se usó la extracción"); }
+    return contarSobre(sbAbierto, {contado, extraccion:ext, concepto:con, motivo:$("#sbMot").value, destino:sbDest, obs:$("#sbObs").value.trim(), detalle: esCuenta(t) ? t : ""});
+  }
+});
+$("#s-sobres").addEventListener("input", e => { if(e.target.closest(".sbf")) difForm(); });
+$("#s-sobres").addEventListener("keydown", e => { if(e.key === "Enter" && e.target.closest(".sbf input")) $("#sbGuardar").click(); if(e.key === "Escape" && sbAbierto){ sbAbierto = null; rSobres(); } });
+sbDest = DESTINOS.includes(leerLS("sbDest", "")) ? leerLS("sbDest", "") : "Juani";
+
+/* =====================================================================
    7. PRODUCTOS — más vendidos (para compras)
    ===================================================================== */
 let pOrden = "cant", pBusca = "", pAbiertos = false;
@@ -397,7 +561,7 @@ function datosDemo(){
     }));
   }
   SUCS.forEach(s => { for(let dw = 1; dw <= 6; dw++) for(let h = 8; h <= 20; h++){ if(dw === 6 && h > 13) continue;
-    const pico = (h >= 10 && h <= 12) || (h >= 17 && h <= 19) ? 2 : 1, n = Math.round(rnd()*6*pico*peso[s]*dias/30) + 1; horas[s+dw+h] = [s, dw, h, n, n*4200]; } });
+    const pico = (h >= 10 && h <= 12) || (h >= 17 && h <= 19) ? 2 : 1, n = Math.round(rnd()*6*pico*peso[s]*dias/30) + 1; horas[s+dw+h] = [s, dw, h, n, n*4200, ["efectivo","postnet","transf"][(dw+h)%3]]; } });
   SUCS.forEach(s => PRODS.forEach(p => prod.push([s, p[0], p[1], p[2], Math.round(rnd()*120*peso[s]*dias/30)+1, 0, ahora - rnd()*864e5*5]))); prod.forEach(p => p[5] = p[4] * (PRODS.find(x => x[0]===p[1])[3] || 1500));
   const mensual = []; for(let i = 11; i >= 0; i--){ const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); const m = ymd(d).slice(0,7);
     SUCS.forEach(s => { const t = (8e6 + rnd()*6e6) * peso[s] * (i === 0 ? .25 : 1); mensual.push([m, s, t, t*.45, t*.3, t*.25, 0, i < 1 ? "DA BOX" : "GUARDABLE"]); }); }
@@ -412,7 +576,16 @@ function datosDemo(){
     cobros.movimientos.push([w, lotes + (rnd() < .3 ? 4200 : 0)]); }
   for(let i = 0; i < 3; i++){ const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); const m = ymd(d).slice(0,7);
     [["VISA",1.8e6,.02,.02],["MASTERCARD",.5e6,.018,.02],["CABAL",.08e6,.09,.035]].forEach(([b,t,c,im]) => cobros.liquidaciones.push([m, b, t, t*c, t*im])); }
-  return {rol:"admin", dias, generado:ahora, secciones:["vivo","ventas","mensual","cierres","cobros","productos"], cobros, sinCierre,
+  const sobres = cierres.filter(c => c[0] > ahora - 20*864e5).map((c,i) => { const id = "C-DEMO-" + i, r = rnd(), bil = `20000x${Math.floor(c[6]/20000)} 1000x${Math.round(c[6]%20000/1000)}`;
+    const cont = i < 5 ? null : r < .8 ? [c[0] + 864e5, 0, "", c[6], 0, "", r < .5 ? "Juani" : "Reserva", "", ""]
+      : r < .9 ? [c[0] + 864e5, 35000, "flete", c[6] - 35000 - 500, 500, "Error de conteo", "Reserva", "", ""]
+      : [c[0] + 864e5, 0, "", c[6] - 20000, 20000, "Billete falso", "Juani", "billete de 20 mil", "20000x5 + 10000x3"];
+    return [id, c[0], c[1], c[2], c[6], cont, bil]; });
+  const cobrosCC = dia.filter((f,i) => i % 9 === 0).map(f => [f[0], f[1], "efectivo", 1, Math.round(f[4]/4)]);
+  dia.filter((f,i) => i % 7 === 0).forEach(f => dia.push([f[0], f[1], "ctacte", 1, Math.round(f[4]/2)]));
+  const sinFacturar = [[ "CC-1", ymd(new Date(ahora - 12*864e5)), "FALCON", "Escuela N° 5", 184500, ahora - 12*864e5], ["CC-2", ymd(new Date(ahora - 4*864e5)), "DEPOSITO", "Ejemplo SA", 96300, ahora - 4*864e5]];
+  const r = [ymd(new Date(ahora - (dias-1)*864e5)), ymd(new Date(ahora))];
+  return {rol:"admin", dias, generado:ahora, r, secciones:["vivo","ventas","mensual","cierres","sobres","cobros","productos"], cobros, sinCierre, sobres, cobrosCC, sinFacturar,
     vivo:[["FALCON","1","Celi","08:58",0,ahora-4e4],["FALCON","2","Joa","09:05",2,ahora-9e4],["MORENO","","Manu R","08:30",0,ahora-3e4],["NACION","","Delfi","09:00",0,ahora-36e5],["SOMISA","","Luka","13:30",0,ahora-2e4]],
     dia, horas:Object.values(horas), productos:prod, mensual, cierres};
 
