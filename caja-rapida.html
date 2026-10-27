@@ -223,6 +223,17 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .total span{font-weight:600}
 .total b{font-size:34px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .bar2{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+/* ✏️ cargando: un lápiz que escribe arriba de todo mientras la caja habla con la planilla */
+.lapiz{position:fixed;top:0;left:0;right:0;z-index:200;height:30px;pointer-events:none;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 2px 8px rgb(0 0 0 / .06);font-size:12.5px;color:var(--muted);font-weight:600}
+.lapiz .pista{position:relative;flex:1;height:22px;overflow:hidden}
+.lapiz .linea{position:absolute;left:0;top:13px;height:2px;width:0;background:repeating-linear-gradient(90deg,var(--ink) 0 10px,transparent 10px 14px);animation:lpLinea 1.8s ease-in-out infinite}
+.lapiz svg{position:absolute;top:-9px;left:0;width:46px;height:22px;animation:lpMano 1.8s ease-in-out infinite}
+@keyframes lpLinea{0%{width:0}80%{width:calc(100% - 30px)}100%{width:calc(100% - 30px);opacity:0}}
+@keyframes lpMano{0%{left:-6px;transform:rotate(-8deg)}40%{transform:rotate(4deg)}80%{left:calc(100% - 40px);transform:rotate(-6deg)}100%{left:calc(100% - 40px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.lapiz .linea,.lapiz svg{animation:none}.lapiz .linea{width:60%}}
+.espera{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+.espera button{border:1px dashed var(--accent);background:var(--accent-soft);color:var(--ink);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.espera button small{font-weight:500;color:var(--muted)}
 .bar2 .btn{flex:1;padding:13px}
 
 .col-izq{display:grid;gap:18px;min-width:0}
@@ -267,6 +278,24 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 #gaOverlay h4{margin:18px 0 0;font-size:13px;color:var(--muted)}
 .cc-tag{display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 12px;border-radius:var(--r-sm);background:var(--accent-soft);font-size:13.5px;font-weight:600}
 .cc-tag .link{padding:0;margin-left:auto}
+.cc-tag.mod{background:var(--warn-soft,#fbf3db);outline:1px dashed var(--warn,#b5821f)}
+/* 📝 Faltantes */
+.fl-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:16px;align-items:start}
+@media (max-width:1100px){.fl-grid{grid-template-columns:1fr}}
+.fl-cants{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px;align-items:center}
+.fl-cants button{border:1px solid var(--line);background:var(--surface-2);border-radius:99px;padding:7px 14px;font-weight:700;cursor:pointer;min-width:46px}
+.fl-cants button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink,#2b2200);border-color:transparent}
+.fl-cants .nada[aria-pressed="true"]{background:var(--bad,#d44c47);color:#fff}
+.fl-cants input{width:90px}
+.fl-list{list-style:none;margin:8px 0 0;padding:0}
+.fl-list li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 4px;border-bottom:1px solid var(--line);align-items:center}
+.fl-list .n{font-weight:600;word-break:break-word}
+.fl-list .m{grid-column:1;font-size:12px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.fl-list .ac{grid-row:1 / 3;grid-column:2;display:flex;gap:6px;align-items:center}
+.fl-list li.cerr{opacity:.55}
+.fl-cant{background:var(--accent-soft);border-radius:4px;padding:0 6px;font-weight:700;color:var(--ink)}
+.fl-cant.nada{background:var(--bad-soft,#fdebec);color:var(--bad,#d44c47)}
+.fl-h{font-size:13px;font-weight:700;color:var(--muted);margin:16px 0 0;text-transform:uppercase;letter-spacing:.04em}
 .cc-grid{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:18px;align-items:start}
 @media (max-width:1000px){.cc-grid{grid-template-columns:1fr}}
 .cc-top{display:flex;gap:8px;margin-bottom:10px}
@@ -450,6 +479,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
     <button role="tab" data-tab="venta" aria-selected="true"><i class="emo">🛒</i>Venta</button>
     <button role="tab" data-tab="ventas" aria-selected="false"><i class="emo">🧾</i>Ventas de hoy</button>
     <button role="tab" data-tab="ctacte" aria-selected="false"><i class="emo">📒</i>Cuenta corriente</button>
+    <button role="tab" data-tab="falt" aria-selected="false"><i class="emo">📝</i>Faltantes<span class="pill warn" id="flN" hidden></span></button>
     <button class="grupo" id="gHerr" aria-expanded="true"><i class="emo">🧰</i>Herramientas<span class="fl">▾</span></button>
     <div class="sub" id="gHerrItems">
       <button role="tab" data-tab="presu" aria-selected="false"><i class="emo">📝</i>Presupuestos</button>
@@ -532,6 +562,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
     <div class="card">
       <div class="order-h"><div class="badge y" id="tBadge">#</div><div><b>Venta actual</b><span id="tItems">Sin productos</span></div></div>
       <div class="cc-tag" id="ccTag" hidden></div>
+      <div class="espera" id="espera" hidden></div>
       <ul class="lines" id="lines"></ul>
       <div class="empty" id="tEmpty">🔍 Escribí para buscar o elegí una categoría.</div>
       <div class="desc-box" id="descBox" hidden></div>
@@ -539,6 +570,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
       <div class="total"><span>Total</span><b id="tTotal">$ 0</b></div>
       <div class="bar2" id="barVenta">
         <button class="btn" id="bVaciar">Vaciar</button>
+        <button class="btn" id="bEspera" title="Guardar esta venta y atender a otro cliente (F6)">⏸ En espera <kbd>F6</kbd></button>
         <button class="btn primary" id="bCobrar">Cobrar <kbd>Enter</kbd></button>
       </div>
       <div class="cobro" id="cobro" hidden>
@@ -702,6 +734,31 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
       <ul class="cc-list" id="ccList"></ul>
     </div>
     <div class="card" id="ccDet"><div class="empty">📒 Elegí un cliente para ver su saldo y sus movimientos.</div></div>
+  </div>
+</section>
+
+<!-- ============================== FALTANTES ============================== -->
+<section id="tab-falt" hidden>
+  <div class="fl-grid">
+    <div class="card">
+      <h3>📝 Anotar lo que falta</h3>
+      <p class="note">Escribí el producto como lo dirías (no hace falta el código) y elegí <b>cuántos</b> hacen falta. Enter = anotar.</p>
+      <input class="campo full" id="flTxt" autocomplete="off" maxlength="120" placeholder="Ej: Resma A4 Ledesma · cuaderno Rivadavia rayado · 3* biromes azules">
+      <div class="fl-cants" id="flCants">
+        <button type="button" data-c="1">1</button><button type="button" data-c="3">3</button><button type="button" data-c="5">5</button><button type="button" data-c="10">10</button>
+        <input class="campo" id="flOtro" inputmode="numeric" autocomplete="off" placeholder="otro">
+        <button type="button" class="nada" data-c="nada" title="Se terminó: ya no queda ninguno">🚫 No queda nada</button>
+      </div>
+      <input class="campo full" id="flObs" autocomplete="off" maxlength="200" placeholder="Nota (opcional): color, marca, lo pidió un cliente…" style="margin-top:8px">
+      <div class="err" id="flErr" hidden></div>
+      <div class="bar2"><button class="btn primary" id="flOk" type="button">Anotar <kbd>Enter</kbd></button></div>
+      <p class="note">Roman lo reparte: 📦 sale del depósito o 🛒 pasa a compras. Cuando llegue, tocá <b>✓ Llegó</b>.</p>
+    </div>
+    <div class="card">
+      <h3><span>Anotados de esta sucursal</span><button class="btn sm" id="flAct" type="button">↻ Actualizar</button></h3>
+      <p class="note" id="flInfo"></p>
+      <ul class="fl-list" id="flList"></ul>
+    </div>
   </div>
 </section>
 
@@ -910,6 +967,17 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 </div>
 
 <!-- Faltante -->
+<div class="overlay" id="mvOverlay" hidden>
+  <div class="modal">
+    <h2>✏️ Modificar venta a cuenta</h2>
+    <p class="note" id="mvInfo"></p>
+    <p class="note">Se abre en el carrito: cambiá precios o cantidades, agregá o sacá productos y cobrá con <b>Cta. cte.</b> El saldo del cliente se corrige solo y queda registro en la planilla.</p>
+    <input class="campo secreto full" id="mvPin" type="text" inputmode="numeric" placeholder="PIN del encargado" autocomplete="off">
+    <div class="err" id="mvErr" hidden></div>
+    <div class="bar2"><button class="btn" id="mvCancel" type="button">Cancelar <kbd>Esc</kbd></button><button class="btn primary" id="mvOk" type="button">Abrir para modificar <kbd>Enter</kbd></button></div>
+  </div>
+</div>
+
 <div class="overlay" id="faOverlay" hidden>
   <div class="modal">
     <h2>⚠️ Avisar faltante</h2>
@@ -1002,6 +1070,8 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 </div>
 
 <div class="toast" id="toast" hidden></div>
+<div class="lapiz" id="lapiz" hidden aria-live="polite"><span id="lapizTxt">Afilando lápices…</span><div class="pista"><div class="linea"></div>
+  <svg viewBox="0 0 34 16" aria-hidden="true"><path d="M2 12 L8 9 L30 1 L33 4 L11 12 Z" fill="#f6c445" stroke="#1f2a24" stroke-width="1.2"/><path d="M2 12 L8 9 L11 12 Z" fill="#e8c9a0" stroke="#1f2a24" stroke-width="1"/><path d="M2 12 L4 11 L5 12 Z" fill="#1f2a24"/><path d="M30 1 L33 4" stroke="#e46b6b" stroke-width="3"/></svg></div></div>
 
 <script>
 (()=>{
@@ -1010,7 +1080,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-10-20 v3.41";
+const VERSION = "2026-10-28 v3.43";
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1052,7 +1122,7 @@ const SAMPLE = [
    Sirve para mostrar el sistema o practicar: catálogo y empleados inventados, guarda solo en esta pestaña
    (se borra al cerrarla) y NUNCA se conecta a la planilla. */
 const DEMO = new URLSearchParams(location.search).has("demo");
-const DEMO_CAT = {items: [...SAMPLE, {cod:"7790041", nombre:"Birome BIC azul (combo)", cat:"ESCRITURA", precio:900, alt:"", combo:"3x2400"},
+const DEMO_CAT = {items: [...SAMPLE, {cod:"7790041", nombre:"Birome BIC azul (combo)", cat:"ESCRITURA", precio:900, alt:"", combo:"3x2400/10x7500"},
     {cod:"7795001", nombre:"Carpeta N°3 escolar", cat:"CARPETAS", precio:5400, alt:""}, {cod:"7795010", nombre:"Mochila espalda 16\"", cat:"MOCHILAS", precio:38900, alt:""}],
   empleados: ["Ana","Bruno","Caro"].map(nombre => ({nombre, avatar:null})), avisos: [], config: {kiosco: ["MORENO"]},
   descuentos: {efectivo:[[15000,10]], monto:[[50000,5],[100000,8]], unidades:[[50,5]]},
@@ -1074,18 +1144,26 @@ const fechaAR = f => { const t = String(f ?? ""); return /^\d{4}-\d{2}-\d{2}/.te
 const medioL = k => (MEDIOS.find(m => m.k === k) || {l:k}).l;
 const inicioHoy = () => { const d=new Date(); d.setHours(0,0,0,0); return d.getTime(); };
 const nro = s => (s.pc ? s.pc+"-" : "") + s.n;
-/* precio combo por cantidad (columna Combo del catálogo, ej. "3x2500"): al llegar a la cantidad, el precio se ajusta solo.
-   4 u. con combo 3x2500 = 2500 + 1 suelta. Sirve en Venta y Presupuestos. */
+/* COMBOS (columna Combo del Catálogo): uno o varios escalones separados por "/" o ",": "3x20000/10x63000" = 3 por $20.000 o 10 por $63.000.
+   La caja arma la combinación más barata (12 = 10 + 2 sueltas). Las unidades que entran en combo NO llevan descuento (ya tienen precio
+   especial), pero su monto SÍ suma para llegar al "desde $" de los descuentos. Sirve en Venta y Presupuestos. */
 function leerCombo(t){
-  const m = String(t || "").match(/^\s*(\d+)\s*[xX×]\s*\$?\s*([\d.,]+)\s*$/); if(!m) return null;
-  const q = +m[1], p = Math.round(toNum(m[2])); return q >= 2 && p > 0 ? {q, p} : null;
+  const out = String(t || "").split(/[\/;|,]+/).map(x => x.match(/^\s*(\d+)\s*[xX×]\s*\$?\s*([\d.]+)\s*$/)).filter(Boolean)
+    .map(m => ({q:+m[1], p:Math.round(toNum(m[2]))})).filter(c => c.q >= 2 && c.p > 0).sort((a,b) => a.q - b.q);
+  return out.length ? out : null;
 }
-const conCombo = l => !!(l.combo && l.cant >= l.combo.q);
-function subt(l){
-  if(!conCombo(l)) return l.cant * l.precio;
-  const k = Math.floor(l.cant / l.combo.q); return k*l.combo.p + (l.cant - k*l.combo.q)*l.precio;
+const escalones = c => !c ? [] : Array.isArray(c) ? c : [c];   // ventas y presupuestos guardados antes de v3.42 tienen un solo {q,p}
+function combinar(l){            // → {total, sueltas}: el precio más barato de la línea y cuántas unidades quedan a precio normal
+  const T = escalones(l.combo), cant = +l.cant || 0, n = Math.floor(cant);
+  if(!T.length || n < T[0].q || n > 20000) return {total: cant * l.precio, sueltas: cant};
+  const c = new Array(n + 1).fill(0), su = new Array(n + 1).fill(0);
+  for(let k = 1; k <= n; k++){ c[k] = c[k-1] + l.precio; su[k] = su[k-1] + 1;
+    T.forEach(t => { if(t.q <= k && c[k - t.q] + t.p < c[k]){ c[k] = c[k - t.q] + t.p; su[k] = su[k - t.q]; } }); }
+  return {total: c[n] + (cant - n) * l.precio, sueltas: su[n] + (cant - n)};
 }
-const comboTxt = c => c ? `🏷️ ${c.q}x${money(c.p).replace("$ ","$")}` : "";
+const subt = l => combinar(l).total;
+const conCombo = l => escalones(l.combo).length > 0 && subt(l) < (+l.cant || 0) * l.precio - 0.5;
+const comboTxt = c => escalones(c).length ? "🏷️ " + escalones(c).map(t => `${t.q}x${money(t.p).replace("$ ","$")}`).join(" · ") : "";
 function toNum(s){
   s = String(s ?? "").replace(/[$\s]/g,""); if(!s) return 0;
   if(s.includes(",") && s.includes(".")) s = s.lastIndexOf(",") > s.lastIndexOf(".") ? s.replace(/\./g,"").replace(",",".") : s.replace(/,/g,"");
@@ -1227,6 +1305,8 @@ function podar(){   // borra de la PC lo ya enviado y viejo (espacio del navegad
   gastos = gastos.filter(g => g.ts >= lim || pend.has(g.id)); guardar("gastos", gastos);
   errores = errores.filter(x => x.ts >= lim || pend.has(x.id)); guardar("errores", errores);
   pagosCC = pagosCC.filter(x => x.ts >= lim || pend.has(x.id)); guardar("pagoscc", pagosCC);
+  ccMods = ccMods.filter(x => x.ts >= lim || pend.has(x.modId)); guardar("ccmods", ccMods);
+  Object.keys(flEst).forEach(k => { if(flEst[k].ts < lim && !pend.has(k)) delete flEst[k]; }); guardar("faltEst", flEst);
   guardar("sales", sales); guardar("cierres", cierres); guardar("queue", queue);
 }
 
@@ -1428,7 +1508,7 @@ $("#bSalir").onclick = () => { if(cart.length && !confirm("Hay una venta sin cob
 /* =====================================================================
    8. PESTAÑAS
    ===================================================================== */
-const TABS = {venta:["🛒","Venta"], presu:["📝","Presupuestos"], copias:["🖨️","Cotizar copias"], kiosco:["💲","Calc de precios"], ctacte:["📒","Cuenta corriente"], catalogo:["📚","Catálogo"], ventas:["🧾","Ventas de hoy"], cierre:["💵","Cierre de caja"], ajustes:["⚙️","Ajustes"]};
+const TABS = {venta:["🛒","Venta"], presu:["📝","Presupuestos"], copias:["🖨️","Cotizar copias"], kiosco:["💲","Calc de precios"], ctacte:["📒","Cuenta corriente"], falt:["📝","Faltantes"], catalogo:["📚","Catálogo"], ventas:["🧾","Ventas de hoy"], cierre:["💵","Cierre de caja"], ajustes:["⚙️","Ajustes"]};
 document.querySelectorAll("nav button[data-tab]").forEach(b => b.onclick = () => showTab(b.dataset.tab));
 $("#bIrCierre").onclick = () => {
   if(cart.length){ toast("Hay una venta sin cobrar: cobrala o vaciala antes de cerrar la caja"); return; }
@@ -1453,7 +1533,7 @@ function showTab(t){
   document.querySelectorAll("nav button[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
   Object.keys(TABS).forEach(x => $("#tab-"+x).hidden = x !== t);
   $("#titulo").innerHTML = `<i class="emo">${TABS[t][0]}</i>${TABS[t][1]}`;
-  if(t==="venta") focusQ(); if(t==="catalogo"){ renderCatalogo(); $("#cq").focus(); } if(t==="copias"){ renderCopias(); $("#cpPag").focus(); } if(t==="kiosco"){ calcKiosco(); $("#kCosto").focus(); } if(t==="ventas") cargarRemotas(); if(t==="ventas") renderVentas(); if(t==="ctacte"){ renderCC(); $("#ccQ").focus(); } if(t==="presu"){ renderPresu(); $("#pq").focus(); }
+  if(t==="venta") focusQ(); if(t==="catalogo"){ renderCatalogo(); $("#cq").focus(); } if(t==="copias"){ renderCopias(); $("#cpPag").focus(); } if(t==="kiosco"){ calcKiosco(); $("#kCosto").focus(); } if(t==="ventas") cargarRemotas(); if(t==="ventas") renderVentas(); if(t==="ctacte"){ renderCC(); $("#ccQ").focus(); } if(t==="falt"){ renderFalt(); cargarFalt(); $("#flTxt").focus(); } if(t==="presu"){ renderPresu(); $("#pq").focus(); }
   renderEtqBar(); if(t==="cierre") renderCierre(); if(t==="ajustes") renderAjustes();
   $("#bIrCierre").hidden = t !== "venta"; $("#bVolverVenta").hidden = t !== "cierre"; $("#bGasto").hidden = !["venta","cierre"].includes(t);   // el cierre se abre desde Venta y vuelve a Venta
 }
@@ -1518,16 +1598,16 @@ function agregar(p, qty){
   if(!p || !$("#cobro").hidden) return;
   const ex = !p._open && cart.find(l => l.cod === p.cod && l.nombre === p.nombre);
   if(ex) ex.cant += qty;
-  else cart.push({cod:p.cod, nombre:p.nombre, cat:p.cat, cant:qty, precio:p._open?0:p.precio, open:p._open, ...(p.combo ? {combo:p.combo} : {})});
+  else cart.push({cod:p.cod, nombre:p.nombre, cat:p.cat, cant:qty, precio:p._open?0:p.precio, open:p._open, ...(ccEdit ? {edit:true} : {}), ...(p.combo ? {combo:p.combo} : {})});
   q.value=""; found=[]; renderResults(); renderCart();
   if(!ex && p._open){ const ins=document.querySelectorAll("#lines input.price"); ins[ins.length-1].focus(); } else focusQ();
 }
 const total = () => Math.round(cart.reduce((a,b) => a + subt(b), 0));
 function renderCart(){
   $("#lines").innerHTML = (cart.length ? `<div class="hd"><span>Producto</span><span style="text-align:center">Cant.</span><span style="text-align:right">Precio</span><span style="text-align:right">Subtotal</span><span></span></div>` : "") +
-    cart.map((l,i) => `<li><span class="n" title="${esc(l.nombre)}${l.combo ? " · combo "+l.combo.q+" x "+money(l.combo.p) : ""}">${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span>${l.open || ES_SERVICIO(l) ? "" : ` <button class="bell${enRevision(l.cod) ? " on" : ""}" data-bell="${i}" type="button" title="${enRevision(l.cod) ? "Precio en revisión" : "Avisar que el precio está mal"}">🔔</button>`}</span>
+    cart.map((l,i) => `<li><span class="n" title="${esc(l.nombre)}${l.combo ? " · combo " + escalones(l.combo).map(t => t.q + " x " + money(t.p)).join(" / ") : ""}">${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span>${l.open || ES_SERVICIO(l) ? "" : ` <button class="bell${enRevision(l.cod) ? " on" : ""}" data-bell="${i}" type="button" title="${enRevision(l.cod) ? "Precio en revisión" : "Avisar que el precio está mal"}">🔔</button>`}</span>
     <span class="step"><button class="mn" data-dec="${i}" type="button" tabindex="-1" aria-label="Uno menos">−</button><input class="qty" data-i="${i}" value="${l.cant}" inputmode="decimal" aria-label="Cantidad"><button class="mn" data-inc="${i}" type="button" tabindex="-1" aria-label="Uno más">+</button></span>
-    ${l.open ? `<input class="price${l.precio>0?"":" need"}" data-i="${i}" value="${l.precio||""}" placeholder="precio" inputmode="decimal" aria-label="Precio">` : `<span class="p">${money(l.precio)}</span>`}
+    ${l.open || l.edit ? `<input class="price${l.precio>0?"":" need"}" data-i="${i}" value="${l.precio||""}" placeholder="precio" inputmode="decimal" aria-label="Precio">` : `<span class="p">${money(l.precio)}</span>`}
     <span class="s">${money(subt(l))}</span><button class="x" data-i="${i}" aria-label="Quitar">✕</button></li>`).join("");
   $("#tTotal").textContent = money(total());
   const u = cart.reduce((a,b)=>a+b.cant,0);
@@ -1687,8 +1767,35 @@ if(leer("calcAbierta", false)){ $("#calcBody").hidden = false; $("#calcToggle").
    ===================================================================== */
 $("#medios").innerHTML = MEDIOS.map(m => `<button data-m="${m.k}" aria-pressed="false">${m.l}<kbd>${m.tecla}</kbd></button>`).join("");
 $("#medios").addEventListener("click", e => { const b=e.target.closest("button"); if(b) setMedio(b.dataset.m); });
-$("#bVaciar").onclick = () => { cart=[]; medioPreset=null; resetDesc(); ccCli=null; closeCobro(); renderCart(); focusQ(); };
+$("#bVaciar").onclick = () => { if(ccEdit) toast("Se canceló la modificación: la venta queda como estaba"); cart=[]; medioPreset=null; resetDesc(); ccCli=null; ccEdit=null; closeCobro(); renderCart(); focusQ(); };
 $("#bCobrar").onclick = abrirCobro;
+/* ⏸ VENTA EN ESPERA: guarda la venta actual (productos, cliente, descuento) y deja la caja libre. Hasta 3, solo en esta PC.
+   No va a la planilla ni al cierre hasta que se cobra. Tocar una espera la retoma; si había otra venta en pantalla, esa pasa a espera. */
+const MAX_ESPERA = 3;
+let esperas = leer("espera", []);
+function renderEspera(){
+  const box = $("#espera"); box.hidden = !esperas.length;
+  box.innerHTML = esperas.map((e,i) => `<button type="button" data-esp="${i}" title="Retomar esta venta">▶ ${hm(new Date(e.ts))} · ${e.cart.length} prod. <small>${money(e.cart.reduce((a,l) => a + subt(l), 0))}</small></button>`).join("");
+}
+function ponerEnEspera(){
+  if(!cart.length){ toast("No hay venta para poner en espera"); return; }
+  if(ccEdit){ toast("Terminá o cancelá la modificación de la venta a cuenta primero"); return; }
+  if(!$("#cobro").hidden) closeCobro();
+  if(esperas.length >= MAX_ESPERA){ toast(`Máximo ${MAX_ESPERA} ventas en espera: cobrá o vaciá una`, 4000); return; }
+  esperas.push({ts:Date.now(), cart, descCli, descOn, descBloq, ccCli, medioPreset}); guardar("espera", esperas);
+  cart = []; medioPreset = null; resetDesc(); ccCli = null; renderCart(); renderEspera(); focusQ();
+  toast("⏸ Venta en espera. Tocá ▶ para retomarla");
+}
+function retomar(i){
+  const e = esperas[i]; if(!e) return;
+  if(!$("#cobro").hidden) closeCobro();
+  esperas.splice(i, 1);
+  if(cart.length) esperas.push({ts:Date.now(), cart, descCli, descOn, descBloq, ccCli, medioPreset});   // la de pantalla pasa a espera
+  cart = e.cart; descCli = e.descCli; descOn = e.descOn; descBloq = e.descBloq; ccCli = e.ccCli; medioPreset = e.medioPreset;
+  guardar("espera", esperas); renderCart(); renderEspera(); focusQ();
+}
+$("#bEspera").onclick = ponerEnEspera;
+$("#espera").addEventListener("click", e => { const b = e.target.closest("[data-esp]"); if(b) retomar(+b.dataset.esp); });
 $("#bVolver").onclick = () => { closeCobro(); focusQ(); };
 $("#bConfirmar").onclick = confirmar;
 /* montos: se muestran en pesos ($ 10.000) mientras se escriben */
@@ -1704,6 +1811,7 @@ function abrirCobro(){
 }
 function closeCobro(){ $("#cobro").hidden=true; $("#barVenta").hidden=false; medio=null; renderDesc(); }
 function setMedio(m){
+  if(ccEdit && m !== "ctacte"){ toast("Una venta a cuenta se modifica a cuenta (Cta. cte.)"); m = "ctacte"; }
   if(m === "ctacte" && !ccCli){ abrirElegirCC(() => setMedio("ctacte")); return; }
   medio = m;
   document.querySelectorAll("#medios button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === m));
@@ -1732,15 +1840,18 @@ const r10 = n => Math.round(n/10)*10;
    Ej. RESMAS 15 %: si el combo ya baja 10 %, el descuento en esa línea es como mucho 5 %. Aplica a todos los descuentos, también con PIN. */
 const TOPE_DEF = {RESMAS: 15};                                      // si el script todavía no manda topes (anterior a v3.31)
 const topeDe = l => { const t = reglas().tope || TOPE_DEF; return t[String(l.cat || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")]; };
+const COMBO_CON_DESC = true;                                        // 28/10: los combos SÍ llevan descuento (el tope por categoría lo sigue limitando). false = solo lo suelto
+const baseDesc = l => COMBO_CON_DESC ? subt(l) : combinar(l).sueltas * l.precio;   // sobre qué se calcula el descuento de la línea
 function descLinea(l, pct){
-  const s = subt(l), d = s*pct/100, t = topeDe(l); if(!(t >= 0)) return d;
+  const s = subt(l), d = baseDesc(l)*pct/100, t = topeDe(l); if(!(t >= 0)) return d;
   const lista = l.cant*l.precio; return Math.max(0, Math.min(d, lista*t/100 - (lista - s)));
 }
 function candidatos(m){
   if(descBloq || !cart.length) return [];
   const R = reglas(), el = cart.filter(l => !SIN_DESC(l));
   const base = el.reduce((a,l) => a + subt(l), 0), uds = el.reduce((a,l) => a + (+l.cant || 0), 0), out = [];
-  const add = (tipo, pct, motivo) => { if(pct > 0 && base > 0) out.push({tipo, pct, motivo: motivo || "", monto: r10(el.reduce((a,l) => a + descLinea(l, pct), 0)), tope: el.some(l => descLinea(l, pct) < subt(l)*pct/100 - 1)}); };
+  const add = (tipo, pct, motivo) => { if(!(pct > 0 && base > 0)) return; const monto = r10(el.reduce((a,l) => a + descLinea(l, pct), 0));
+    if(monto > 0) out.push({tipo, pct, motivo: motivo || "", monto, tope: el.some(l => descLinea(l, pct) < baseDesc(l)*pct/100 - 1)}); };   // base (con combos) decide el escalón; el monto, solo lo suelto
   if(m === "efectivo") add("efectivo", escala(R.efectivo, base));
   if(m === "transf") add("transferencia", escala(R.transferencia, base));
   add("monto", escala(R.monto, base));
@@ -1779,10 +1890,12 @@ function sugerencias(){
   if(!cart.length) return [];
   const out = [], corto = n => n.length > 30 ? n.slice(0, 28) + "…" : n;
   cart.forEach(l => {
-    if(!l.combo || l.open || !(l.cant > 0)) return;
-    const resto = l.cant % l.combo.q; if(!resto) return;
-    const falta = l.combo.q - resto, ahorro = l.combo.q * l.precio - l.combo.p;
-    if(ahorro > 0) out.push(`🏷️ <b>${esc(corto(l.nombre))}</b>: llevando ${falta} más paga ${money(l.combo.p)} cada ${l.combo.q} (ahorra ${money(ahorro)})`);
+    const T = escalones(l.combo); if(!T.length || l.open || !(l.cant > 0)) return;
+    const con = n => subt({...l, cant:n}), t = T.find(x => x.q > l.cant);          // el próximo escalón
+    const meta = t ? t.q : l.cant + (T[T.length-1].q - l.cant % T[T.length-1].q);   // pasó el último: completar otro del más grande
+    if(meta <= l.cant) return;
+    const ahorro = subt(l) + (meta - l.cant) * l.precio - con(meta);
+    if(ahorro > 0) out.push(`🏷️ <b>${esc(corto(l.nombre))}</b>: llevando ${meta - l.cant} más (${meta}) paga ${money(con(meta))} en total (ahorra ${money(ahorro)})`);
   });
   const R = reglas(), el = cart.filter(l => !SIN_DESC(l));
   const base = el.reduce((a,l) => a + subt(l), 0), uds = el.reduce((a,l) => a + (+l.cant || 0), 0);
@@ -1808,13 +1921,14 @@ $("#descBox").addEventListener("click", e => {
    · Pago: "💵 Registrar pago" → resta al saldo; el efectivo entra en el cierre del turno.
    Saldo = el de la planilla (al último sincronizado) + lo de esta PC posterior.
    ===================================================================== */
-let ccSel = null, ccMovs = {}, ccTras = null, pgMedio = "efectivo";
+let ccSel = null, ccMovs = {}, ccMovsT = {}, ccTras = null, pgMedio = "efectivo";
 const clientesCC = () => ((cat && cat.clientes) || []).filter(c => c.ctacte);
 function saldoCC(nom){
   const desde = (cat && cat.fecha) || 0, base = +((cat && cat.saldos) || {})[nom] || 0;
   const compras = sales.filter(s => s.cliente === nom && s.medio === "ctacte" && !s.anulada && s.ts > desde).reduce((a,s) => a + s.total, 0);
   const pagos = pagosCC.filter(x => x.cliente === nom && !x.anulado && x.ts > desde).reduce((a,x) => a + (x.mov === "Ajuste" ? -x.monto : x.monto), 0);   // ajuste: + suma deuda
-  return base + compras - pagos;
+  const mods = ccMods.filter(m => m.cliente === nom && m.ts > desde).reduce((a,m) => a + m.total - m.totalAnt, 0);   // ✏️ ventas a cuenta modificadas desde esta PC
+  return base + compras - pagos + mods;
 }
 function renderCC(){
   const q = norm($("#ccQ").value), l = clientesCC().filter(c => !q || norm(c.nombre).includes(q)).sort((a,b) => saldoCC(b.nombre) - saldoCC(a.nombre) || a.nombre.localeCompare(b.nombre));
@@ -1828,18 +1942,20 @@ async function renderCCDet(){
   const sd = saldoCC(c.nombre), loc = [
     ...sales.filter(s => s.cliente === c.nombre && s.medio === "ctacte").map(s => ({id:s.id, fecha:s.fecha, hora:s.hora, mov:"Compra", monto:s.total, nota:`Venta ${nro(s)}`, anulado:s.anulada, ts:s.ts, local:true})),
     ...pagosCC.filter(x => x.cliente === c.nombre).map(x => ({id:x.id, fecha:x.fecha, hora:x.hora, mov:x.mov || "Pago", monto:x.monto, medio:x.medio, nota:x.nota, anulado:x.anulado, ts:x.ts, local:true, pago:true}))];
-  const srv = ccMovs[c.nombre] || [], ids = new Set(loc.map(x => x.id)), movs = [...loc, ...srv.filter(x => !ids.has(x.id))].sort((a,b) => b.ts - a.ts).slice(0, 40);
+  const srv = (ccMovs[c.nombre] || []).map(x => { const m = modDe(x.id); return m && m.ts > (ccMovsT[c.nombre] || 0) ? {...x, monto:m.total, nota:"✏️ modificada (antes " + money(m.totalAnt) + ")"} : x; });
+  const ids = new Set(loc.map(x => x.id)), movs = [...loc, ...srv.filter(x => !ids.has(x.id))].sort((a,b) => b.ts - a.ts).slice(0, 40);
+  const modificable = x => /^compra/i.test(x.mov) && !x.anulado && x.fecha < ymd(new Date());
   const anulable = x => x.pago && !x.anulado && x.ts > Math.max(corte(), inicioHoy());
   $("#ccDet").innerHTML = `<h3>${/empresa/i.test(c.tipo) ? "🏢" : "👤"} ${esc(c.nombre)}${c.pct ? ` <span class="pill">descuento ${c.pct}%</span>` : ""}</h3>
     <p class="note" style="margin:6px 0 0">Saldo</p><div class="cc-saldo${sd > 0 ? " debe" : ""}">${money(sd)}</div><p class="note">${sd > 0 ? "Debe" : sd < 0 ? "A favor del cliente" : "Al día"}</p>
     <div class="bar2"><button class="btn primary" id="ccCompra" type="button">🛒 Cargar compra</button><button class="btn" id="ccPago" type="button">💵 Registrar pago</button><button class="btn" id="ccAjuste" type="button" title="Corrige el saldo sin mover plata">± Ajuste</button></div>
     <table class="cc-mov"><tr><th>Fecha</th><th>Movimiento</th><th class="r">Monto</th><th></th></tr>
     ${movs.map(x => `<tr class="${x.anulado ? "anul" : ""}"><td>${fechaAR(x.fecha)} ${esc(x.hora || "")}</td><td>${/^pago/i.test(x.mov) ? `💵 Pago${x.medio ? " · " + esc(medioL(x.medio)) : ""}` : /^ajuste/i.test(x.mov) ? "± Ajuste" : `🛒 Compra ${factBtn(x)}`}${x.nota ? ` <span class="note">${esc(x.nota)}</span>` : ""}${x.sucursal && x.sucursal !== cfg.suc ? ` <span class="note">(${esc(x.sucursal)})</span>` : ""}</td>
-      <td class="r">${/^pago/i.test(x.mov) || (/^ajuste/i.test(x.mov) && x.monto < 0) ? "−" : "+"} ${money(Math.abs(x.monto))}</td><td>${anulable(x) ? `<button class="x" data-ap="${esc(x.id)}" type="button" title="Anular pago">✕</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="4" class="note">Sin movimientos.</td></tr>`}</table>
+      <td class="r">${/^pago/i.test(x.mov) || (/^ajuste/i.test(x.mov) && x.monto < 0) ? "−" : "+"} ${money(Math.abs(x.monto))}</td><td>${anulable(x) ? `<button class="x" data-ap="${esc(x.id)}" type="button" title="Anular pago">✕</button>` : modificable(x) ? `<button class="x" data-mod="${esc(x.id)}" type="button" title="Modificar esta venta (PIN del encargado)">✏️</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="4" class="note">Sin movimientos.</td></tr>`}</table>
     <p class="note">${srv.length || !cfg.url ? "" : "Buscando movimientos en la planilla…"}</p>`;
   if(!ccMovs[c.nombre] && cfg.url && !DEMO){
     ccMovs[c.nombre] = [];
-    try{ const r = await api("ctacte", {cliente:c.nombre}); ccMovs[c.nombre] = r.movimientos || []; if(ccSel === c.nombre) renderCCDet(); }catch(e){}
+    try{ const r = await api("ctacte", {cliente:c.nombre}); ccMovs[c.nombre] = r.movimientos || []; ccMovsT[c.nombre] = Date.now(); if(ccSel === c.nombre) renderCCDet(); }catch(e){}
   }
 }
 $("#ccQ").addEventListener("input", renderCC);
@@ -1849,6 +1965,7 @@ $("#ccDet").addEventListener("click", e => {
   if(e.target.closest("#ccPago")) abrirPago(ccSel);
   if(e.target.closest("#ccAjuste")) abrirPago(ccSel, true);
   const fb = e.target.closest("[data-fc]"); if(fb) facturar(fb.dataset.fc);
+  const mb = e.target.closest("[data-mod]"); if(mb) abrirModCC(mb.dataset.mod);
   const ap = e.target.closest("[data-ap]");
   if(ap) dobleToque(ap, "¿Anular?", () => { const x = pagosCC.find(y => y.id === ap.dataset.ap); if(!x) return; x.anulado = true; guardar("pagoscc", pagosCC); encolar("pagoCCAnul", x.id); toast("Pago anulado"); renderCC(); });
 });
@@ -1863,10 +1980,14 @@ function cargarCompraCC(nom){
   elegirCC(nom); medioPreset = "ctacte"; showTab("venta"); toast(`📒 Compra a cuenta de ${nom}: cargá los productos y cobrá con Enter`, 4000);
 }
 function renderCCTag(){
+  $("#ccTag").classList.toggle("mod", !!ccEdit);
+  if(ccEdit){ $("#ccTag").hidden = false; $("#ccTag").innerHTML = `✏️ Modificando la venta del ${fechaAR(ccEdit.fecha)} ${esc(ccEdit.hora || "")} (${esc(SUC_LBL(ccEdit.sucursal))}) de ${esc(ccEdit.cliente)} · antes ${money(ccEdit.totalAnt)}<button class="link" id="ccTagX" type="button">Cancelar</button>`; return; }
   $("#ccTag").hidden = !ccCli;
   if(ccCli) $("#ccTag").innerHTML = `📒 A cuenta de ${esc(ccCli)} · saldo ${money(saldoCC(ccCli))}<button class="link" id="ccTagX" type="button">Quitar</button>`;
 }
-$("#ccTag").addEventListener("click", e => { if(e.target.id !== "ccTagX") return; ccCli = null; if(medio === "ctacte") setMedio("efectivo"); medioPreset = null; renderCart(); focusQ(); });
+$("#ccTag").addEventListener("click", e => { if(e.target.id !== "ccTagX") return;
+  if(ccEdit){ ccEdit = null; cart = []; resetDesc(); ccCli = null; medioPreset = null; if(!$("#cobro").hidden) closeCobro(); renderCart(); toast("Se canceló la modificación"); showTab("ctacte"); return; }
+  ccCli = null; if(medio === "ctacte") setMedio("efectivo"); medioPreset = null; renderCart(); focusQ(); });
 /* elegir cliente desde el cobro (tecla C) */
 function abrirElegirCC(despues){ ccTras = despues; $("#ccPQ").value = ""; renderElegirCC(); $("#ccOverlay").hidden = false; setTimeout(() => $("#ccPQ").focus(), 30); }
 function renderElegirCC(){
@@ -2119,6 +2240,7 @@ function confirmar(){
   if(cart.some(l => !(l.precio > 0) || !(l.cant > 0))){ $("#cobroErr").textContent = "Falta precio o cantidad en una línea."; $("#cobroErr").hidden = false; return; }
   const tot = aCobrar(), p = toNum($("#pagaCon").value), d = descAplicado() ? mejorDesc(medio) : null;
   if(medio==="efectivo" && p && p<tot){ $("#cobroErr").textContent="El monto recibido es menor al total."; $("#cobroErr").hidden=false; return; }
+  if(ccEdit) return confirmarMod(tot, d);
   const t = new Date(), fecha = ymd(t);
   const s = {
     id: cfg.suc.slice(0,3)+(cfg.pc||"")+"-"+t.getTime().toString(36)+Math.random().toString(36).slice(2,5),
@@ -2212,6 +2334,7 @@ document.addEventListener("keydown", e => {
   if($("#tab-venta").hidden) return;
   if(e.key==="F4"){ e.preventDefault(); ultimaId ? abrirTicket(ultimaId) : toast("Todavía no hay ventas"); return; }
   if(e.key==="F7"){ e.preventDefault(); toggleQc(); return; }
+  if(e.key==="F6"){ e.preventDefault(); if(esperas.length && !cart.length) retomar(0); else ponerEnEspera(); return; }
   if(e.key==="F8"){ e.preventDefault(); if(!$("#calcBody").hidden && document.activeElement !== $("#cIn")) $("#cIn").focus(); else toggleCalc(); return; }
   const cobrando = !$("#cobro").hidden;
   if(!cobrando && e.altKey && /^Digit[1-9]$/.test(e.code)){ const i=+e.code.slice(5)-1, fv=favPool()[i-FIJOS.length]; if(i<FIJOS.length){ e.preventDefault(); agregar(pool[i], parseQ(q.value).qty); } else if(fv){ e.preventDefault(); agregar(fv, parseQ(q.value).qty); } return; }
@@ -2296,13 +2419,127 @@ $("#notaPin").onclick = () => { const pin = $("#notaPin").getAttribute("aria-pre
 $("#notaTxt").addEventListener("input", () => { clearTimeout(notaT); notaT = setTimeout(guardarNota, 400); });
 $("#notaTxt").addEventListener("keydown", e => { e.stopPropagation(); if(e.key === "Escape"){ $("#nota").hidden = true; focusQ(); } });
 
+
+/* ✏️ MODIFICAR UNA VENTA A CUENTA de otro día (Joa): PIN del encargado → se carga en el carrito con precios editables → se cobra con Cta. cte.
+   No va a "Ventas de hoy" ni al cierre: la planilla reescribe esa venta (misma fecha) y corrige el saldo. Las de hoy: anular y cargar de nuevo. */
+let ccEdit = null, ccMods = leer("ccmods", []), mvId = null;
+const modDe = id => ccMods.filter(m => m.id === id).sort((a,b) => b.ts - a.ts)[0];
+const modPend = id => queue.some(o => o.tipo === "ccModificar" && (ccMods.find(m => m.modId === o.id) || {}).id === id);
+function abrirModCC(id){
+  if(!turnoAbierto()){ toast("Abrí el turno primero"); return; }
+  if(cart.length){ toast("Hay una venta en curso: cobrala, vaciala o ponela en espera (F6)", 4000); return; }
+  if(modPend(id)){ toast("Esa venta tiene una modificación sin enviar: esperá a que se envíe"); return; }
+  if(!cfg.url && !DEMO){ toast("Sin conexión con la planilla no se puede modificar"); return; }
+  mvId = id; const x = (ccMovs[ccSel] || []).find(y => y.id === id) || sales.find(y => y.id === id) || {};
+  $("#mvInfo").textContent = `${ccSel} · compra del ${fechaAR(x.fecha || "")} · ${money(x.monto != null ? x.monto : x.total)}`;
+  $("#mvPin").value = ""; $("#mvErr").hidden = true; $("#mvOverlay").hidden = false; setTimeout(() => $("#mvPin").focus(), 30);
+}
+function cerrarModCC(){ $("#mvOverlay").hidden = true; mvId = null; }
+async function okModCC(){
+  const pin = $("#mvPin").value.trim(), err = m => { $("#mvErr").textContent = m; $("#mvErr").hidden = false; };
+  if(pin.length < 4) return err("Poné el PIN del encargado.");
+  $("#mvOk").textContent = "Verificando…";
+  try{
+    const a = DEMO ? {ok: pin === "1234"} : await api("autorizar", {pin});
+    if(!a.ok) return err(DEMO ? "En la demo el PIN es 1234." : "PIN incorrecto (después de 5 errores se bloquea 10 minutos).");
+    const v = DEMO ? demoVentaCC(mvId) : await api("ventaItems", {id: mvId});
+    if(!v || v.error) return err((v && v.error) || "No se encontró la venta.");
+    cart = v.items.map(i => { const p = pool.find(x => x.cod === i.cod && !x._open);
+      return {cod:i.cod, nombre:i.nombre, cat:i.cat || (p && p.cat) || "", cant:i.cant, precio:i.precio, edit:true, ...(p && p.combo ? {combo:p.combo} : {})}; });
+    resetDesc(); elegirCC(v.cliente || ccSel); medioPreset = "ctacte";
+    ccEdit = {id:v.id, fecha:v.fecha, hora:v.hora, sucursal:v.sucursal, cliente:v.cliente || ccSel, totalAnt:v.total};
+    cerrarModCC(); showTab("venta"); renderCart();
+    toast(`✏️ Cambiá lo que haga falta y cobrá con Cta. cte. (antes ${money(v.total)})`, 5000);
+  }catch(e){ err(ERR_CONEXION[e && e.tipo] || "No se pudo conectar con la planilla."); }
+  finally{ $("#mvOk").textContent = "Abrir para modificar"; }
+}
+function demoVentaCC(id){ return {id, fecha:ymd(new Date(Date.now() - 864e5)), hora:"10:00", sucursal:cfg.suc, cliente:ccSel, total:5000, items:[{cod:"DEMO1", nombre:"Producto de prueba", cat:"VARIOS", cant:2, precio:2500, sub:5000}]}; }
+function confirmarMod(tot, d){
+  const t = new Date(), m = {modId:"MOD-"+cfg.suc.slice(0,3)+(cfg.pc||"")+"-"+t.getTime().toString(36), id:ccEdit.id, fecha:ymd(t), hora:hm(t), ts:t.getTime(),
+    sucursal:cfg.suc, cajero:cfg.turno.cajero, cliente:ccEdit.cliente, totalAnt:ccEdit.totalAnt, fechaVenta:ccEdit.fecha,
+    items: cart.map(l => ({cod:l.cod, nombre:l.nombre, cat:l.cat, cant:l.cant, precio:l.precio, sub:subt(l)})), total: tot,
+    ...(d ? {desc:d.monto, descPct:d.pct, descTipo:d.tipo, descMotivo:d.motivo} : {})};
+  ccMods.push(m); guardar("ccmods", ccMods); encolar("ccModificar", m.modId);
+  toast(`✏️ Venta del ${fechaAR(m.fechaVenta)} modificada: ${money(m.totalAnt)} → ${money(tot)}`, 5000);
+  ccSel = m.cliente; ccEdit = null; cart = []; resetDesc(); ccCli = null; closeCobro(); renderCart(); showTab("ctacte");
+}
+$("#mvOk").onclick = okModCC;
+$("#mvCancel").onclick = cerrarModCC;
+$("#mvOverlay").addEventListener("keydown", e => { e.stopPropagation(); if(e.key === "Escape"){ e.preventDefault(); cerrarModCC(); } if(e.key === "Enter"){ e.preventDefault(); okModCC(); } });
+
+/* =====================================================================
+   📝 FALTANTES. La sucursal anota (con cantidad) → Roman/Vivi reparten en faltantes.html → compras (Joa) pide.
+   Acá se ve en qué está cada uno: 📥 anotado · 📦 sale del depósito · 🛒 en compras · 🚚 pedido · ✅ llegó · ✖ no se trae.
+   ===================================================================== */
+const FL_EST = {"":["📥","Anotado",""], "Depósito":["📦","Sale del depósito","ok"], "A pedir":["🛒","En compras","warn"], "Pedido":["🚚","Pedido","ok"],
+                "Entregado":["✅","Llegó","ok"], "No se trae":["✖","No se trae","bad"]};
+const FL_ABIERTO = e => !["Entregado","No se trae"].includes(e);
+let flSrv = leer("faltSrv", {t:0, l:[]}), flEst = leer("faltEst", {}), flCant = 0, flNada = false, flCod = "", flDup = "";
+function flLista(){
+  const lim = Date.now() - 10*864e5, srv = flSrv.l || [], ids = new Set(srv.map(x => x.id));
+  const loc = faltantes.filter(f => f.sucursal === cfg.suc && f.ts > lim && !ids.has(f.id)).map(f => ({id:f.id, fecha:f.fecha, hora:f.hora, prod:f.nombre, cant:f.cant || 0, nada:!!f.nada, obs:f.obs, estado:"", act:f.ts, quien:f.cajero, local:true}));
+  return [...srv, ...loc].map(x => flEst[x.id] && flEst[x.id].ts > (flSrv.t || 0) ? {...x, estado:flEst[x.id].estado} : x);
+}
+function renderFalt(){
+  const l = flLista(), ab = l.filter(x => FL_ABIERTO(x.estado)).sort((a,b) => (b.act || 0) - (a.act || 0)), ce = l.filter(x => !FL_ABIERTO(x.estado)).sort((a,b) => (b.act || 0) - (a.act || 0));
+  const pend = new Set(queue.map(o => o.id)), fila = x => { const e = FL_EST[x.estado] || FL_EST[""];
+    return `<li class="${FL_ABIERTO(x.estado) ? "" : "cerr"}"><span class="n">${esc(x.prod)}</span>
+      <span class="ac">${["Depósito","Pedido","A pedir"].includes(x.estado) ? `<button class="btn sm" data-fr="${esc(x.id)}" type="button" title="Ya llegó a la sucursal">✓ Llegó</button>` : ""}${x.estado === "" ? `<button class="x" data-fb="${esc(x.id)}" type="button" title="Borrar (me equivoqué)">✕</button>` : ""}</span>
+      <span class="m"><span class="fl-cant${x.nada ? " nada" : ""}">${x.nada ? "🚫 no queda" : x.cant ? x.cant + " u" : "?"}</span><span class="pill ${e[2]}">${e[0]} ${e[1]}</span><span>${fechaAR(x.fecha)}${x.quien ? " · " + esc(x.quien) : ""}</span>${pend.has(x.id) ? "<span>⏳ sin enviar</span>" : ""}${x.obs ? `<i>${esc(x.obs)}</i>` : ""}</span></li>`; };
+  $("#flList").innerHTML = (ab.map(fila).join("") || `<li class="empty" style="display:block">Nada pendiente 🎉</li>`) + (ce.length ? `<li class="fl-h" style="display:block;border:0">Cerrados (10 días)</li>` + ce.map(fila).join("") : "");
+  $("#flInfo").textContent = flSrv.t ? `Actualizado ${hm(new Date(flSrv.t))}` : cfg.url ? "" : "Sin conexión: se ve solo lo anotado en esta PC.";
+  const llegan = ab.filter(x => ["Depósito","Pedido"].includes(x.estado)).length;
+  $("#flN").hidden = !llegan; $("#flN").textContent = llegan;
+  document.querySelectorAll("#flCants button").forEach(b => b.setAttribute("aria-pressed", b.dataset.c === "nada" ? flNada : !flNada && +b.dataset.c === flCant));
+}
+async function cargarFalt(){
+  if(!cfg.url || DEMO || !cfg.suc) return;
+  try{ const r = await api("faltantesSuc", {sucursal:cfg.suc}); if(r && r.faltantes){ flSrv = {t:Date.now(), l:r.faltantes}; guardar("faltSrv", flSrv); renderFalt(); } }
+  catch(e){ $("#flInfo").textContent = "No se pudo actualizar: se ve lo último guardado."; }
+}
+function anotarFalt(){
+  const err = m => { $("#flErr").textContent = m; $("#flErr").hidden = false; };
+  $("#flErr").hidden = true;
+  if(!cfg.suc) return err("Primero configurá la sucursal (Ajustes).");
+  let txt = $("#flTxt").value.trim().replace(/\s+/g, " "), cant = flCant, nada = flNada;
+  const m = txt.match(/^(\d+)\s*[*xX]\s*(.+)$/); if(m){ cant = +m[1]; nada = cant === 0; txt = m[2].trim(); }
+  const otro = Math.round(toNum($("#flOtro").value)); if(otro > 0 && !m){ cant = otro; nada = false; }
+  if(txt.length < 2){ $("#flTxt").focus(); return err("Escribí qué falta."); }
+  if(!nada && !(cant > 0)){ $("#flCants button").focus(); return err("¿Cuántos hacen falta? Elegí una cantidad (o 🚫 No queda nada)."); }
+  const ya = flLista().find(x => FL_ABIERTO(x.estado) && norm(x.prod) === norm(txt));
+  if(ya && flDup !== norm(txt)){ flDup = norm(txt); return err(`Ya está anotado (${(FL_EST[ya.estado] || FL_EST[""])[1]}, ${fechaAR(ya.fecha)}). Tocá Anotar de nuevo si hace falta más.`); }
+  const t = new Date(), f = {id:"F-"+cfg.suc.slice(0,3)+(cfg.pc||"")+"-"+t.getTime().toString(36), fecha:ymd(t), hora:hm(t), ts:t.getTime(),
+    sucursal:cfg.suc, cajero:cfg.turno ? cfg.turno.cajero : "", cod:flCod, nombre:txt, cant: nada ? 0 : cant, nada, obs:$("#flObs").value.trim()};
+  faltantes.push(f); guardar("faltantes", faltantes); encolar("faltante", f.id);
+  $("#flTxt").value = ""; $("#flOtro").value = ""; $("#flObs").value = ""; flCant = 0; flNada = false; flCod = ""; flDup = "";
+  toast(`📝 Anotado: ${nada ? "🚫" : cant + " ×"} ${txt}`); renderFalt(); $("#flTxt").focus();
+}
+function estadoFalt(id, estado){
+  flEst[id] = {estado, ts:Date.now()}; guardar("faltEst", flEst); encolar("faltanteEstado", id); renderFalt();
+}
+$("#flOk").onclick = anotarFalt;
+$("#flAct").onclick = cargarFalt;
+["#flTxt","#flObs","#flOtro"].forEach(s => $(s).addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); anotarFalt(); } }));
+$("#flOtro").addEventListener("input", () => { if(toNum($("#flOtro").value) > 0){ flCant = 0; flNada = false; renderFalt(); } });
+$("#flTxt").addEventListener("input", () => { flDup = ""; $("#flErr").hidden = true; });
+$("#flCants").addEventListener("click", e => { const b = e.target.closest("button[data-c]"); if(!b) return;
+  if(b.dataset.c === "nada"){ flNada = !flNada; flCant = 0; } else { flCant = +b.dataset.c; flNada = false; } $("#flOtro").value = ""; renderFalt(); $("#flTxt").focus(); });
+$("#flList").addEventListener("click", e => {
+  const r = e.target.closest("[data-fr]"); if(r){ estadoFalt(r.dataset.fr, "Entregado"); toast("✅ Marcado como llegado"); return; }
+  const b = e.target.closest("[data-fb]"); if(b) dobleToque(b, "¿Borrar?", () => {
+    const loc = faltantes.find(f => f.id === b.dataset.fb), sinEnviar = loc && queue.some(o => o.tipo === "faltante" && o.id === loc.id);
+    if(sinEnviar){ queue = queue.filter(o => !(o.tipo === "faltante" && o.id === loc.id)); guardar("queue", queue); faltantes = faltantes.filter(f => f !== loc); guardar("faltantes", faltantes); renderFalt(); }
+    else estadoFalt(b.dataset.fb, "No se trae");
+    toast("Borrado"); });
+});
+
 /* =====================================================================
    12b. CATÁLOGO: consulta de precios (no carga ventas) + cola de etiquetas
    ===================================================================== */
 const MAX_TABLA = 200;
 let etiquetas = [], faProd = null;
 /* faltantes: se anotan en la hoja Faltantes (sucursal, quién, producto, observación) */
-function abrirFaltante(p){ faProd = p; $("#faProd").textContent = p.nombre + " · " + p.cod; $("#faObs").value = ""; $("#faOverlay").hidden = false; $("#faObs").focus(); }
+function abrirFaltante(p){ showTab("falt"); $("#flTxt").value = p.nombre; flCod = p.cod || ""; flDup = ""; $("#flErr").hidden = true; toast("¿Cuántos hacen falta? Elegí la cantidad y Enter"); $("#flCants button").focus(); }   // v3.43: antes era una ventanita
 function cerrarFaltante(){ $("#faOverlay").hidden = true; faProd = null; $("#cq").focus(); }
 $("#faCancel").onclick = cerrarFaltante;
 $("#faOk").onclick = () => {
@@ -2331,7 +2568,7 @@ $("#tCat").addEventListener("click", e => {
   const f = e.target.closest("[data-f]"); if(f){ abrirFaltante($("#tCat")._lista[+f.dataset.f]); return; }
   const pb = e.target.closest("[data-pb]"); if(pb){ const p = $("#tCat")._lista[+pb.dataset.pb]; avisarPrecio({cod:p.cod, nombre:p.nombre, precio:p.precio}); return; }
   const c = e.target.closest("[data-ec]");
-  if(c){ const p = $("#tCat")._lista[+c.dataset.ec]; sumarEtiqueta({tipo:"combo", nombre:p.nombre, precio:p.precio, promoQty:p.combo.q, promoPrecio:p.combo.p}); return; }
+  if(c){ const p = $("#tCat")._lista[+c.dataset.ec]; escalones(p.combo).forEach(t => sumarEtiqueta({tipo:"combo", nombre:p.nombre, precio:p.precio, promoQty:t.q, promoPrecio:t.p})); return; }
   const b = e.target.closest("[data-e]"); if(!b) return;
   const p = $("#tCat")._lista[+b.dataset.e];
   sumarEtiqueta({tipo:"precio", nombre:p.nombre, precio:p.precio, cod:p.cod});
@@ -2696,7 +2933,7 @@ $("#prVentaBar").addEventListener("click", e => {
   const o = prOpciones(pr).find(x => x.k === b.dataset.pv); if(!o) return;
   if(!$("#cobro").hidden) closeCobro();
   const lineas = pr.items.map(l => ({cod:l.cod, nombre:l.nombre, cat:l.cat, cant:l.cant, precio:Math.round(l.precio*(1 - o.d/100)), open:false,
-    ...(l.combo ? {combo:{q:l.combo.q, p:Math.round(l.combo.p*(1 - o.d/100))}} : {})}));
+    ...(l.combo ? {combo:escalones(l.combo).map(t => ({q:t.q, p:Math.round(t.p*(1 - o.d/100))}))} : {})}));
   const dif = o.total - lineas.reduce((a,l) => a + subt(l), 0), u = [...lineas].reverse().find(l => l.cant === 1);
   if(o.d && u) u.precio += dif;                                     // el total queda igual al presupuestado
   cart.push(...lineas); medioPreset = o.k === "lista" ? null : o.medio; if(o.d) descBloq = true;   // ya tiene descuento: no se suma otro
@@ -2971,6 +3208,7 @@ function renderPcs(b){
   $("#cPcs").innerHTML = chips;
 }
 async function renderCierre(){
+  if(esperas.length) toast(`⏸ Hay ${esperas.length} venta${esperas.length > 1 ? "s" : ""} en espera sin cobrar: no entran en el cierre. Cobralas o vacialas antes de cerrar.`, 7000);
   if(!cerrandoPend && !DEMO){                                        // primero se cierran las ventas que quedaron de otro día (si no, el cierre de hoy da 0)
     await buscarPendiente(false);
     if(pend){ cerrandoPend = true; $("#cPend").hidden = false; toast("🌙 Primero cerrá las ventas que quedaron de otro día", 6000); }
@@ -3109,8 +3347,22 @@ const ERR_CONEXION = {
   url:      "🔗 Esa URL no responde. Puede ser una implementación archivada o vieja: copiá la URL de la implementación activa.",
   internet: "📡 Esta PC no tiene internet."
 };
+/* ✏️ lápiz de "cargando": aparece si la espera pasa de 0,4 s. Las consultas automáticas (cada minuto) no lo muestran */
+const API_VISIBLE = new Set(["turno", "ctacte", "autorizar", "ventaItems", "faltantesSuc"]);
+const FRASES_LAPIZ = ["Afilando lápices…", "Hablando con la planilla…", "Buscando en el cajón…", "Contando clips…", "Ordenando las biromes…", "Pegando con plasticola…", "Pasando en limpio…", "Sacando punta…"];
+let lapizN = 0, lapizT = null, lapizF = null;
+function lapiz(on){
+  lapizN = Math.max(0, lapizN + (on ? 1 : -1));
+  if(lapizN && !lapizT && $("#lapiz").hidden) lapizT = setTimeout(() => { lapizT = null; if(!lapizN) return; let k = Math.floor(Math.random() * FRASES_LAPIZ.length);
+    $("#lapizTxt").textContent = FRASES_LAPIZ[k]; $("#lapiz").hidden = false;
+    lapizF = setInterval(() => { k = (k + 1) % FRASES_LAPIZ.length; $("#lapizTxt").textContent = FRASES_LAPIZ[k]; }, 2200); }, 400);
+  if(!lapizN){ clearTimeout(lapizT); lapizT = null; clearInterval(lapizF); $("#lapiz").hidden = true; }
+}
 async function api(accion, params={}, intento=1){
   if(DEMO) throw {tipo:"demo"};
+  const vis = API_VISIBLE.has(accion) || params._vis; if(params._vis){ params = {...params}; delete params._vis; }
+  if(vis && intento === 1){ lapiz(true); try{ return await api(accion, params, 1.5); } finally{ lapiz(false); } }
+  if(intento === 1.5) intento = 1;
   const u = new URL(cfg.url); u.search = new URLSearchParams({accion, clave:cfg.clave, ...params});
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 45000);
   try{
@@ -3143,6 +3395,8 @@ function payload(op){
   if(op.tipo==="gasto"){ const g=gastos.find(x=>x.id===op.id); return g && {...g, tipo:"gasto"}; }
   if(op.tipo==="gastoAnul") return {tipo:"gastoAnul", id:op.id};
   if(op.tipo==="faltante"){ const f=faltantes.find(x=>x.id===op.id); return f && {...f, tipo:"faltante"}; }
+  if(op.tipo==="faltanteEstado"){ const x=flEst[op.id]; return x && {tipo:"faltanteEstado", ids:op.id, estado:x.estado, sucursal:cfg.suc, quien:cfg.turno ? cfg.turno.cajero : ""}; }
+  if(op.tipo==="ccModificar"){ const m=ccMods.find(x=>x.modId===op.id); return m && {...m, tipo:"ccModificar"}; }
 }
 /* antes de enviar se confirma que la clave sigue siendo la del script: si no, lo pendiente se queda en la PC */
 const VERIFICAR_CADA = 5*60000;
@@ -3221,7 +3475,7 @@ $("#bSave").onclick = async () => {
   if(!url){ renderMeta(); renderAjustes(); return; }
   $("#syncMsg").textContent = "Probando conexión… (puede tardar hasta un minuto)";
   try{
-    const r = await api("catalogo");
+    const r = await api("catalogo", {_vis:1});
     if(r.error){ $("#syncMsg").textContent = "La planilla respondió: "+r.error; return; }
     cat = catDe(r); guardar("catalog", cat); indexCatalog(); renderAvisos(); renderLinks();
     claveMal = false; verificada = Date.now();
@@ -3243,6 +3497,8 @@ $("#bReenviar").onclick = e => {
     sales.forEach(s => { if(s.anulada) sumar("anulacion", s.id); if(s.cambio) sumar("medio", s.id); });
     cierres.forEach(c => sumar("cierre", c.id));
     faltantes.forEach(f => sumar("faltante", f.id));
+    ccMods.forEach(m => sumar("ccModificar", m.modId));
+    Object.keys(flEst).forEach(k => sumar("faltanteEstado", k));
     errores.forEach(x => sumar("error", x.id));
     pagosCC.forEach(x => { sumar("pagoCC", x.id); if(x.anulado) sumar("pagoCCAnul", x.id); });
     ((cat && cat.clientes) || []).forEach(c => { if(c.id) sumar("cliente", c.id); });   // clientes creados en esta PC
@@ -3261,7 +3517,7 @@ $("#bWipe").onclick = e => {
 /* =====================================================================
    18. ARRANQUE
    ===================================================================== */
-indexCatalog(); renderCart(); renderMeta();
+indexCatalog(); renderCart(); renderMeta(); renderEspera();
 setTimeout(() => { if(/^https?:/.test(q.value)){ q.value = ""; search(); } }, 300);
 setTimeout(() => {               // espera la respuesta de otras pestañas antes de escribir nada
   verificando = false;
