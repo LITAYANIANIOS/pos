@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PRECIOS · DA BOX                                               v1.1
+   PRECIOS · DA BOX                                               v1.2
    Para el celular de Roman y de la dueña:
    🔎 Buscar: sin clave, solo mira precios.  ✏️ Actualizar: con la clave del panel, cambia precio/combo/nombre.
    Los cambios quedan en la hoja "Cambios de precio" y las cajas los toman en hasta 30 minutos.
@@ -35,7 +35,7 @@ body{background:var(--bg)}
 .res .p{text-align:right;white-space:nowrap}
 .res .p b{font-size:20px;font-variant-numeric:tabular-nums}
 .res .p small{display:block;font-size:12px;color:var(--warn);font-weight:600}
-.res .lapiz{color:var(--muted);font-size:16px}
+.res .ico-ed{color:var(--muted);font-size:16px}
 .cambios{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:13px}
 .cambios li{display:flex;gap:10px;padding:8px 10px;border-radius:8px;background:var(--surface-2)}
 .cambios li span{flex:1;min-width:0}
@@ -87,7 +87,7 @@ body{background:var(--bg)}
     <p class="note" id="edInfo"></p>
     <label>Precio <input class="campo grande mon" id="edPre" inputmode="numeric"></label>
     <p class="antes" id="edAntes"></p>
-    <label>Combo (opcional, ej. 3x2500) <input class="campo" id="edCombo" placeholder="vacío = sin combo"></label>
+    <label>Combo (opcional, ej. 3x2500 o 3x20000/10x63000) <input class="campo" id="edCombo" placeholder="vacío = sin combo"></label>
     <label>Nombre <input class="campo" id="edNom"></label>
     <div class="err" id="edErr" hidden></div>
     <div class="acciones"><button class="btn" type="button" id="edX">Cancelar</button><button class="btn primary" type="submit" id="edOk">Guardar</button></div>
@@ -108,7 +108,8 @@ const toNum = s => { s = String(s ?? "").replace(/[$\s]/g,""); if(/^\d{1,3}(\.\d
 const LS = (k, v) => { try{ if(v === undefined) return localStorage.getItem("dabox."+k); localStorage.setItem("dabox."+k, v); }catch(e){ return null; } };
 const SS = (k, v) => { try{ if(v === undefined) return sessionStorage.getItem("dabox."+k) || ""; v ? sessionStorage.setItem("dabox."+k, v) : sessionStorage.removeItem("dabox."+k); }catch(e){ return ""; } };
 let toastT; function toast(m, ms=3000){ const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms); }
-const comboTxt = c => { const m = String(c||"").match(/^\s*(\d+)\s*[xX×]\s*\$?\s*([\d.,]+)\s*$/); return m ? `${m[1]} × ${money(toNum(m[2]))}` : ""; };
+const comboTxt = c => { const p = String(c||"").split(/[\/;|,]+/).map(x => x.match(/^\s*(\d+)\s*[xX×]\s*\$?\s*([\d.]+)\s*$/));   // "3x20000/10x63000"
+  return p.length && p.every(Boolean) ? p.map(m => `${m[1]} × ${money(toNum(m[2]))}`).join(" · ") : ""; };
 
 /* ---------- conexión: url en el celular (la misma del panel), clave solo en esta pestaña ---------- */
 /* Link para celulares: …/precios.html#s=<ID del script> guarda la dirección una sola vez y la borra de la barra.
@@ -117,7 +118,33 @@ const comboTxt = c => { const m = String(c||"").match(/^\s*(\d+)\s*[xX×]\s*\$?\
   try{ localStorage.setItem("dabox.url", `https://script.google.com/macros/s/${m[1]}/exec`); }catch(e){}
   history.replaceState(null, "", location.pathname + location.search); })();
 let url = LS("url") || "", clave = SS("clave"), tab = "buscar", items = [], cambios = [], editando = null;
+/* ✏️ lápiz de "cargando" (igual que en la caja): aparece arriba si la espera pasa de 0,4 s */
+const LAPIZ = (() => {
+  const FR = ["Afilando lápices…", "Hablando con la planilla…", "Buscando en el cajón…", "Contando clips…", "Ordenando las biromes…", "Pegando con plasticola…", "Pasando en limpio…", "Sacando punta…"];
+  let n = 0, t = null, f = null, el = null;
+  const crear = () => {
+    const st = document.createElement("style");
+    st.textContent = `.lapiz{position:fixed;top:0;left:0;right:0;z-index:200;height:30px;pointer-events:none;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--surface,#fff);border-bottom:1px solid var(--line,#ddd);box-shadow:0 2px 8px rgb(0 0 0 / .06);font-size:12.5px;color:var(--muted,#666);font-weight:600}
+.lapiz .pista{position:relative;flex:1;height:22px;overflow:hidden}.lapiz .linea{position:absolute;left:0;top:13px;height:2px;width:0;background:repeating-linear-gradient(90deg,var(--ink,#222) 0 10px,transparent 10px 14px);animation:lpLinea 1.8s ease-in-out infinite}
+.lapiz svg{position:absolute;top:-9px;left:0;width:46px;height:22px;animation:lpMano 1.8s ease-in-out infinite}
+@keyframes lpLinea{0%{width:0}80%{width:calc(100% - 30px)}100%{width:calc(100% - 30px);opacity:0}}@keyframes lpMano{0%{left:-6px;transform:rotate(-8deg)}40%{transform:rotate(4deg)}80%{left:calc(100% - 40px);transform:rotate(-6deg)}100%{left:calc(100% - 40px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.lapiz .linea,.lapiz svg{animation:none}.lapiz .linea{width:60%}}`;
+    document.head.appendChild(st);
+    el = document.createElement("div"); el.className = "lapiz"; el.hidden = true; el.setAttribute("aria-live", "polite");
+    el.innerHTML = `<span></span><div class="pista"><div class="linea"></div><svg viewBox="0 0 34 16" aria-hidden="true"><path d="M2 12 L8 9 L30 1 L33 4 L11 12 Z" fill="#f6c445" stroke="#1f2a24" stroke-width="1.2"/><path d="M2 12 L8 9 L11 12 Z" fill="#e8c9a0" stroke="#1f2a24" stroke-width="1"/><path d="M2 12 L4 11 L5 12 Z" fill="#1f2a24"/><path d="M30 1 L33 4" stroke="#e46b6b" stroke-width="3"/></svg></div>`;
+    document.body.appendChild(el);
+  };
+  return on => {
+    n = Math.max(0, n + (on ? 1 : -1)); if(!el) crear();
+    if(n && !t && el.hidden) t = setTimeout(() => { t = null; if(!n) return; let k = Math.floor(Math.random() * FR.length);
+      el.firstChild.textContent = FR[k]; el.hidden = false; f = setInterval(() => { k = (k + 1) % FR.length; el.firstChild.textContent = FR[k]; }, 2200); }, 400);
+    if(!n){ clearTimeout(t); t = null; clearInterval(f); el.hidden = true; }
+  };
+})();
 async function api(accion, params = {}){
+  LAPIZ(true); try{ return await api0(accion, params); } finally{ LAPIZ(false); }
+}
+async function api0(accion, params = {}){
   const u = new URL(url); u.search = new URLSearchParams({accion, ...params});
   const r = await fetch(u, {cache:"no-store"}); if(!r.ok) throw new Error("La dirección no responde");
   const j = await r.json(); if(j.error) throw new Error(j.error); return j;
@@ -152,7 +179,7 @@ function render(){
   const q = $("#q").value, l = buscar(q), ed = tab === "editar";
   $("#info").textContent = !items.length ? "" : !q.trim() ? `${items.length} productos. Escribí para buscar.${ed ? " Tocá uno para cambiarlo." : ""}` : `${l.length === 60 ? "60+" : l.length} resultado${l.length === 1 ? "" : "s"}`;
   $("#res").innerHTML = l.map((p,i) => `<li${ed ? ` class="edit" data-i="${i}"` : ""}><div class="n"><b>${esc(p.nombre)}</b><small>${esc(p.cat)} · ${esc(p.cod)}</small></div>
-    <div class="p">${p.precio > 0 ? `<b>${money(p.precio)}</b>` : `<small>precio abierto</small>`}${p.combo && comboTxt(p.combo) ? `<small>🏷️ ${comboTxt(p.combo)}</small>` : ""}</div>${ed ? `<span class="lapiz">✏️</span>` : ""}</li>`).join("");
+    <div class="p">${p.precio > 0 ? `<b>${money(p.precio)}</b>` : `<small>precio abierto</small>`}${p.combo && comboTxt(p.combo) ? `<small>🏷️ ${comboTxt(p.combo)}</small>` : ""}</div>${ed ? `<span class="ico-ed">✏️</span>` : ""}</li>`).join("");
   $("#res")._l = l;
 }
 function renderCambios(){
@@ -178,7 +205,7 @@ $("#fEd").onsubmit = async e => {
   const precio = Math.round(toNum($("#edPre").value)), combo = $("#edCombo").value.trim(), nombre = $("#edNom").value.trim().replace(/\s+/g, " ");
   const err = m => { $("#edErr").textContent = m; $("#edErr").hidden = false; };
   if(!(precio > 0)) return err("Poné el precio.");
-  if(combo && !comboTxt(combo)) return err("El combo tiene que ser como 3x2500.");
+  if(combo && !comboTxt(combo)) return err("El combo tiene que ser como 3x2500 (varios: 3x20000/10x63000).");
   if(editando.precio && Math.abs(precio - editando.precio) / editando.precio > 0.5 && !confirm(`El precio cambia más de 50% (${money(editando.precio)} → ${money(precio)}). ¿Seguro?`)) return;
   $("#edOk").textContent = "Guardando…"; $("#edOk").disabled = true;
   try{
