@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Faltantes · Lita &amp; Añaños</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f6c445'/%3E%3Cpath d='M18 14h28v38H18z' fill='%23fff' stroke='%231f2a24' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M25 26h14M25 34h14M25 42h8' stroke='%231f2a24' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f6c445">
+<link rel="stylesheet" href="comun/estilos.css?v=1">
+<style>
+/* =====================================================================
+   FALTANTES · DA BOX                                              v1.0
+   Para el celular. Dos vistas según el link (o la clave):
+   📦 Reparto (Roman y Vivi): lo que anotan las sucursales, por sucursal → 📦 del depósito / 🛒 a pedir / ✖ no se trae → 🚚 entregado
+   🛒 Compras (Joa): lo que hay que pedir, SUMADO y SIN sucursal → ✓ agregado al pedido / 🔍 no se consigue (vuelve en 15 días)
+   ÍNDICE: 1. Estructura  2. Tarjetas  3. Propuestas  4. Anotar
+   ===================================================================== */
+/* ---------- 1. Estructura ---------- */
+body{font-size:15px}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px 90px}
+header.top{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;align-items:center;gap:10px}
+header.top .logo{padding:0;flex:1;min-width:0}
+header.top .logo .emo{font-size:24px}
+.rol{font-size:12px;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--accent-soft)}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none}
+.tabs button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:8px 14px;font-weight:600;cursor:pointer;color:var(--muted)}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:transparent}
+.tabs .n{font-size:12px;opacity:.75;margin-left:4px}
+.sucs{display:flex;gap:6px;overflow-x:auto;padding:6px 0 2px;scrollbar-width:none}
+.sucs button{flex:none;border:0;background:var(--surface-2);border-radius:99px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+.sucs button[aria-pressed="true"]{background:var(--sel);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.grupo-h{display:flex;align-items:center;gap:8px;margin:20px 0 6px;font-weight:700;font-size:15px}
+.grupo-h .m{font-weight:500}
+.grupo-h .btn{margin-left:auto}
+.info{color:var(--muted);font-size:12.5px;margin:8px 0 0}
+/* ---------- 2. Tarjetas ---------- */
+.fc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0;box-shadow:0 1px 2px rgb(0 0 0 / .04)}
+.fc.alerta{border-color:var(--warn);box-shadow:inset 4px 0 0 var(--warn)}
+.fc .l1{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.fc .nom{font-weight:700;font-size:16px;word-break:break-word;flex:1;min-width:60%}
+.cant{background:var(--accent-soft);border-radius:6px;padding:1px 8px;font-weight:800;font-size:14px;white-space:nowrap}
+.cant.nada{background:var(--bad-soft);color:var(--bad)}
+.fc .l2{display:flex;gap:6px 10px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--muted);margin-top:4px}
+.fc .obs{font-size:13px;margin-top:4px;font-style:italic}
+.fc .tip{font-size:12.5px;color:var(--warn);font-weight:600;margin-top:6px}
+.fc .acc{display:flex;gap:6px;margin-top:10px}
+.fc .acc .btn{flex:1 1 auto;padding:10px 8px;font-size:14px}
+.btn.ok{background:var(--ok-soft);color:var(--ok)} .btn.mal{background:var(--bad-soft);color:var(--bad)} .btn.sec{background:var(--surface-2)}
+.btn.chico{flex:0 0 auto!important;padding:10px 12px!important}
+details.cerr{margin-top:22px} details.cerr summary{cursor:pointer;color:var(--muted);font-weight:600}
+/* ---------- 3. Propuestas (💡 lo que conviene mirar) ---------- */
+.prop{background:var(--accent-soft);border-radius:12px;padding:10px 14px;margin-top:12px}
+.prop b{display:block;margin-bottom:4px}
+.prop ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.prop li{display:flex;gap:8px;align-items:center;font-size:13.5px}
+.prop li span{flex:1}
+.prop .btn{padding:6px 10px;font-size:12.5px;background:var(--surface)}
+.filtro-on{display:flex;gap:8px;align-items:center;background:var(--sel);border-radius:8px;padding:8px 12px;margin-top:10px;font-size:13px;font-weight:600}
+.filtro-on button{margin-left:auto}
+/* ---------- 4. Anotar ---------- */
+.card textarea{width:100%;min-height:110px;resize:vertical}
+.chs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chs button{border:1px solid var(--line);background:var(--surface-2);border-radius:99px;padding:8px 14px;font-weight:700;cursor:pointer}
+.chs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.chs .nada[aria-pressed="true"]{background:var(--bad);color:#fff}
+.lbl{display:block;font-size:13px;color:var(--muted);font-weight:600;margin:14px 0 4px}
+.quien{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border-radius:12px;padding:10px 14px;margin-top:12px;font-weight:600}
+.quien input{max-width:160px}
+.ov .modal input{margin-top:6px}
+</style>
+<script>
+/* El link trae #s=<script>&t=<llave>. La llave se guarda en este celular y se borra de la barra (base.js borra el resto). */
+(() => { const m = location.hash.match(/[#&]t=([\w-]{30,})/); if(m){ try{ localStorage.setItem("dabox.ftok", m[1]); }catch(e){} } })();
+</script>
+</head>
+<body>
+<div id="app" hidden>
+<header class="top">
+  <div class="logo"><i class="emo">📝</i><div>Faltantes<small>Lita &amp; Añaños</small></div></div>
+  <span class="rol" id="rol"></span>
+  <button class="btn sm" id="bAct" type="button" title="Actualizar">↻</button>
+</header>
+<div class="wrap">
+  <div class="quien" id="quien" hidden>👋 ¿Quién sos? (queda en este celular) <input class="campo" id="qNom" maxlength="30" placeholder="Ej: Roman"><button class="btn sm primary" id="qOk" type="button">Listo</button></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="sucs" id="sucs" hidden></div>
+  <div id="props"></div>
+  <div id="vista"></div>
+  <p class="info" id="info"></p>
+</div>
+</div>
+
+<!-- sin link ni clave -->
+<div class="overlay" id="login" hidden>
+  <form class="modal" id="fLogin" autocomplete="off">
+    <div class="logo"><i class="emo">📝</i><div>Lita &amp; Añaños<small>Faltantes</small></div></div>
+    <h2>🔒 Entrar</h2>
+    <p class="note">Lo más fácil: abrí el <b>link de faltantes</b> que te pasó Roman (queda guardado en este celular). Si no, entrá con la clave del panel (encargado) o la de compras.</p>
+    <label id="lUrl">Dirección de la planilla (Apps Script)<input class="campo" id="iUrl" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec"></label>
+    <label>Clave <input class="campo secreto" id="iClave" type="text" spellcheck="false" autocomplete="off"></label>
+    <div class="err" id="lErr" hidden></div>
+    <button class="btn primary" type="submit" style="width:100%;margin-top:18px;padding:12px">Entrar</button>
+    <button class="link" id="bDemo" type="button">Ver con datos de prueba</button>
+  </form>
+</div>
+<!-- renombrar (compras) -->
+<div class="ov" id="mNom" hidden>
+  <form class="modal" id="fNom" autocomplete="off">
+    <h2>✏️ Nombre para pedir</h2>
+    <p class="note">Así lo vas a ver vos (las sucursales lo escriben como pueden). Si ponés el mismo nombre que otro, se juntan.</p>
+    <input class="campo" id="nNom" maxlength="120">
+    <div class="acciones"><button class="btn" type="button" data-cerrar>Cancelar</button><button class="btn primary" type="submit">Guardar</button></div>
+  </form>
+</div>
+
+<script src="comun/base.js?v=5"></script>
+<script>
+(()=>{
+"use strict";
+const {$, esc, norm, fechaAR, hace, leerLS, guardarLS, toast, SUCS, sucNom, sucTag, LAPIZ, ERR} = LA;
+
+/* =====================================================================
+   1. CONEXIÓN: link secreto (t) guardado en el celular, o clave del panel (solo esta pestaña)
+   ===================================================================== */
+let url = leerLS("url", ""), tok = leerLS("ftok", ""), clave = (() => { try{ return sessionStorage.getItem("dabox.fclave") || ""; }catch(e){ return ""; } })();
+let D = null, rol = "", demo = false, vista = "", suc = "", filtro = null;
+let quien = leerLS("fquien", "");
+async function api(accion, params = {}){
+  if(demo) return demoApi(accion, params);
+  LAPIZ(true);
+  try{
+    const u = new URL(url); u.search = new URLSearchParams({accion, ...(tok ? {t: tok} : {clave}), quien, ...params});
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 45000);
+    let r; try{ r = await fetch(u, {cache:"no-store", signal:ctl.signal}); } finally{ clearTimeout(t); }
+    if(!r.ok) throw "url";
+    let j; try{ j = await r.json(); }catch(e){ throw "url"; }
+    if(j.error === "clave incorrecta") throw "clave";
+    if(j.error) throw {msg: j.error};
+    return j;
+  }catch(e){ throw e && e.msg ? e : (e === "clave" || e === "url") ? e : e && e.name === "AbortError" ? "tiempo" : navigator.onLine === false ? "internet" : "url"; }
+  finally{ LAPIZ(false); }
+}
+const errTxt = e => e === "clave" ? "🔑 El link o la clave ya no sirven (¿se cambiaron?). Pedile a Roman el link nuevo." : ERR[e] || (e && e.msg) || "No se pudo conectar.";
+async function cargar(){
+  D = await api("falt-ver"); rol = D.rol; render();
+}
+function entrar(){ $("#login").hidden = true; $("#app").hidden = false; render(); }
+$("#fLogin").onsubmit = async e => {
+  e.preventDefault();
+  const u = $("#iUrl").value.trim(), c = $("#iClave").value.trim();
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)){ $("#lErr").textContent = "La dirección tiene que ser la de Apps Script (termina en /exec)."; $("#lErr").hidden = false; return; }
+  url = u; clave = c; tok = ""; demo = false;
+  try{ await cargar(); guardarLS("url", url); try{ sessionStorage.setItem("dabox.fclave", clave); }catch(x){} entrar(); }
+  catch(err){ $("#lErr").textContent = errTxt(err); $("#lErr").hidden = false; }
+};
+$("#bDemo").onclick = () => { demo = true; D = demoApi("falt-ver"); rol = D.rol; entrar(); };
+function mostrarLogin(msg){ $("#app").hidden = true; $("#login").hidden = false; $("#iUrl").value = url; $("#lUrl").hidden = !!url; $("#lErr").hidden = !msg; $("#lErr").textContent = msg || ""; }
+async function inicio(){
+  if(new URLSearchParams(location.search).has("demo")){ $("#bDemo").click(); return; }
+  if(!url || (!tok && !clave)) return mostrarLogin();
+  try{ await cargar(); entrar(); }
+  catch(e){ if(e === "clave"){ tok = ""; guardarLS("ftok", ""); } mostrarLogin(errTxt(e)); }
+}
+$("#bAct").onclick = () => refrescar(true);
+async function refrescar(avisar){
+  if(demo){ render(); return; }
+  try{ await cargar(); if(avisar) toast("Actualizado"); }catch(e){ toast(errTxt(e), 4000); }
+}
+setInterval(() => { if(!document.hidden && !$("#app").hidden && $("#mNom").hidden && !document.activeElement.matches("input,textarea")) refrescar(false); }, 90000);
+document.addEventListener("visibilitychange", () => { if(!document.hidden && D && Date.now() - D.generado > 60000) refrescar(false); });
+
+/* ¿quién sos? (para el registro: "Reparto · Vivi") */
+$("#qOk").onclick = () => { const n = $("#qNom").value.trim(); if(n.length < 2) return; quien = n; guardarLS("fquien", n); $("#quien").hidden = true; toast("👋 Hola, " + n); };
+
+/* =====================================================================
+   2. ESTADOS Y TIEMPOS
+   ===================================================================== */
+const EST = {"":["📥","Para repartir"], "Depósito":["📦","Sale del depósito"], "A pedir":["🛒","En compras"], "Pedido":["🚚","Pedido"],
+             "No se consigue":["🔍","No se consigue"], "Entregado":["✅","Entregado"], "No se trae":["✖","No se trae"]};
+const CERR = e => e === "Entregado" || e === "No se trae";
+const DIA = 864e5, dias = ms => Math.floor((Date.now() - ms) / DIA);
+const tsFecha = c => new Date((c.fecha || "") + "T12:00:00").getTime() || c.act;
+const edad = c => c.estado === "" ? dias(tsFecha(c)) : dias(c.act || tsFecha(c));
+const LIMITE = {"": 2, "Depósito": 3, "A pedir": 7, "Pedido": 10, "No se consigue": 0};     // días: después de esto, ⏰
+const CONSEJO = {"": "Hace %d días sin repartir", "Depósito": "Salió del depósito hace %d días: ¿ya lo llevaste?", "A pedir": "Hace %d días en compras sin pedir: preguntale a Joa",
+                 "Pedido": "Pedido hace %d días: ¿llegó? ¿Hay que reclamar?", "No se consigue": "No se consigue: buscá un reemplazo o marcá ✖ No se trae"};
+const atrasado = c => !CERR(c.estado) && LIMITE[c.estado] != null && edad(c) >= LIMITE[c.estado];
+const cantTxt = c => c.nada ? `<span class="cant nada">🚫 no queda</span>` : c.cant ? `<span class="cant">${c.cant} u</span>` : `<span class="cant">? u</span>`;
+const clave2 = s => norm(s).replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(w => w && !["de","x","para","el","la","los","las","con","y","u","unidades"].includes(w)).map(w => w.replace(/(es|s)$/, "")).sort().join(" ");
+
+/* =====================================================================
+   3. DIBUJAR
+   ===================================================================== */
+function render(){
+  if(!D) return;
+  $("#rol").textContent = rol === "compras" ? "🛒 Compras" : "📦 Reparto";
+  $("#quien").hidden = !!quien || demo;
+  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. Se actualiza solo cada minuto y medio.`;
+  if(rol === "compras") renderCompras(); else renderReparto();
+}
+/* ---------- 📦 REPARTO (Roman y Vivi) ---------- */
+function renderReparto(){
+  const cs = D.cards || [], abiertos = cs.filter(c => !CERR(c.estado));
+  const nRep = abiertos.filter(c => c.estado === "").length, nCur = abiertos.length - nRep;
+  vista = vista || (nRep ? "repartir" : "curso");
+  const T = [["repartir", "📥 Repartir", nRep], ["curso", "🚚 En curso", nCur], ["anotar", "➕ Anotar", ""], ["cerrados", "✅ Cerrados", ""]];
+  $("#tabs").innerHTML = T.map(([k, t, n]) => `<button type="button" data-v="${k}" aria-pressed="${vista === k}">${t}${n !== "" ? `<span class="n">${n}</span>` : ""}</button>`).join("");
+  const sucsHay = SUCS.filter(s => cs.some(c => c.suc === s));
+  $("#sucs").hidden = vista === "anotar" || sucsHay.length < 2;
+  $("#sucs").innerHTML = `<button type="button" data-s="" aria-pressed="${!suc}">Todas</button>` + sucsHay.map(s => `<button type="button" data-s="${s}" aria-pressed="${suc === s}">${sucTag(s)}</button>`).join("");
+  $("#props").innerHTML = vista === "anotar" || vista === "cerrados" ? "" : propuestasReparto(abiertos);
+  if(vista === "anotar") return renderAnotar();
+  let l = cs.filter(c => (!suc || c.suc === suc));
+  if(filtro) l = l.filter(filtro.f);
+  else if(vista === "repartir") l = l.filter(c => c.estado === "");
+  else if(vista === "curso") l = l.filter(c => !CERR(c.estado) && c.estado !== "");
+  else l = l.filter(c => CERR(c.estado)).sort((a,b) => b.act - a.act);
+  const fil = filtro ? `<div class="filtro-on">🔎 ${esc(filtro.t)} · ${l.length}<button class="btn sm" id="bSinFiltro" type="button">Ver todo</button></div>` : "";
+  if(!l.length){ $("#vista").innerHTML = fil + `<div class="empty">${vista === "repartir" ? "Nada para repartir 🎉" : vista === "curso" ? "Nada en curso." : "Sin cerrados en los últimos días."}</div>`; return; }
+  const otras = k => [...new Set(abiertos.filter(c => clave2(c.prod) === k).map(c => c.suc))];
+  const porSuc = SUCS.concat([""]).map(s => [s, l.filter(c => (c.suc || "") === s)]).filter(([, x]) => x.length);
+  $("#vista").innerHTML = fil + porSuc.map(([s, x]) => `<div class="grupo-h">${s ? sucTag(s) : "Sin sucursal"} <span class="m">${x.length}</span>
+      ${vista === "repartir" && !filtro && x.length > 1 ? `<button class="btn sm" type="button" data-todo="${s}">Todo → 🛒 A pedir</button>` : ""}</div>` +
+    x.sort((a,b) => (b.nada - a.nada) || (edad(b) - edad(a))).map(c => tarjetaReparto(c, otras(clave2(c.prod)).filter(y => y !== c.suc))).join("")).join("");
+}
+function tarjetaReparto(c, otras){
+  const e = EST[c.estado] || EST[""], at = atrasado(c), d = edad(c);
+  const acc = c.estado === "" ? [["Depósito","📦 Del depósito","ok"],["A pedir","🛒 A pedir","primary"],["No se trae","✖","mal chico"]]
+    : c.estado === "Depósito" ? [["Entregado","🚚 Entregado","ok"],["A pedir","🛒 Mejor pedirlo","sec"],["","↩","sec chico"]]
+    : c.estado === "A pedir" ? [["Depósito","📦 Lo tengo","sec"],["","↩","sec chico"],["No se trae","✖","mal chico"]]
+    : c.estado === "Pedido" ? [["Entregado","🚚 Entregado","ok"],["Depósito","📦 Llegó al depósito","sec"]]
+    : c.estado === "No se consigue" ? [["A pedir","🛒 Pedir de nuevo","sec"],["No se trae","✖ No se trae","mal"]]
+    : [["","↩ Volver a abrir","sec"]];
+  return `<div class="fc${at ? " alerta" : ""}" data-id="${esc(c.id)}">
+    <div class="l1"><span class="nom">${esc(c.prod)}</span>${cantTxt(c)}</div>
+    <div class="l2">${c.estado !== "" ? `<span class="pill">${e[0]} ${e[1]}</span>` : ""}<span>${fechaAR(c.fecha)} · ${esc(c.quien || "")}</span>${d ? `<span>${d} d</span>` : "<span>hoy</span>"}${c.urgente && !c.nada ? "<span>⚡ urgente</span>" : ""}${c.por && c.estado ? `<span>${esc(c.por)}</span>` : ""}</div>
+    ${c.obs ? `<div class="obs">“${esc(c.obs)}”</div>` : ""}${c.nota ? `<div class="obs">📝 ${esc(c.nota)}</div>` : ""}
+    ${otras.length ? `<div class="tip">👥 También lo pidió ${otras.map(sucNom).join(", ")}</div>` : ""}
+    ${at ? `<div class="tip">⏰ ${esc(CONSEJO[c.estado].replace("%d", d))}</div>` : ""}
+    <div class="acc">${acc.map(([v, t, k]) => `<button class="btn ${k}" type="button" data-e="${esc(v)}">${t}</button>`).join("")}</div></div>`;
+}
+/* 💡 #7: el sistema mira lo trabado y propone */
+function propuestasReparto(ab){
+  const P = [], fx = (t, f) => P.push({t, f});
+  const sin = ab.filter(c => c.estado === "" && edad(c) >= LIMITE[""]); if(sin.length) fx(`📥 Sin repartir hace ${LIMITE[""]} días o más (${sin.length})`, c => c.estado === "" && edad(c) >= LIMITE[""]);
+  const g = {}; ab.forEach(c => { const k = clave2(c.prod); (g[k] = g[k] || []).push(c); });
+  Object.values(g).filter(x => new Set(x.map(c => c.suc)).size >= 2).sort((a,b) => b.length - a.length).slice(0, 3).forEach(x => {
+    const k = clave2(x[0].prod), tot = x.reduce((a,c) => a + c.cant, 0);
+    fx(`👥 “${x[0].prod}” lo piden ${new Set(x.map(c => c.suc)).size} sucursales${tot ? ` (${tot} u en total)` : ""}: conviene pedir más`, c => !CERR(c.estado) && clave2(c.prod) === k); });
+  [["Depósito", "📦 Del depósito hace más de 3 días (%n): ¿ya se llevaron?"], ["A pedir", "🛒 En compras hace más de una semana sin pedir (%n)"],
+   ["Pedido", "🚚 Pedidos hace más de 10 días (%n): ¿llegaron?"], ["No se consigue", "🔍 No se consiguen (%n): ¿reemplazo o ✖ no se trae?"]].forEach(([e, t]) => {
+    const n = ab.filter(c => c.estado === e && atrasado(c)).length; if(n) fx(t.replace("%n", n), c => c.estado === e && atrasado(c)); });
+  PROPS = P;
+  return P.length ? `<div class="prop"><b>💡 Para mirar</b><ul>${P.map((p, i) => `<li><span>${esc(p.t)}</span><button class="btn" type="button" data-p="${i}">Ver</button></li>`).join("")}</ul></div>` : "";
+}
+let PROPS = [];
+/* ---------- ➕ ANOTAR (desde el celular, a nombre de una sucursal) ---------- */
+let anSuc = leerLS("fsuc", ""), anCant = 0, anNada = false;
+function renderAnotar(){
+  $("#vista").innerHTML = `<div class="card" style="margin-top:14px">
+    <h3>➕ Anotar faltantes</h3><p class="note">Un producto por renglón. Podés poner la cantidad adelante (<b>3* resma ledesma</b>) o elegirla abajo para todos.</p>
+    <span class="lbl">Sucursal</span><div class="chs" id="anSucs">${SUCS.map(s => `<button type="button" data-s="${s}" aria-pressed="${anSuc === s}">${esc(sucNom(s))}</button>`).join("")}</div>
+    <span class="lbl">Qué falta</span><textarea class="campo" id="anTxt" placeholder="Resma A4 Ledesma&#10;Cuaderno Rivadavia rayado&#10;10* biromes azules"></textarea>
+    <span class="lbl">Cuántos (para los renglones sin número)</span><div class="chs" id="anCants">${[1,3,5,10].map(n => `<button type="button" data-c="${n}" aria-pressed="${!anNada && anCant === n}">${n}</button>`).join("")}<button type="button" class="nada" data-c="nada" aria-pressed="${anNada}">🚫 No queda nada</button></div>
+    <div class="err" id="anErr" hidden></div>
+    <div class="acciones" style="display:flex;margin-top:16px"><button class="btn primary" id="anOk" type="button" style="flex:1;padding:12px">Anotar</button></div></div>`;
+}
+async function anotar(){
+  const err = m => { $("#anErr").textContent = m; $("#anErr").hidden = false; };
+  const txt = $("#anTxt").value.trim();
+  if(!anSuc) return err("Elegí la sucursal.");
+  if(!txt) return err("Escribí qué falta.");
+  const lineas = txt.split(/\n/).map(t => t.trim()).filter(Boolean), sinNum = lineas.filter(t => !/^\d+\s*[*xX]/.test(t));
+  if(sinNum.length && !anNada && !anCant) return err("¿Cuántos? Elegí una cantidad o poné el número adelante (3* …).");
+  // las de número propio van de a una; las otras, juntas con la cantidad elegida
+  const grupos = {}; lineas.forEach(t => { const m = t.match(/^(\d+)\s*[*xX]\s*(.+)$/); const k = m ? (+m[1] === 0 ? "nada" : m[1]) : anNada ? "nada" : String(anCant); (grupos[k] = grupos[k] || []).push(m ? m[2].trim() : t); });
+  $("#anOk").textContent = "Anotando…";
+  try{
+    for(const [k, ls] of Object.entries(grupos)) await api("falt-nuevo", {sucursal:anSuc, texto:ls.join("\n"), ...(k === "nada" ? {nada:"1"} : {cant:k})});
+    toast(`📝 Anotado${lineas.length > 1 ? "s " + lineas.length : ""} para ${sucNom(anSuc)}`); $("#anTxt").value = ""; anCant = 0; anNada = false;
+    await refrescar(false); vista = "repartir"; suc = anSuc; render();
+  }catch(e){ err(errTxt(e)); }
+  finally{ const b = $("#anOk"); if(b) b.textContent = "Anotar"; }
+}
+/* ---------- 🛒 COMPRAS (Joa): sumado y sin sucursal ---------- */
+function renderCompras(){
+  vista = vista === "pedidos" ? "pedidos" : "pedir";
+  const pedir = D.pedir || [], pedidos = D.pedidos || [];
+  $("#tabs").innerHTML = `<button type="button" data-v="pedir" aria-pressed="${vista === "pedir"}">🛒 Para pedir<span class="n">${pedir.length}</span></button><button type="button" data-v="pedidos" aria-pressed="${vista === "pedidos"}">✓ Ya pedidos<span class="n">${pedidos.length}</span></button>`;
+  $("#sucs").hidden = true;
+  $("#props").innerHTML = vista === "pedir" ? propuestasCompras(pedir) : "";
+  let l = (vista === "pedir" ? pedir : pedidos).slice();
+  if(filtro) l = l.filter(filtro.f);
+  l.sort((a,b) => (b.nada - a.nada) || (b.vuelve - a.vuelve) || (a.desde - b.desde));
+  const fil = filtro ? `<div class="filtro-on">🔎 ${esc(filtro.t)} · ${l.length}<button class="btn sm" id="bSinFiltro" type="button">Ver todo</button></div>` : "";
+  const top = vista === "pedir" && l.length ? `<div class="grupo-h"><span class="m">${l.length} producto${l.length > 1 ? "s" : ""} · más urgente arriba</span><button class="btn sm" type="button" id="bCopiar">📋 Copiar lista</button></div>` : "";
+  $("#vista").innerHTML = fil + top + (l.map(g => tarjetaCompras(g)).join("") || `<div class="empty">${vista === "pedir" ? "No hay nada para pedir 🎉" : "Nada pedido en los últimos días."}</div>`);
+}
+function tarjetaCompras(g){
+  const d = dias(g.desde), viejo = vista === "pedir" && d >= 7;
+  return `<div class="fc${viejo || g.vuelve ? " alerta" : ""}" data-k="${esc(g.k)}">
+    <div class="l1"><span class="nom">${esc(g.nombre)}</span>${g.cant ? `<span class="cant">${g.cant} u</span>` : ""}${g.nada ? `<span class="cant nada">🚫 ${g.nada > 1 ? g.nada + " sin stock" : "sin stock"}</span>` : ""}</div>
+    <div class="l2"><span>${g.n > 1 ? `lo piden ${g.n} veces` : "1 pedido"}</span><span>desde ${d ? `hace ${d} d` : "hoy"}</span>${g.nsc && vista === "pedidos" ? "<span>🔍 no se consigue</span>" : ""}</div>
+    ${g.obs && g.obs.length ? `<div class="obs">${g.obs.map(o => "“" + esc(o) + "”").join(" · ")}</div>` : ""}
+    ${g.vuelve ? `<div class="tip">🔁 Volvió: hace ${D.vuelveDias} días no se conseguía. ¿Ahora sí?</div>` : viejo ? `<div class="tip">⏰ Hace ${d} días esperando</div>` : ""}
+    <div class="acc">${vista === "pedir" ? `<button class="btn ok" type="button" data-c="Pedido">✓ Agregado al pedido</button><button class="btn sec" type="button" data-c="No se consigue">🔍 No se consigue</button><button class="btn sec chico" type="button" data-nom title="Cambiar el nombre">✏️</button>`
+      : `<button class="btn sec" type="button" data-c="A pedir">↩ Volver a la lista</button>${g.nsc ? `<button class="btn ok" type="button" data-c="Pedido">✓ Lo conseguí</button>` : ""}`}</div></div>`;
+}
+function propuestasCompras(l){
+  const P = [], by = {};
+  l.forEach(g => { const k = clave2(g.nombre); (by[k] = by[k] || []).push(g); });
+  const pares = Object.values(by).filter(x => x.length > 1);
+  const W = l.slice(0, 200).map(g => [g, new Set(clave2(g.nombre).split(" ").filter(w => w.length > 1))]);   // "resma ledesma" ⊂ "resma a4 ledesma 75g"
+  W.forEach(([a, wa], i) => W.slice(i + 1).forEach(([b, wb]) => { const [ch, gr] = wa.size <= wb.size ? [wa, wb] : [wb, wa];
+    if(ch.size >= 2 && ch.size < gr.size && [...ch].every(w => gr.has(w))) pares.push([a, b]); }));
+  pares.slice(0, 4).forEach(x => P.push({t:`🔗 ¿Es lo mismo? ${x.map(g => "“" + g.nombre + "”").join(" y ")}`, unir:x}));
+  const viejos = l.filter(g => dias(g.desde) >= 7).length; if(viejos) P.push({t:`⏰ Esperando hace más de una semana (${viejos})`, f: g => dias(g.desde) >= 7});
+  const nada = l.filter(g => g.nada).length; if(nada) P.push({t:`🚫 Sin stock en alguna sucursal (${nada})`, f: g => g.nada});
+  PROPS = P;
+  return P.length ? `<div class="prop"><b>💡 Para mirar</b><ul>${P.map((p, i) => `<li><span>${esc(p.t)}</span><button class="btn" type="button" data-p="${i}">${p.unir ? "Unir" : "Ver"}</button></li>`).join("")}</ul></div>` : "";
+}
+
+/* =====================================================================
+   4. ACCIONES (se ve el cambio al toque; si la planilla falla, vuelve atrás)
+   ===================================================================== */
+async function cambiarReparto(ids, estado){
+  const cs = D.cards.filter(c => ids.includes(c.id)), antes = cs.map(c => [c, c.estado, c.act]);
+  cs.forEach(c => { c.estado = estado; c.act = Date.now(); c.por = "Reparto" + (quien ? " · " + quien : ""); }); render();
+  try{ await api("falt-estado", {ids: ids.join(","), estado}); toast(`${(EST[estado] || EST[""])[0]} ${ids.length > 1 ? ids.length + " → " : ""}${(EST[estado] || EST[""])[1]}`); }
+  catch(e){ antes.forEach(([c, e0, a0]) => { c.estado = e0; c.act = a0; }); render(); toast(errTxt(e), 4000); }
+}
+async function cambiarCompras(k, estado){
+  const de = estado === "A pedir" ? D.pedidos : D.pedir, a = estado === "A pedir" ? D.pedir : D.pedidos, i = de.findIndex(g => g.k === k); if(i < 0) return;
+  const g = de.splice(i, 1)[0]; a.push(g); g.nsc = estado === "No se consigue"; g.vuelve = false; render();
+  try{ await api("falt-estado", {claves: k, estado}); toast(estado === "Pedido" ? "✓ Agregado al pedido" : estado === "No se consigue" ? `🔍 Vuelve a tu lista en ${D.vuelveDias} días` : "↩ Volvió a la lista"); }
+  catch(e){ a.splice(a.indexOf(g), 1); de.splice(i, 0, g); render(); toast(errTxt(e), 4000); }
+}
+async function renombrar(claves, nombre){
+  try{ await api("falt-nombre", {claves: claves.join("|"), nombre}); toast("✏️ Nombre cambiado"); await refrescar(false); }
+  catch(e){ toast(errTxt(e), 4000); }
+}
+let nomK = null;
+document.addEventListener("click", e => {
+  const v = e.target.closest("#tabs [data-v]"); if(v){ vista = v.dataset.v; filtro = null; render(); scrollTo(0, 0); return; }
+  const s = e.target.closest("#sucs [data-s]"); if(s){ suc = s.dataset.s; render(); return; }
+  if(e.target.closest("#bSinFiltro")){ filtro = null; render(); return; }
+  const p = e.target.closest("#props [data-p]"); if(p){ const x = PROPS[+p.dataset.p]; if(!x) return;
+    if(x.unir){ const nom = x.unir.map(g => g.nombre).sort((a,b) => b.length - a.length)[0]; renombrar(x.unir.map(g => g.k), nom); return; }
+    filtro = x; render(); return; }
+  const td = e.target.closest("[data-todo]"); if(td){ const ids = D.cards.filter(c => c.estado === "" && (c.suc || "") === td.dataset.todo).map(c => c.id);
+    if(td.dataset.ok){ cambiarReparto(ids, "A pedir"); return; } td.dataset.ok = "1"; td.textContent = `¿Pasar ${ids.length} a compras? Tocá de nuevo`; setTimeout(() => { if(td.isConnected){ delete td.dataset.ok; td.textContent = "Todo → 🛒 A pedir"; } }, 3500); return; }
+  const be = e.target.closest(".fc [data-e]"); if(be){ cambiarReparto([be.closest(".fc").dataset.id], be.dataset.e); return; }
+  const bc = e.target.closest(".fc [data-c]"); if(bc){ cambiarCompras(bc.closest(".fc").dataset.k, bc.dataset.c); return; }
+  const bn = e.target.closest(".fc [data-nom]"); if(bn){ nomK = bn.closest(".fc").dataset.k; const g = D.pedir.find(x => x.k === nomK); $("#nNom").value = g ? g.nombre : ""; $("#mNom").hidden = false; setTimeout(() => $("#nNom").focus(), 30); return; }
+  if(e.target.closest("#bCopiar")){ const txt = D.pedir.slice().sort((a,b) => a.nombre.localeCompare(b.nombre)).map(g => `${g.cant ? g.cant + " × " : ""}${g.nombre}${g.nada ? " (sin stock)" : ""}`).join("\n");
+    navigator.clipboard.writeText(txt).then(() => toast("📋 Lista copiada: pegala en WhatsApp o en el pedido"), () => toast("No se pudo copiar")); return; }
+  const as = e.target.closest("#anSucs [data-s]"); if(as){ anSuc = as.dataset.s; guardarLS("fsuc", anSuc); document.querySelectorAll("#anSucs button").forEach(b => b.setAttribute("aria-pressed", b === as)); return; }
+  const ac = e.target.closest("#anCants [data-c]"); if(ac){ if(ac.dataset.c === "nada"){ anNada = !anNada; anCant = 0; } else { anCant = +ac.dataset.c; anNada = false; }
+    document.querySelectorAll("#anCants button").forEach(b => b.setAttribute("aria-pressed", b.dataset.c === "nada" ? anNada : !anNada && +b.dataset.c === anCant)); return; }
+  if(e.target.closest("#anOk")){ anotar(); return; }
+  if(e.target.closest("[data-cerrar]")){ e.target.closest(".ov").hidden = true; }
+});
+$("#fNom").onsubmit = e => { e.preventDefault(); const n = $("#nNom").value.trim(); if(!n || !nomK) return; $("#mNom").hidden = true; renombrar([nomK], n); };
+
+/* =====================================================================
+   5. DEMO (datos inventados: ?demo en la dirección)
+   ===================================================================== */
+function demoApi(accion, p){
+  const hoy = new Date(), f = d => { const x = new Date(hoy - d * DIA); return x.toISOString().slice(0, 10); }, t = d => Date.now() - d * DIA;
+  if(!window._demo) window._demo = [
+    {id:"F-FAL-1", fecha:f(0), hora:"10:12", suc:"FALCON", quien:"Mica", prod:"Resma A4 Ledesma 75g", obs:"", estado:"", cant:10, nada:false, act:t(0)},
+    {id:"F-MOR-2", fecha:f(1), hora:"18:40", suc:"MORENO", quien:"Lucas", prod:"resmas ledesma", obs:"piden mucho", estado:"", cant:5, nada:false, act:t(1)},
+    {id:"F-NAC-3", fecha:f(3), hora:"09:05", suc:"NACION", quien:"Sofi", prod:"Plasticola 30 g", obs:"", estado:"", cant:0, nada:true, act:t(3)},
+    {id:"F-SOM-4", fecha:f(4), hora:"12:00", suc:"SOMISA", quien:"Juli", prod:"Cuaderno Rivadavia rayado", obs:"tapa dura", estado:"Depósito", cant:6, nada:false, act:t(4)},
+    {id:"F-FAL-5", fecha:f(9), hora:"16:30", suc:"FALCON", quien:"Mica", prod:"Repuesto Éxito N°3", obs:"", estado:"A pedir", cant:20, nada:false, act:t(8)},
+    {id:"F-NAC-6", fecha:f(12), hora:"11:10", suc:"NACION", quien:"Sofi", prod:"Fibrones Sharpie negro", obs:"", estado:"Pedido", cant:12, nada:false, act:t(11)},
+    {id:"F-MOR-7", fecha:f(5), hora:"10:00", suc:"MORENO", quien:"Lucas", prod:"Mapas N°3 político", obs:"", estado:"Entregado", cant:30, nada:false, act:t(1)}];
+  const cs = window._demo;
+  if(accion === "falt-ver"){
+    if(new URLSearchParams(location.search).get("demo") === "compras"){
+      const g = {}; cs.filter(c => c.estado === "A pedir" || c.estado === "").forEach(c => { const k = norm(c.prod); const x = g[k] || (g[k] = {k, nombre:c.prod, cant:0, nada:0, n:0, desde:Infinity, obs:[], vuelve:false, nsc:false});
+        x.cant += c.cant; x.nada += c.nada ? 1 : 0; x.n++; x.desde = Math.min(x.desde, tsFecha(c)); if(c.obs) x.obs.push(c.obs); });
+      return {rol:"compras", generado:Date.now(), pedir:Object.values(g), pedidos:[], vuelveDias:15};
+    }
+    return {rol:"reparto", generado:Date.now(), cards:cs, vuelveDias:15};
+  }
+  if(accion === "falt-nuevo"){ String(p.texto).split("\n").forEach((x, i) => cs.push({id:"F-D-" + Date.now() + i, fecha:f(0), hora:"", suc:p.sucursal, quien:"Celular", prod:x, obs:"", estado:"", cant:+p.cant || 0, nada:p.nada === "1", act:Date.now()})); }
+  return Promise.resolve({ok:true});
+}
+
+inicio();
+})();
+</script>
+</body>
+</html>
