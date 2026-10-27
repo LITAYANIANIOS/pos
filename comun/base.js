@@ -1,5 +1,5 @@
 /* =====================================================================
-   COMÚN · PANEL Y COMPRAS · DA BOX                                 v1.2
+   COMÚN · PANEL Y COMPRAS · DA BOX                                 v1.3
    Lo que comparten panel.html y compras.html, para no repetirlo en cada archivo:
    1. Utilidades   2. Sucursales   3. Avisos y tooltip   4. Conexión con la planilla
    5. Ingreso con clave (y cierre por inactividad)
@@ -145,5 +145,5 @@ function entrar(d){
 function salir(msg){ clave = ""; guardarSS("clave", ""); enDemo = false; mostrar(msg); }
 
 window.LA = {$, esc, money, millones, pct, pad, ymd, fechaAR, norm, hace, leerLS, guardarLS, toast,
-  SUCS, NOMBRE_SUC, SUC_COLOR, sucNom, sucTag, api, ERR, ingreso, salir, get demo(){ return enDemo; }};
+  SUCS, NOMBRE_SUC, SUC_COLOR, sucNom, sucTag, api, ERR, ingreso, salir, LAPIZ, get demo(){ return enDemo; }};   // v1.3: LAPIZ (lo usa faltantes.html)
 })();
