@@ -1,5 +1,5 @@
 /* =====================================================================
-   COMÚN · PANEL Y COMPRAS · DA BOX                                 v1.1
+   COMÚN · PANEL Y COMPRAS · DA BOX                                 v1.2
    Lo que comparten panel.html y compras.html, para no repetirlo en cada archivo:
    1. Utilidades   2. Sucursales   3. Avisos y tooltip   4. Conexión con la planilla
    5. Ingreso con clave (y cierre por inactividad)
@@ -50,7 +50,33 @@ document.addEventListener("scroll", () => tip.hidden = true, true);
 let url = leerLS("url",""), clave = leerSS("clave");
 const ERR = {clave:"🔑 Clave incorrecta (la clave de las cajas no sirve acá).", url:"🔗 La dirección no responde o el script está desactualizado.",
              tiempo:"⏳ La planilla tardó en responder. Probá de nuevo.", internet:"📡 Sin internet."};
+/* ✏️ lápiz de "cargando" (igual que en la caja): aparece arriba si la espera pasa de 0,4 s */
+const LAPIZ = (() => {
+  const FR = ["Afilando lápices…", "Hablando con la planilla…", "Buscando en el cajón…", "Contando clips…", "Ordenando las biromes…", "Pegando con plasticola…", "Pasando en limpio…", "Sacando punta…"];
+  let n = 0, t = null, f = null, el = null;
+  const crear = () => {
+    const st = document.createElement("style");
+    st.textContent = `.lapiz{position:fixed;top:0;left:0;right:0;z-index:200;height:30px;pointer-events:none;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--surface,#fff);border-bottom:1px solid var(--line,#ddd);box-shadow:0 2px 8px rgb(0 0 0 / .06);font-size:12.5px;color:var(--muted,#666);font-weight:600}
+.lapiz .pista{position:relative;flex:1;height:22px;overflow:hidden}.lapiz .linea{position:absolute;left:0;top:13px;height:2px;width:0;background:repeating-linear-gradient(90deg,var(--ink,#222) 0 10px,transparent 10px 14px);animation:lpLinea 1.8s ease-in-out infinite}
+.lapiz svg{position:absolute;top:-9px;left:0;width:46px;height:22px;animation:lpMano 1.8s ease-in-out infinite}
+@keyframes lpLinea{0%{width:0}80%{width:calc(100% - 30px)}100%{width:calc(100% - 30px);opacity:0}}@keyframes lpMano{0%{left:-6px;transform:rotate(-8deg)}40%{transform:rotate(4deg)}80%{left:calc(100% - 40px);transform:rotate(-6deg)}100%{left:calc(100% - 40px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.lapiz .linea,.lapiz svg{animation:none}.lapiz .linea{width:60%}}`;
+    document.head.appendChild(st);
+    el = document.createElement("div"); el.className = "lapiz"; el.hidden = true; el.setAttribute("aria-live", "polite");
+    el.innerHTML = `<span></span><div class="pista"><div class="linea"></div><svg viewBox="0 0 34 16" aria-hidden="true"><path d="M2 12 L8 9 L30 1 L33 4 L11 12 Z" fill="#f6c445" stroke="#1f2a24" stroke-width="1.2"/><path d="M2 12 L8 9 L11 12 Z" fill="#e8c9a0" stroke="#1f2a24" stroke-width="1"/><path d="M2 12 L4 11 L5 12 Z" fill="#1f2a24"/><path d="M30 1 L33 4" stroke="#e46b6b" stroke-width="3"/></svg></div>`;
+    document.body.appendChild(el);
+  };
+  return on => {
+    n = Math.max(0, n + (on ? 1 : -1)); if(!el) crear();
+    if(n && !t && el.hidden) t = setTimeout(() => { t = null; if(!n) return; let k = Math.floor(Math.random() * FR.length);
+      el.firstChild.textContent = FR[k]; el.hidden = false; f = setInterval(() => { k = (k + 1) % FR.length; el.firstChild.textContent = FR[k]; }, 2200); }, 400);
+    if(!n){ clearTimeout(t); t = null; clearInterval(f); el.hidden = true; }
+  };
+})();
 async function api(accion, params={}, intento=1){
+  if(intento === 1 && !params._silencio){ LAPIZ(true); try{ return await api(accion, params, 1.5); } finally{ LAPIZ(false); } }
+  if(intento === 1.5) intento = 1;
+  if(params._silencio){ params = {...params}; delete params._silencio; }
   const u = new URL(url); u.search = new URLSearchParams({accion, clave, ...params});
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 45000);
   try{
