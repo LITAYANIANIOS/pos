@@ -11,10 +11,10 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v2.1
+   FALTANTES · DA BOX                                              v2.2
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
-   🛒 Compras (Joa): UNA nota "Para pedir", sumada y SIN sucursal. Tildar = agregado al pedido.
+   🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
    ÍNDICE: 1. Estructura  2. Notas  3. Renglones  4. Menú del renglón  5. Aviso con deshacer
    ===================================================================== */
 /* ---------- 1. Estructura ---------- */
@@ -38,6 +38,12 @@ header.top .logo .emo{font-size:24px}
 .nota[data-c="FALCON"]{background:var(--k-azul)} .nota[data-c="MORENO"]{background:var(--k-naranja)} .nota[data-c="NACION"]{background:var(--k-verde)}
 .nota[data-c="SOMISA"]{background:var(--k-amarillo)} .nota[data-c="DEPOSITO"]{background:var(--k-violeta)} .nota[data-c="COMPRAS"]{background:var(--k-celeste)}
 .nota[data-c="PEDIDOS"]{background:var(--surface);border-color:var(--line)}
+.nota[data-c="L-amarillo"]{background:var(--k-amarillo)} .nota[data-c="L-naranja"]{background:var(--k-naranja)} .nota[data-c="L-rojo"]{background:var(--k-rojo)}
+.nota[data-c="L-rosa"]{background:var(--k-rosa)} .nota[data-c="L-violeta"]{background:var(--k-violeta)} .nota[data-c="L-azul"]{background:var(--k-azul)}
+.nota[data-c="L-celeste"]{background:var(--k-celeste)} .nota[data-c="L-verde"]{background:var(--k-verde)} .nota[data-c="L-gris"]{background:var(--k-gris)}
+.nota.nueva{display:block;width:100%;border:2px dashed var(--line);background:none;color:var(--muted);font-weight:700;font-size:15px;padding:16px;cursor:pointer;text-align:left}
+.nota.nueva small{display:block;font-weight:500;font-size:12.5px;margin-top:2px}
+.nota.nueva:hover{color:var(--ink);border-color:var(--muted)}
 .nota h2{font-size:17px;font-weight:600;margin:0 8px 6px;display:flex;align-items:center;gap:8px}
 .nota h2 .n{font-size:12.5px;color:var(--muted);font-weight:600}
 .nota h2 .ico{width:30px;height:30px;font-size:15px;margin-left:auto}
@@ -235,25 +241,31 @@ function tipsReparto(ab){
 }
 /* ---------- 🛒 COMPRAS (Joa): una nota "Para pedir", sumada y sin sucursal ---------- */
 function renderCompras(){
-  const pedir = (D.pedir || []).slice().sort((a,b) => (b.nada - a.nada) || (b.vuelve - a.vuelve) || (a.desde - b.desde)), pedidos = D.pedidos || [];
+  const orden = (a,b) => (b.nada - a.nada) || (b.vuelve - a.vuelve) || (a.desde - b.desde);
+  const pedir = (D.pedir || []).slice().sort(orden), pedidos = D.pedidos || [], listas = D.listas || [];
   $("#tips").innerHTML = tipsCompras(pedir);
   const ln = (g, hecho) => `<div class="ln${hecho ? " hecho" : ""}" data-k="${esc(g.k)}" role="button" tabindex="0">
     <input type="checkbox" ${hecho ? "checked" : ""} data-tilde="${esc(g.k)}" aria-label="${hecho ? "Volver a la lista" : "Agregado al pedido"}">
     ${g.nada && !g.cant ? `<span class="c nada">🚫</span>` : `<span class="c">${g.cant || "?"}</span>`}
-    <span class="p">${esc(g.nombre)}<small>${[g.n > 1 ? `${g.n} pedidos` : "", g.nada ? `🚫 sin stock en ${g.nada}` : "", g.vuelve ? "🔁 volvió" : "", hecho && g.nsc ? "🔍 no se consigue" : ""].filter(Boolean).join(" · ")}</small></span>
+    <span class="p">${esc(g.nombre)}<small>${[hecho && g.lista ? "📁 " + esc(g.lista) : "", g.n > 1 ? `${g.n} pedidos` : "", g.nada ? `🚫 sin stock en ${g.nada}` : "", g.vuelve ? "🔁 volvió" : "", hecho && g.nsc ? "🔍 no se consigue" : ""].filter(Boolean).join(" · ")}</small></span>
     ${!hecho && dias(g.desde) >= 7 ? `<span class="a">⏰ ${dias(g.desde)}d</span>` : "<span></span>"}</div>`;
-  $("#notas").innerHTML = `<section class="nota" data-c="COMPRAS"><h2>🛒 Para pedir <span class="n">${pedir.length || ""}</span>${pedir.length ? `<button class="ico" type="button" id="bCopiar" title="Copiar la lista">📋</button>` : ""}</h2>
-      ${pedir.map(g => ln(g, false)).join("") || `<div class="vacia">No hay nada para pedir 🎉</div>`}</section>
-    <section class="nota" data-c="PEDIDOS"><h2>✓ Pedidos <span class="n">${pedidos.length || ""}</span></h2>
+  const nota = (nombre, color, items) => `<section class="nota" data-c="${nombre ? "L-" + esc(color || "gris") : "COMPRAS"}">
+      <h2>${nombre ? "📁 " + esc(nombre) : "🛒 Para pedir"} <span class="n">${items.length || ""}</span><button class="ico" type="button" data-nota="${esc(nombre)}" title="Opciones de la nota">⋯</button></h2>
+      ${items.map(g => ln(g, false)).join("") || `<div class="vacia">${nombre ? "Vacía: mové renglones acá o agregá abajo." : "No hay nada para pedir 🎉"}</div>`}
+      <label class="agregar">＋<input data-libre="${esc(nombre)}" maxlength="120" placeholder="Agregar… (ej: 10 agendas Talbot)" enterkeyhint="done"></label></section>`;
+  $("#notas").innerHTML = nota("", "", pedir.filter(g => !g.lista || !listas.some(l => l[0] === g.lista)))
+    + listas.map(([n, c]) => nota(n, c, pedir.filter(g => g.lista === n))).join("")
+    + `<button class="nota nueva" type="button" id="bNuevaNota">＋ Nueva nota<small>por proveedor o tema (ej: Colours, Preventa Talbot)</small></button>`
+    + `<section class="nota" data-c="PEDIDOS"><h2>✓ Pedidos <span class="n">${pedidos.length || ""}</span></h2>
       ${pedidos.length ? pedidos.map(g => ln(g, true)).join("") : `<div class="vacia">Lo que tildes queda acá unos días, por si te equivocaste.</div>`}</section>`;
 }
 function tipsCompras(l){
   const P = [], by = {};
-  l.forEach(g => { const k = clave2(g.nombre); (by[k] = by[k] || []).push(g); });
+  l.forEach(g => { const k = (g.lista || "") + "~" + clave2(g.nombre); (by[k] = by[k] || []).push(g); });
   const pares = Object.values(by).filter(x => x.length > 1);
   const W = l.slice(0, 200).map(g => [g, new Set(clave2(g.nombre).split(" ").filter(w => w.length > 1))]);   // "resma ledesma" ⊂ "resma a4 ledesma 75g"
   W.forEach(([a, wa], i) => W.slice(i + 1).forEach(([b, wb]) => { const [ch, gr] = wa.size <= wb.size ? [wa, wb] : [wb, wa];
-    if(ch.size >= 2 && ch.size < gr.size && [...ch].every(w => gr.has(w))) pares.push([a, b]); }));
+    if((a.lista || "") === (b.lista || "") && ch.size >= 2 && ch.size < gr.size && [...ch].every(w => gr.has(w))) pares.push([a, b]); }));
   pares.slice(0, 3).forEach(x => P.push({t:`🔗 ¿Es lo mismo? ${x.map(g => g.nombre).join(" = ")}`, unir:x}));
   PROPS = P;
   return P.length ? `<span>💡</span>` + P.map((p, i) => `<button type="button" data-p="${i}" title="Tocá para unirlos">${esc(p.t)}</button>`).join("") : "";
@@ -284,8 +296,52 @@ function menuReparto(c){
 function menuCompras(g, hecho){
   const ops = hecho ? [{t:"↩ Volver a la lista", f: () => cambiarCompras(g.k, "A pedir")}, ...(g.nsc ? [{t:"✓ Lo conseguí: agregado al pedido", f: () => cambiarCompras(g.k, "Pedido")}] : [])]
     : [{t:"✓ Agregado al pedido", f: () => cambiarCompras(g.k, "Pedido")}, {t:`🔍 No se consigue (vuelve en ${D.vuelveDias} días)`, f: () => cambiarCompras(g.k, "No se consigue")},
+       {t:"📁 Mover a otra nota", f: () => menuMover(g)},
        {t:"✏️ Cambiar el nombre", f: () => { const n = prompt("Nombre para pedir (si ponés el mismo que otro, se juntan):", g.nombre); if(n && n.trim() && n.trim() !== g.nombre) renombrar([g.k], n.trim()); }}];
   abrirMenu(`${g.cant ? g.cant + " ×" : ""} ${g.nombre}`, `${g.n > 1 ? `Lo piden ${g.n} veces` : "1 pedido"} · desde ${dias(g.desde) ? `hace ${dias(g.desde)} días` : "hoy"}${g.nada ? ` · 🚫 sin stock en ${g.nada}` : ""}${g.obs && g.obs.length ? `<i>${g.obs.map(o => "“" + esc(o) + "”").join(" · ")}</i>` : ""}`, ops);
+}
+
+/* notas de compras (proveedor o tema): mover, crear, renombrar, color, borrar, copiar */
+const COLORES = [["amarillo","🟡"],["naranja","🟠"],["rojo","🔴"],["rosa","🩷"],["violeta","🟣"],["azul","🔵"],["celeste","🩵"],["verde","🟢"],["gris","⚪"]];
+function menuMover(g){
+  const ls = (D.listas || []).map(l => l[0]).filter(n => n !== g.lista);
+  abrirMenu("📁 Mover a…", esc(g.nombre), [...(g.lista ? [{t:"🛒 Para pedir (sin nota)", f: () => mover(g.k, "")}] : []), ...ls.map(n => ({t:"📁 " + esc(n), f: () => mover(g.k, n)})),
+    {t:"＋ Nota nueva…", f: async () => { const n = await crearNota(); if(n) mover(g.k, n); }}]);
+}
+async function mover(k, lista){
+  const g = D.pedir.find(x => x.k === k); if(g){ g.lista = lista; render(); }
+  try{ await api("falt-mover", {claves:k, lista}); toast(lista ? "📁 Movido a " + lista : "Movido a Para pedir"); await refrescar(false); }
+  catch(e){ toast(errTxt(e), 4000); await refrescar(false); }
+}
+async function crearNota(){
+  const n = (prompt("Nombre de la nota (proveedor o tema):") || "").replace(/[|~]/g, " ").trim().slice(0, 40); if(!n) return "";
+  if((D.listas || []).some(l => l[0].toLowerCase() === n.toLowerCase())){ toast("Ya hay una nota con ese nombre"); return ""; }
+  const color = COLORES[(D.listas || []).length % (COLORES.length - 1)][0];
+  try{ await api("falt-notas", {op:"crear", nombre:n, color}); D.listas = [...(D.listas || []), [n, color]]; render(); toast("📁 Nota creada: " + n); return n; }
+  catch(e){ toast(errTxt(e), 4000); return ""; }
+}
+const textoNota = l => l.slice().sort((a,b) => a.nombre.localeCompare(b.nombre)).map(g => `${g.cant ? g.cant + " × " : ""}${g.nombre}${g.nada && !g.cant ? " (sin stock)" : ""}`).join("\n");
+function copiar(txt, que){ navigator.clipboard.writeText(txt).then(() => toast(`📋 ${que} copiada: pegala en WhatsApp o en el pedido`), () => toast("No se pudo copiar")); }
+function menuNota(nombre){
+  const items = D.pedir.filter(g => nombre ? g.lista === nombre : !g.lista || !(D.listas || []).some(l => l[0] === g.lista));
+  const ops = [{t:"📋 Copiar la lista", f: () => copiar((nombre ? nombre + "\n" : "") + textoNota(items), "Lista")}];
+  if(items.length) ops.push({t:`✓ Todo agregado al pedido (${items.length})`, f: async () => { for(const g of items) await cambiarCompras(g.k, "Pedido", true); toast(`✓ ${items.length} agregados al pedido`); }});
+  if(nombre) ops.push(
+    {t:"✏️ Cambiar el nombre", f: async () => { const n = (prompt("Nuevo nombre de la nota:", nombre) || "").replace(/[|~]/g, " ").trim().slice(0, 40); if(!n || n === nombre) return;
+      try{ await api("falt-notas", {op:"renombrar", nombre, nuevo:n}); await refrescar(false); }catch(e){ toast(errTxt(e), 4000); } }},
+    {t:"🎨 Color", f: () => abrirMenu("🎨 Color de " + esc(nombre), "", COLORES.map(([c, e]) => ({t:`${e} ${c}`, f: async () => {
+      const l = D.listas.find(x => x[0] === nombre); if(l){ l[1] = c; render(); } try{ await api("falt-notas", {op:"color", nombre, color:c}); }catch(err){ toast(errTxt(err), 4000); } }})))},
+    {t:"🗑 Borrar la nota", mal:true, f: async () => { if(items.length){ toast("Primero mové o tildá los renglones de la nota", 3500); return; }
+      try{ await api("falt-notas", {op:"borrar", nombre}); D.listas = D.listas.filter(l => l[0] !== nombre); render(); toast("Nota borrada"); }catch(e){ toast(errTxt(e), 4000); } }});
+  abrirMenu(nombre ? "📁 " + nombre : "🛒 Para pedir", `${items.length} renglón${items.length === 1 ? "" : "es"}`, ops);
+}
+async function agregarLibre(lista, inp){
+  const v = inp.value.trim(); if(v.length < 2) return;
+  const {cant, nada, txt} = parseCant(v); inp.disabled = true;
+  try{ await api("falt-libre", {lista, texto:txt, ...(nada ? {nada:"1"} : {cant:String(cant || "")})}); inp.value = ""; await refrescar(false);
+    const nuevo = $(`input[data-libre="${CSS.escape(lista)}"]`); if(nuevo) nuevo.focus(); }
+  catch(e){ toast(errTxt(e), 4000); }
+  finally{ inp.disabled = false; }
 }
 
 /* =====================================================================
@@ -345,12 +401,13 @@ document.addEventListener("click", e => {
   const tilde = e.target.closest("[data-tilde]"); if(tilde){ const hecho = !!tilde.closest(".ln.hecho"); cambiarCompras(tilde.dataset.tilde, hecho ? "A pedir" : "Pedido"); return; }
   const ln = e.target.closest(".ln[data-id]"); if(ln){ const c = D.cards.find(x => x.id === ln.dataset.id); if(c) menuReparto(c); return; }
   const lk = e.target.closest(".ln[data-k]"); if(lk){ const hecho = lk.classList.contains("hecho"), g = (hecho ? D.pedidos : D.pedir).find(x => x.k === lk.dataset.k); if(g) menuCompras(g, hecho); return; }
-  if(e.target.closest("#bCopiar")){ const txt = D.pedir.slice().sort((a,b) => a.nombre.localeCompare(b.nombre)).map(g => `${g.cant ? g.cant + " × " : ""}${g.nombre}${g.nada ? " (sin stock)" : ""}`).join("\n");
-    navigator.clipboard.writeText(txt).then(() => toast("📋 Lista copiada: pegala en WhatsApp o en el pedido"), () => toast("No se pudo copiar")); return; }
+  const bn = e.target.closest("[data-nota]"); if(bn){ menuNota(bn.dataset.nota); return; }
+  if(e.target.closest("#bNuevaNota")){ crearNota(); return; }
 });
 document.addEventListener("keydown", e => {
   if(e.key === "Escape" && !$("#menu").hidden){ cerrarMenu(); return; }
   const inp = e.target.closest && e.target.closest("[data-agregar]"); if(inp && e.key === "Enter"){ e.preventDefault(); agregar(inp.dataset.agregar, inp); return; }
+  const lib = e.target.closest && e.target.closest("[data-libre]"); if(lib && e.key === "Enter"){ e.preventDefault(); agregarLibre(lib.dataset.libre, lib); return; }
   const lk = e.target.closest && e.target.closest(".ln[data-k]"); if(lk && (e.key === "Enter" || e.key === " ") && e.target === lk){ e.preventDefault(); lk.click(); }
 });
 
@@ -375,11 +432,17 @@ function demoApi(accion, p){
     if(new URLSearchParams(location.search).get("demo") === "compras"){
       if(!window._demoC){ const g = {}; cs.filter(c => c.estado === "A pedir" || c.estado === "").forEach(c => { const k = norm(c.prod); const x = g[k] || (g[k] = {k, nombre:c.prod, cant:0, nada:0, n:0, desde:Infinity, obs:[], vuelve:false, nsc:false});
         x.cant += c.cant; x.nada += c.nada ? 1 : 0; x.n++; x.desde = Math.min(x.desde, tsFecha(c)); if(c.obs) x.obs.push(c.obs); });
-        window._demoC = {rol:"compras", generado:Date.now(), pedir:Object.values(g), pedidos:[], vuelveDias:15}; }
+        Object.values(g).forEach(x => { x.k = "~" + x.k; x.lista = ""; });
+        const tal = {k:"Preventa Talbot~agendas", lista:"Preventa Talbot", libre:true, nombre:"Agendas Talbot diaria N°8", cant:10, nada:0, n:1, desde:Date.now(), obs:[], vuelve:false, nsc:false};
+        window._demoC = {rol:"compras", generado:Date.now(), pedir:[...Object.values(g), tal], pedidos:[], listas:[["Colours","naranja"],["Preventa Talbot","amarillo"]], vuelveDias:15}; }
       return window._demoC;
     }
     return {rol:"reparto", generado:Date.now(), cards:cs, vuelveDias:15};
   }
+  if(window._demoC){ const C = window._demoC;
+    if(accion === "falt-libre") C.pedir.push({k:(p.lista || "") + "~" + norm(p.texto), lista:p.lista || "", libre:true, nombre:p.texto, cant:+p.cant || 0, nada:p.nada === "1" ? 1 : 0, n:1, desde:Date.now(), obs:[], vuelve:false, nsc:false});
+    if(accion === "falt-mover") C.pedir.forEach(g => { if(g.k === p.claves){ g.lista = p.lista; g.k = (p.lista || "") + "~" + g.k.split("~")[1]; } });
+    if(accion === "falt-notas" && p.op === "renombrar"){ C.listas.forEach(l => { if(l[0] === p.nombre) l[0] = p.nuevo; }); C.pedir.forEach(g => { if(g.lista === p.nombre){ g.lista = p.nuevo; g.k = p.nuevo + "~" + g.k.split("~")[1]; } }); } }
   if(accion === "falt-nuevo"){ String(p.texto).split("\n").forEach((x, i) => cs.push({id:"F-D-" + Date.now() + i, fecha:f(0), hora:"", suc:p.sucursal, quien:"Celular", prod:x, obs:"", estado:"", cant:+p.cant || 0, nada:p.nada === "1", act:Date.now()})); }
   return Promise.resolve({ok:true});
 }
