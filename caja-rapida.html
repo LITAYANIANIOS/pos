@@ -195,7 +195,27 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
   .vact .lines{flex:1 1 auto;max-height:none;min-height:56px}
   .vact{overflow-y:auto}
 }
-.vact.cobrando .upsell{display:none}   /* al cobrar ya no hace falta: deja lugar a los medios de pago */
+.vact.cobrando .upsell{display:none}
+/* v3.46 · MONITORES BAJOS (Moreno: ~600 px útiles). Prioridad: ver los renglones del carrito.
+   Se achica el título, el encabezado del carrito, la sugerencia 💡 (una sola línea) y el total; la "última venta" se oculta mientras hay productos (F4 sigue andando). */
+@media (max-height:800px) and (min-width:761px){
+  main{padding-top:12px}
+  .top{margin-bottom:10px} .top h1{font-size:22px} .top h1 .emo{font-size:22px}
+  .vact{padding-top:12px;padding-bottom:12px}
+  .vact .order-h{padding-bottom:8px} .vact .badge{min-width:32px;height:32px;font-size:12px}
+  .vact .lines{min-height:150px}
+  .vact .lines .hd{padding:6px 0 4px}
+  .vact .lines li{padding:4px 0}
+  .vact .upsell{display:block;padding:5px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+  .vact .upsell b.t{display:none}
+  .vact .upsell span{display:inline}
+  .vact .upsell span + span{display:none}
+  .vact .desc-box{margin-top:8px;padding:6px 10px}
+  .vact .total{margin-top:8px;padding-top:8px} .vact .total b{font-size:28px}
+  .vact .bar2{margin-top:10px} .vact .bar2 .btn{padding:10px}
+  .vact:has(#lines li) .ultima{display:none}
+  .vact .ultima{margin-top:8px;padding:5px 10px}
+}   /* al cobrar ya no hace falta: deja lugar a los medios de pago */
 .searchbox{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--surface-2);border-radius:var(--r-sm);padding:0 14px}
 .searchbox:focus-within{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--accent-soft)}
 .search{flex:1;min-width:0;border:0;background:none;font-size:20px;padding:13px 0;outline:none}
@@ -1137,7 +1157,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-03 v3.45";
+const VERSION = "2026-11-03 v3.46";
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA

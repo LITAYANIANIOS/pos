@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v2.0
+   FALTANTES · DA BOX                                              v2.1
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): UNA nota "Para pedir", sumada y SIN sucursal. Tildar = agregado al pedido.
@@ -271,9 +271,9 @@ function abrirMenu(tit, det, ops){
 const cerrarMenu = () => { $("#menu").hidden = true; };
 function menuReparto(c){
   const op = (estado, t, mal) => ({t, mal, f: () => cambiarReparto([c.id], estado)});
-  const ops = c.estado === "" ? [op("Depósito","📦 Sale del depósito"), op("A pedir","🛒 Pasar a compras (Joa)"), op("No se trae","✖ No se trae", true)]
+  const ops = c.estado === "" ? [op("Depósito","📦 Sale del depósito"), op("A pedir","🛒 Pasar a compras (Joa)"), op("Pedido","🚚 Ya está pedido / lo pido yo"), op("No se trae","✖ No se trae", true)]
     : c.estado === "Depósito" ? [op("Entregado","✓ Entregado en la sucursal"), op("A pedir","🛒 Mejor pedirlo"), op("","↩ Volver a sin repartir")]
-    : c.estado === "A pedir" ? [op("Depósito","📦 Lo tengo en el depósito"), op("","↩ Volver a sin repartir"), op("No se trae","✖ No se trae", true)]
+    : c.estado === "A pedir" ? [op("Pedido","🚚 Ya está pedido / lo pido yo"), op("Depósito","📦 Lo tengo en el depósito"), op("","↩ Volver a sin repartir"), op("No se trae","✖ No se trae", true)]
     : c.estado === "Pedido" ? [op("Entregado","✓ Entregado en la sucursal"), op("Depósito","📦 Llegó al depósito")]
     : c.estado === "No se consigue" ? [op("A pedir","🛒 Pedir de nuevo"), op("No se trae","✖ No se trae", true)]
     : [op("","↩ Volver a abrir")];
@@ -341,7 +341,7 @@ document.addEventListener("click", e => {
     if(x.unir){ const nom = x.unir.map(g => g.nombre).sort((a,b) => b.length - a.length)[0]; renombrar(x.unir.map(g => g.k), nom); return; }
     filtro = x; render(); scrollTo(0, 0); return; }
   const td = e.target.closest("[data-todo]"); if(td){ const ids = D.cards.filter(c => c.estado === "" && c.suc === td.dataset.todo).map(c => c.id);
-    abrirMenu(`${sucNom(td.dataset.todo)}`, `${ids.length} renglones sin repartir`, [{t:`🛒 Pasar los ${ids.length} a compras`, f: () => cambiarReparto(ids, "A pedir")}, {t:`📦 Los ${ids.length} salen del depósito`, f: () => cambiarReparto(ids, "Depósito")}]); return; }
+    abrirMenu(`${sucNom(td.dataset.todo)}`, `${ids.length} renglones sin repartir`, [{t:`🛒 Pasar los ${ids.length} a compras`, f: () => cambiarReparto(ids, "A pedir")}, {t:`📦 Los ${ids.length} salen del depósito`, f: () => cambiarReparto(ids, "Depósito")}, {t:`🚚 Los ${ids.length} ya están pedidos`, f: () => cambiarReparto(ids, "Pedido")}]); return; }
   const tilde = e.target.closest("[data-tilde]"); if(tilde){ const hecho = !!tilde.closest(".ln.hecho"); cambiarCompras(tilde.dataset.tilde, hecho ? "A pedir" : "Pedido"); return; }
   const ln = e.target.closest(".ln[data-id]"); if(ln){ const c = D.cards.find(x => x.id === ln.dataset.id); if(c) menuReparto(c); return; }
   const lk = e.target.closest(".ln[data-k]"); if(lk){ const hecho = lk.classList.contains("hecho"), g = (hecho ? D.pedidos : D.pedir).find(x => x.k === lk.dataset.k); if(g) menuCompras(g, hecho); return; }
