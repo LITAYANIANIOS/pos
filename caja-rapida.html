@@ -210,6 +210,7 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
   .vact .upsell b.t{display:none}
   .vact .upsell span{display:inline}
   .vact .upsell span + span{display:none}
+  .vact .upsell .ups-mas{display:none}
   .vact .desc-box{margin-top:8px;padding:6px 10px}
   .vact .total{margin-top:8px;padding-top:8px} .vact .total b{font-size:28px}
   .vact .bar2{margin-top:10px} .vact .bar2 .btn{padding:10px}
@@ -317,6 +318,7 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .medios button[aria-pressed="true"] kbd{background:rgb(255 255 255 / .18);border-color:transparent;color:inherit}
 .upsell{margin-top:8px;padding:8px 12px;border:1px dashed var(--accent);border-radius:var(--r-sm);background:var(--accent-soft);font-size:13px;display:grid;gap:3px}
 .upsell b.t{font-size:12px;color:var(--muted);font-weight:600}
+.upsell .ups-mas{padding:0;font-size:12px;justify-self:start}
 .desc-box{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:12px;padding:9px 12px;border-radius:var(--r-sm);background:var(--surface-2);font-size:13.5px;font-weight:500}
 .desc-box.on{background:var(--ok-soft);color:var(--ok)}
 .desc-box .acc{margin-left:auto;display:flex;gap:12px}
@@ -1157,7 +1159,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-03 v3.46";
+const VERSION = "2026-11-03 v3.47";
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1895,6 +1897,7 @@ function retomar(i){
   guardar("espera", esperas); renderCart(); renderEspera(); focusQ();
 }
 $("#bEspera").onclick = ponerEnEspera;
+$("#upsell").addEventListener("click", e => { if(e.target.id === "upsMas"){ upsTodas = !upsTodas; renderUpsell(); } });
 $("#espera").addEventListener("click", e => { const b = e.target.closest("[data-esp]"); if(b) retomar(+b.dataset.esp); });
 $("#bVolver").onclick = () => { closeCobro(); focusQ(); };
 $("#bConfirmar").onclick = confirmar;
@@ -2006,10 +2009,14 @@ function sugerencias(){
   const m = prox(R.monto, base); if(m && base > 0 && m[0] - base <= base) out.push(`🧾 Sumando ${money(m[0] - base)} más: <b>${m[1]}% de descuento</b>`);
   return out.slice(0, 3);
 }
+let upsTodas = false;
 function renderUpsell(){
   const l = sugerencias(), box = $("#upsell");
   box.hidden = !l.length;
-  box.innerHTML = l.length ? `<b class="t">💡 Ofrecele al cliente</b>` + l.map(x => `<span>${x}</span>`).join("") : "";
+  if(!cart.length) upsTodas = false;
+  const ver = upsTodas ? l : l.slice(0, 1);   // v3.47: una sola sugerencia a la vista (las otras con "+N"): el carrito necesita el lugar
+  box.innerHTML = l.length ? `<b class="t">💡 Ofrecele al cliente</b>` + ver.map(x => `<span>${x}</span>`).join("")
+    + (l.length > 1 ? `<button class="link ups-mas" id="upsMas" type="button">${upsTodas ? "ver menos" : "+" + (l.length - 1) + " más"}</button>` : "") : "";
 }
 function toggleDesc(){ if(!mejorDesc(medio)) return; descOn = !descOn; renderDesc(); updVuelto(); if(medio === "efectivo") $("#pagaCon").focus(); }
 $("#descBox").addEventListener("click", e => {
