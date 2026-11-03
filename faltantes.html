@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v2.2
+   FALTANTES · DA BOX                                              v2.4
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
@@ -78,6 +78,9 @@ header.top .logo .emo{font-size:24px}
 .menu .ops button{display:flex;gap:10px;align-items:center;border:0;background:var(--surface-2);border-radius:10px;padding:12px 14px;font-weight:600;font-size:15px;cursor:pointer;text-align:left;color:var(--ink)}
 .menu .ops button:hover{background:var(--sel)}
 .menu .ops button.mal{color:var(--bad)}
+.campo-l{display:grid;gap:4px;font-size:12.5px;color:var(--muted);font-weight:600;margin-top:10px}
+.fila-e{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:start}
+.menu .det i{max-height:40vh;overflow:auto}
 .menu .cerrar{margin-top:10px;width:100%;border:0;background:none;color:var(--muted);font-weight:600;padding:8px;cursor:pointer}
 /* ---------- 5. Aviso con deshacer ---------- */
 .deshacer{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--bg);border-radius:10px;padding:10px 12px 10px 16px;display:flex;gap:14px;align-items:center;font-weight:600;font-size:14px;box-shadow:0 10px 30px rgb(0 0 0 / .25);max-width:calc(100% - 24px)}
@@ -103,6 +106,14 @@ header.top .logo .emo{font-size:24px}
 </div>
 </div>
 <div class="menu" id="menu" hidden><div class="caja" role="dialog" aria-modal="true"><h3 id="mTit"></h3><div class="det" id="mDet"></div><div class="ops" id="mOps"></div><button class="cerrar" type="button" data-cerrar-menu>Cerrar</button></div></div>
+<div class="menu" id="mEdit" hidden><form class="caja" id="fEdit" autocomplete="off">
+  <h3>✏️ Editar renglón</h3>
+  <label class="campo-l">Producto<input class="campo" id="eProd" maxlength="120"></label>
+  <div class="fila-e"><label class="campo-l">Cantidad<input class="campo" id="eCant" inputmode="numeric"></label><label class="check" style="margin-top:22px"><input type="checkbox" id="eNada"> 🚫 No queda nada</label></div>
+  <label class="campo-l">Sucursal<select class="campo" id="eSuc"></select></label>
+  <label class="campo-l">Nota (opcional)<input class="campo" id="eObs" maxlength="200"></label>
+  <div class="ops" style="grid-template-columns:1fr 1fr;margin-top:14px"><button type="button" id="eCancel">Cancelar</button><button type="submit" style="background:var(--accent);color:var(--accent-ink)">Guardar</button></div>
+</form></div>
 <div class="deshacer" id="deshacer" hidden><span id="dTxt"></span><button type="button" id="dBtn">Deshacer</button></div>
 
 <!-- sin link ni clave -->
@@ -169,7 +180,7 @@ async function refrescar(avisar){
   if(demo){ D = demoApi("falt-ver"); render(); return; }
   try{ await cargar(); if(avisar) toast("Actualizado"); }catch(e){ toast(errTxt(e), 4000); }
 }
-const ocupado = () => !$("#menu").hidden || document.activeElement.matches("input,textarea");
+const ocupado = () => !$("#menu").hidden || !$("#mEdit").hidden || document.activeElement.matches("input,textarea");
 setInterval(() => { if(!document.hidden && !$("#app").hidden && !ocupado()) refrescar(false); }, 90000);
 document.addEventListener("visibilitychange", () => { if(!document.hidden && D && Date.now() - D.generado > 60000 && !ocupado()) refrescar(false); });
 $("#qOk").onclick = () => { const n = $("#qNom").value.trim(); if(n.length < 2) return; quien = n; guardarLS("fquien", n); $("#quien").hidden = true; toast("👋 Hola, " + n); };
@@ -197,23 +208,23 @@ const parseCant = t => { const m = t.match(/^\s*(\d+)\s*[*xX×]?\s+(.+)$/) || t.
    ===================================================================== */
 function render(){
   if(!D) return;
-  $("#rol").textContent = rol === "compras" ? "🛒 Compras" : "📦 Reparto";
+  $("#rol").textContent = rol === "compras" ? "🛒 Compras" : rol === "anotar" ? "📝 Anotar" : "📦 Reparto";
   $("#quien").hidden = !!quien || demo;
-  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. Tocá un renglón para moverlo.`;
+  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. ${rol === "anotar" ? "Escribí en ＋ Agregar de cada sucursal (ej: 3 lupas) o pegá una lista entera. Roman reparte." : "Tocá un renglón para moverlo."}`;
   if(rol === "compras") renderCompras(); else renderReparto();
 }
 /* ---------- 📦 REPARTO: una nota por sucursal ---------- */
 let PROPS = [], filtro = null;
 function renderReparto(){
   const cs = D.cards || [], abiertos = cs.filter(c => !CERR(c.estado));
-  $("#tips").innerHTML = tipsReparto(abiertos);
+  $("#tips").innerHTML = rol === "anotar" ? "" : tipsReparto(abiertos);
   const notas = SUCS.map(s => {
     const mias = cs.filter(c => c.suc === s), ab = mias.filter(c => !CERR(c.estado) && (!filtro || filtro.f(c)));
     const hechos = mias.filter(c => CERR(c.estado) && dias(c.act) < VER_HECHOS);
     if(filtro && !ab.length) return "";
     const orden = (a,b) => (a.estado === "" ? 0 : 1) - (b.estado === "" ? 0 : 1) || (b.nada - a.nada) || (edad(b) - edad(a));
     const nuevos = ab.filter(c => c.estado === "").length;
-    return `<section class="nota" data-c="${s}" data-suc="${s}"><h2>${esc(sucNom(s))} <span class="n">${ab.length || ""}</span>${nuevos > 1 ? `<button class="ico" type="button" data-todo="${s}" title="Pasar todo lo nuevo a compras">⋯</button>` : ""}</h2>
+    return `<section class="nota" data-c="${s}" data-suc="${s}"><h2>${esc(sucNom(s))} <span class="n">${ab.length || ""}</span>${nuevos > 1 && rol !== "anotar" ? `<button class="ico" type="button" data-todo="${s}" title="Pasar todo lo nuevo a compras">⋯</button>` : ""}</h2>
       ${ab.sort(orden).map(renglon).join("") || (filtro ? "" : `<div class="vacia">Nada pendiente 🎉</div>`)}
       ${filtro ? "" : `<label class="agregar">＋<input data-agregar="${s}" maxlength="120" placeholder="Agregar… (ej: 3 lupas)" enterkeyhint="done"></label>`}
       ${hechos.length && !filtro ? `<details class="hechos"><summary>✓ ${hechos.length} cerrado${hechos.length > 1 ? "s" : ""}</summary>${hechos.map(renglon).join("")}</details>` : ""}</section>`;
@@ -289,6 +300,8 @@ function menuReparto(c){
     : c.estado === "Pedido" ? [op("Entregado","✓ Entregado en la sucursal"), op("Depósito","📦 Llegó al depósito")]
     : c.estado === "No se consigue" ? [op("A pedir","🛒 Pedir de nuevo"), op("No se trae","✖ No se trae", true)]
     : [op("","↩ Volver a abrir")];
+  if(rol === "anotar") ops.length = 0;   // Vivi: solo mira el detalle
+  else if(!CERR(c.estado)) ops.push({t:"✏️ Editar (texto, cantidad, sucursal)", f: () => abrirEditar(c)});
   const e = EST[c.estado] || EST[""];
   abrirMenu(`${c.nada ? "🚫" : (c.cant || "?") + " ×"} ${c.prod}`,
     `${esc(sucNom(c.suc))} · ${fechaAR(c.fecha)}${c.quien ? " · " + esc(c.quien) : ""} · <b>${e[0]} ${e[1]}</b>${c.por && c.estado ? " (" + esc(c.por) + ")" : ""}${atrasado(c) ? `<i>⏰ ${esc(CONSEJO[c.estado].replace("%d", edad(c)))}</i>` : ""}${c.obs ? `<i>“${esc(c.obs)}”</i>` : ""}`, ops);
@@ -377,18 +390,47 @@ async function renombrar(claves, nombre){
   try{ await api("falt-nombre", {claves: claves.join("|"), nombre}); toast("✏️ Listo"); await refrescar(false); }
   catch(e){ toast(errTxt(e), 4000); }
 }
-async function agregar(suc, inp){
-  const v = inp.value.trim(); if(v.length < 2) return;
-  const {cant, nada, txt} = parseCant(v);
+/* ＋ Agregar: una línea o MUCHAS pegadas de una (una nota entera de Keep). "3 lupas" = 3; "- " o "☐" adelante se saca; fechas sueltas (2/11) se saltean */
+const limpiarLinea = t => t.replace(/^[\s\-–—•·☐☑✓✔*]+/, "").replace(/[.\s]+$/, "").trim();
+const TITULOS = /^(enero|febrero|marzo|abril|mayo|junio|julio|agosto|sep?tiembre|o[ck]tubre|noviembre|diciembre|pendientes?|faltantes?|urgente)\s*:?$/i;   // títulos de Keep: no son productos
+const lineasDe = txt => String(txt).split(/\r?\n/).map(limpiarLinea).filter(t => t.length > 1 && !/^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/.test(t) && !TITULOS.test(t));
+async function agregar(suc, inp, pegado){
+  const ls = pegado ? lineasDe(pegado) : lineasDe(inp.value); if(!ls.length) return;
+  const grupos = {}; ls.forEach(t => { const {cant, nada, txt} = parseCant(t); const k = nada ? "nada" : String(cant || ""); (grupos[k] = grupos[k] || []).push(txt); });
   inp.disabled = true;
   try{
-    await api("falt-nuevo", {sucursal:suc, texto:txt, ...(nada ? {nada:"1"} : {cant:String(cant || "")})});
+    for(const [k, l] of Object.entries(grupos)) for(let i = 0; i < l.length; i += 30)
+      await api("falt-nuevo", {sucursal:suc, texto:l.slice(i, i + 30).join("\n"), ...(k === "nada" ? {nada:"1"} : {cant:k})});
     inp.value = ""; await refrescar(false);
     const nuevo = $(`input[data-agregar="${suc}"]`); if(nuevo) nuevo.focus();
-    if(!cant && !nada) toast("Anotado sin cantidad: la próxima, poné el número adelante (3 lupas)", 3500);
+    const sinCant = (grupos[""] || []).length;
+    toast(ls.length > 1 ? `📝 ${ls.length} renglones agregados a ${sucNom(suc)}${sinCant ? ` (${sinCant} sin cantidad: tocalos para completarla)` : ""}` : sinCant ? "Anotado sin cantidad: la próxima, poné el número adelante (3 lupas)" : "📝 Anotado", 4000);
   }catch(e){ toast(errTxt(e), 4000); }
   finally{ inp.disabled = false; }
 }
+document.addEventListener("paste", e => {
+  const inp = e.target.closest && e.target.closest("[data-agregar]"); if(!inp) return;
+  const t = (e.clipboardData || window.clipboardData).getData("text"); if(!/\n/.test(t.trim())) return;   // una sola línea: se pega normal
+  e.preventDefault(); const n = lineasDe(t).length;
+  abrirMenu(`📋 Pegar ${n} renglones`, `En la nota de <b>${esc(sucNom(inp.dataset.agregar))}</b>. Cada línea queda como un renglón; si empieza con un número, es la cantidad.<i>${lineasDe(t).slice(0, 6).map(esc).join("<br>")}${n > 6 ? "<br>…" : ""}</i>`,
+    [{t:`✓ Agregar los ${n}`, f: () => agregar(inp.dataset.agregar, inp, t)}]);
+});
+/* ✏️ editar un renglón (solo Reparto) */
+let edC = null;
+function abrirEditar(c){
+  edC = c; $("#eProd").value = c.prod; $("#eCant").value = c.nada ? "" : (c.cant || ""); $("#eNada").checked = !!c.nada; $("#eObs").value = c.obs || "";
+  $("#eSuc").innerHTML = SUCS.map(s => `<option value="${s}" ${s === c.suc ? "selected" : ""}>${esc(sucNom(s))}</option>`).join("");
+  $("#mEdit").hidden = false; setTimeout(() => $("#eProd").focus(), 30);
+}
+$("#fEdit").onsubmit = async e => {
+  e.preventDefault(); if(!edC) return;
+  const prod = $("#eProd").value.trim(); if(prod.length < 2){ $("#eProd").focus(); return; }
+  const nada = $("#eNada").checked, cant = Math.max(0, Math.round(+$("#eCant").value || 0)), obs = $("#eObs").value.trim(), suc = $("#eSuc").value;
+  const c = edC, antes = {...c}; Object.assign(c, {prod, cant: nada ? 0 : cant, nada, obs, suc}); $("#mEdit").hidden = true; render();
+  try{ await api("falt-editar", {id:c.id, prod, obs, sucursal:suc, ...(nada ? {nada:"1"} : {cant:String(cant || "")})}); toast(suc !== antes.suc ? `✏️ Pasado a ${sucNom(suc)}` : "✏️ Guardado"); }
+  catch(err){ Object.assign(c, antes); render(); toast(errTxt(err), 4000); }
+};
+$("#eCancel").onclick = () => { $("#mEdit").hidden = true; };
 document.addEventListener("click", e => {
   if(e.target.closest("[data-cerrar-menu]") || e.target.id === "menu"){ cerrarMenu(); return; }
   const op = e.target.closest("#mOps [data-op]"); if(op){ const o = mAcc[+op.dataset.op]; cerrarMenu(); if(o) o.f(); return; }
@@ -406,6 +448,7 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("keydown", e => {
   if(e.key === "Escape" && !$("#menu").hidden){ cerrarMenu(); return; }
+  if(e.key === "Escape" && !$("#mEdit").hidden){ $("#mEdit").hidden = true; return; }
   const inp = e.target.closest && e.target.closest("[data-agregar]"); if(inp && e.key === "Enter"){ e.preventDefault(); agregar(inp.dataset.agregar, inp); return; }
   const lib = e.target.closest && e.target.closest("[data-libre]"); if(lib && e.key === "Enter"){ e.preventDefault(); agregarLibre(lib.dataset.libre, lib); return; }
   const lk = e.target.closest && e.target.closest(".ln[data-k]"); if(lk && (e.key === "Enter" || e.key === " ") && e.target === lk){ e.preventDefault(); lk.click(); }
@@ -437,12 +480,13 @@ function demoApi(accion, p){
         window._demoC = {rol:"compras", generado:Date.now(), pedir:[...Object.values(g), tal], pedidos:[], listas:[["Colours","naranja"],["Preventa Talbot","amarillo"]], vuelveDias:15}; }
       return window._demoC;
     }
-    return {rol:"reparto", generado:Date.now(), cards:cs, vuelveDias:15};
+    return {rol: new URLSearchParams(location.search).get("demo") === "anotar" ? "anotar" : "reparto", generado:Date.now(), cards:cs, vuelveDias:15};
   }
   if(window._demoC){ const C = window._demoC;
     if(accion === "falt-libre") C.pedir.push({k:(p.lista || "") + "~" + norm(p.texto), lista:p.lista || "", libre:true, nombre:p.texto, cant:+p.cant || 0, nada:p.nada === "1" ? 1 : 0, n:1, desde:Date.now(), obs:[], vuelve:false, nsc:false});
     if(accion === "falt-mover") C.pedir.forEach(g => { if(g.k === p.claves){ g.lista = p.lista; g.k = (p.lista || "") + "~" + g.k.split("~")[1]; } });
     if(accion === "falt-notas" && p.op === "renombrar"){ C.listas.forEach(l => { if(l[0] === p.nombre) l[0] = p.nuevo; }); C.pedir.forEach(g => { if(g.lista === p.nombre){ g.lista = p.nuevo; g.k = p.nuevo + "~" + g.k.split("~")[1]; } }); } }
+  if(accion === "falt-editar"){ const c = cs.find(x => x.id === p.id); if(c) Object.assign(c, {prod:p.prod, obs:p.obs, suc:p.sucursal, cant:+p.cant || 0, nada:p.nada === "1"}); }
   if(accion === "falt-nuevo"){ String(p.texto).split("\n").forEach((x, i) => cs.push({id:"F-D-" + Date.now() + i, fecha:f(0), hora:"", suc:p.sucursal, quien:"Celular", prod:x, obs:"", estado:"", cant:+p.cant || 0, nada:p.nada === "1", act:Date.now()})); }
   return Promise.resolve({ok:true});
 }
