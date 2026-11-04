@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v2.5
+   FALTANTES · DA BOX                                              v2.6
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
@@ -294,8 +294,9 @@ function abrirMenu(tit, det, ops){
 const cerrarMenu = () => { $("#menu").hidden = true; };
 function menuReparto(c){
   const op = (estado, t, mal) => ({t, mal, f: () => cambiarReparto([c.id], estado)});
-  const ops = c.estado === "" ? [op("Depósito","📦 Sale del depósito"), op("A pedir","🛒 Pasar a compras (Joa)"), op("Pedido","🚚 Ya está pedido / lo pido yo"), op("No se trae","✖ No se trae", true)]
-    : c.estado === "Depósito" ? [op("Entregado","✓ Entregado en la sucursal"), op("A pedir","🛒 Mejor pedirlo"), op("","↩ Volver a sin repartir")]
+  const rep = (mover, t) => ({t, f: () => reponer(c, mover)});
+  const ops = c.estado === "" ? [op("Depósito","📦 Sale del depósito"), rep(true, "📦+🛒 Sale del depósito y reponer (a compras)"), op("A pedir","🛒 Pasar a compras (Joa)"), op("Pedido","🚚 Ya está pedido / lo pido yo"), op("No se trae","✖ No se trae", true)]
+    : c.estado === "Depósito" ? [op("Entregado","✓ Entregado en la sucursal"), rep(false, "🛒 Reponer en el depósito (a compras)"), op("A pedir","🛒 Mejor pedirlo"), op("","↩ Volver a sin repartir")]
     : c.estado === "A pedir" ? [op("Pedido","🚚 Ya está pedido / lo pido yo"), op("Depósito","📦 Lo tengo en el depósito"), op("","↩ Volver a sin repartir"), op("No se trae","✖ No se trae", true)]
     : c.estado === "Pedido" ? [op("Entregado","✓ Entregado en la sucursal"), op("Depósito","📦 Llegó al depósito")]
     : c.estado === "No se consigue" ? [op("A pedir","🛒 Pedir de nuevo"), op("No se trae","✖ No se trae", true)]
@@ -415,6 +416,14 @@ document.addEventListener("paste", e => {
   abrirMenu(`📋 Pegar ${n} renglones`, `En la nota de <b>${esc(sucNom(inp.dataset.agregar))}</b>. Cada línea queda como un renglón; si empieza con un número, es la cantidad.<i>${lineasDe(t).slice(0, 6).map(esc).join("<br>")}${n > 6 ? "<br>…" : ""}</i>`,
     [{t:`✓ Agregar los ${n}`, f: () => agregar(inp.dataset.agregar, inp, t)}]);
 });
+/* 📦+🛒 sale del depósito y se repone: la sucursal ve 📦 y a Joa le llega un renglón del Depósito */
+async function reponer(c, mover){
+  const n = prompt(`¿Cuántos reponer en el depósito? (${c.prod})`, c.nada ? "" : (c.cant || "")); if(n === null) return;
+  const cant = Math.max(0, Math.round(+String(n).replace(/\D/g, "") || 0));
+  const antes = c.estado; if(mover){ c.estado = "Depósito"; c.act = Date.now(); render(); }
+  try{ await api("falt-reponer", {id:c.id, mover: mover ? "1" : "0", cant:String(cant || "")}); toast(mover ? "📦 Sale del depósito · 🛒 reponer pasó a compras" : "🛒 Reponer pasó a compras"); await refrescar(false); }
+  catch(e){ c.estado = antes; render(); toast(errTxt(e), 4000); }
+}
 /* ✏️ editar un renglón (solo Reparto) */
 let edC = null;
 function abrirEditar(c){
@@ -486,6 +495,8 @@ function demoApi(accion, p){
     if(accion === "falt-libre") C.pedir.push({k:(p.lista || "") + "~" + norm(p.texto), lista:p.lista || "", libre:true, nombre:p.texto, cant:+p.cant || 0, nada:p.nada === "1" ? 1 : 0, n:1, desde:Date.now(), obs:[], vuelve:false, nsc:false});
     if(accion === "falt-mover") C.pedir.forEach(g => { if(g.k === p.claves){ g.lista = p.lista; g.k = (p.lista || "") + "~" + g.k.split("~")[1]; } });
     if(accion === "falt-notas" && p.op === "renombrar"){ C.listas.forEach(l => { if(l[0] === p.nombre) l[0] = p.nuevo; }); C.pedir.forEach(g => { if(g.lista === p.nombre){ g.lista = p.nuevo; g.k = p.nuevo + "~" + g.k.split("~")[1]; } }); } }
+  if(accion === "falt-reponer"){ const c = cs.find(x => x.id === p.id); if(c){ if(p.mover === "1") c.estado = "Depósito";
+    cs.push({id:"F-DEPR-" + Date.now(), fecha:f(0), hora:"", suc:"DEPOSITO", quien:"Reparto", prod:c.prod, obs:"reponer · salió para " + c.suc, estado:"A pedir", cant:+p.cant || c.cant, nada:false, act:Date.now()}); } }
   if(accion === "falt-editar"){ const c = cs.find(x => x.id === p.id); if(c) Object.assign(c, {prod:p.prod, obs:p.obs, suc:p.sucursal, cant:+p.cant || 0, nada:p.nada === "1"}); }
   if(accion === "falt-nuevo"){ String(p.texto).split("\n").forEach((x, i) => cs.push({id:"F-D-" + Date.now() + i, fecha:f(0), hora:"", suc:p.sucursal, quien:"Celular", prod:x, obs:"", estado:"", cant:+p.cant || 0, nada:p.nada === "1", act:Date.now()})); }
   return Promise.resolve({ok:true});
