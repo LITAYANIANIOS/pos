@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v2.4
+   FALTANTES · DA BOX                                              v2.5
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
@@ -165,10 +165,10 @@ $("#fLogin").onsubmit = async e => {
   if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)){ $("#lErr").textContent = "La dirección tiene que ser la de Apps Script (termina en /exec)."; $("#lErr").hidden = false; return; }
   url = u; clave = c; tok = ""; demo = false;
   try{ await cargar(); guardarLS("url", url); try{ sessionStorage.setItem("dabox.fclave", clave); }catch(x){} entrar(); }
-  catch(err){ $("#lErr").textContent = errTxt(err); $("#lErr").hidden = false; }
+  catch(err){ $("#lErr").textContent = errTxt(err); $("#lErr").hidden = false; if(err !== "clave") $("#lUrl").hidden = false; }
 };
 $("#bDemo").onclick = () => { demo = true; D = demoApi("falt-ver"); rol = D.rol; entrar(); };
-function mostrarLogin(msg){ $("#app").hidden = true; $("#login").hidden = false; $("#iUrl").value = url; $("#lUrl").hidden = !!url; $("#lErr").hidden = !msg; $("#lErr").textContent = msg || ""; }
+function mostrarLogin(msg){ $("#app").hidden = true; $("#login").hidden = false; $("#iUrl").value = url; $("#lUrl").hidden = !!url && !/dirección|script/i.test(msg || ""); $("#lErr").hidden = !msg;   /* si la dirección guardada falla, se puede corregir */ $("#lErr").textContent = msg || ""; }
 async function inicio(){
   if(new URLSearchParams(location.search).has("demo")){ $("#bDemo").click(); return; }
   if(!url || (!tok && !clave)) return mostrarLogin();
