@@ -10,9 +10,11 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v2.1
+   PANEL · DA BOX                                                 v2.2
    Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.2: 🏷️ Precios (Encargado y Dueño): buscar un producto del Catálogo y cambiar precio o combo ahí mismo. Acepta cuentas
+         (4500*2,13 · +10% · -5%) y redondea a $50. Registra cada cambio en "Cambios de precio" y se puede deshacer.
    v2.0: Ventas → Ventas / Ingresos (sin cta. cte. + pagos de cta. cte.), filtro por medio de pago, 📅 rango Desde/Hasta,
          ventas a cuenta sin facturar · Sobres: el Contado acepta sumas (20000x7 + 10000x3) y muestra los billetes del cajero.
    v1.9: 🌙 ventas sin cierre también arriba en 🟢 En vivo · sucursal Depósito.
@@ -67,6 +69,17 @@ tr.sb-abierto td{background:var(--surface-2)}
 .sbf .pie-f{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .sbf .pie-f .btn{flex:0 0 auto;width:auto;margin:0}
 .sbf #sbRes{margin-right:auto;font-size:14px}
+/* ---------- 4. Precios ---------- */
+.pr-busca{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.pr-busca .campo{max-width:460px;font-size:16px;padding:11px 14px}
+.pr-t td{vertical-align:middle}
+.pr-t .nom b{font-weight:600} .pr-t .nom small{display:block;color:var(--muted);font-size:12px}
+.pr-t input.campo{padding:7px 10px;background:var(--surface)}
+.pr-t .inp-p{width:130px;text-align:right;font-weight:700}
+.pr-t .inp-c{width:150px}
+.pr-t .prev{font-size:12px;color:var(--muted);white-space:nowrap}
+.pr-t .prev.sube{color:var(--bad)} .pr-t .prev.baja{color:var(--ok)} .pr-t .prev.ojo{color:var(--bad);font-weight:700}
+.pr-t tr.ok td{background:var(--ok-soft)}
 .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
 </style>
 </head>
@@ -93,6 +106,7 @@ tr.sb-abierto td{background:var(--surface-2)}
   <section id="s-sobres" hidden></section>
   <section id="s-cobros" hidden></section>
   <section id="s-productos" hidden></section>
+  <section id="s-precios" hidden></section>
 </main>
 </div>
 
@@ -105,7 +119,7 @@ const {$, esc, money, millones, pct, pad, ymd, fechaAR, norm, hace, leerLS, guar
 /* =====================================================================
    1. CONFIGURACIÓN
    ===================================================================== */
-const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], sobres:["💰","Sobres"], cobros:["💳","Cobros"], productos:["📦","Productos"]};
+const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], sobres:["💰","Sobres"], cobros:["💳","Cobros"], productos:["📦","Productos"], precios:["🏷️","Precios"]};
 const ROLES = {admin:"Encargado", dueno:"Dueño", compras:"Compras"};
 const CON_COMPRAS = ["admin","compras"];                    // roles que ven el link al tablero de compras
 const PERIODOS = [[1,"Hoy"],[7,"7 días"],[30,"30 días"],[90,"90 días"],[365,"1 año"]];
@@ -133,6 +147,7 @@ async function actualizar(){
 }
 function armarNav(){
   const secs = D.secciones.filter(s => SECCIONES[s]);
+  if(["admin","dueno"].includes(D.rol) && !secs.includes("precios")) secs.push("precios");   // cambiar precios: la planilla vuelve a pedir la clave en cada cambio
   if(!secs.includes(tab)) tab = secs[0];
   $("#nav").innerHTML = secs.map(s => `<button role="tab" data-s="${s}" aria-selected="${s===tab}"><i class="emo">${SECCIONES[s][0]}</i>${SECCIONES[s][1]}</button>`).join("")
     + (CON_COMPRAS.includes(D.rol) ? `<hr><a href="compras.html"><i class="emo">🛒</i>Compras</a>` : "");
@@ -143,8 +158,9 @@ $("#s-vivo").addEventListener("click", e => { if(e.target.id === "vIrCierres"){ 
 function renderFiltros(){
   $("#fDias").innerHTML = PERIODOS.map(([d,l]) => `<button data-d="${d}" aria-pressed="${!rango && d===dias}">${l}</button>`).join("") + `<button data-d="r" aria-pressed="${!!rango}" title="Elegir fechas">📅 ${rango ? enPer().slice(4) : "Fechas"}</button>`;
   $("#fSuc").innerHTML = ["TODAS", ...SUCS].map(s => `<button data-s="${s}" aria-pressed="${s===suc}">${s==="TODAS" ? "Todas" : `<i class="dot" style="background:${SUC_COLOR[s]}"></i>${sucNom(s)}`}</button>`).join("");
-  $("#fDias").hidden = ["vivo","mensual","cobros","sobres"].includes(tab); if($("#fDias").hidden) $("#fRango").hidden = true;         // esas secciones no dependen del período
-  $("#fSuc").hidden = tab === "vivo";
+  $("#fDias").hidden = ["vivo","mensual","cobros","sobres","precios"].includes(tab); if($("#fDias").hidden) $("#fRango").hidden = true;         // esas secciones no dependen del período
+  $("#fSuc").hidden = tab === "vivo" || tab === "precios";
+  document.querySelector("main > .filtros").hidden = tab === "precios";
 }
 $("#fDias").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return;
   if(b.dataset.d === "r"){ const f = $("#fRango"); f.hidden = !f.hidden; if(!f.hidden){ const r = rango || (D && D.r) || [ymd(new Date()), ymd(new Date())]; $("#rD").value = r[0]; $("#rH").value = r[1]; $("#rD").focus(); } return; }
@@ -155,7 +171,7 @@ $("#rOk").onclick = () => { const d = $("#rD").value, h = $("#rH").value;
 $("#fSuc").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; suc = b.dataset.s; render(); });
 $("#bAct").onclick = actualizar;
 $("#bSalir").onclick = () => LA.salir();
-setInterval(() => { if(D && !document.hidden && !$("#app").hidden && !sbAbierto) actualizar(); }, REFRESCO_MIN*60000);   // no refresca con un sobre a medio cargar
+setInterval(() => { if(D && !document.hidden && !$("#app").hidden && !sbAbierto && tab !== "precios") actualizar(); }, REFRESCO_MIN*60000);   // en Precios no se redibuja (no se pierde lo escrito)   // no refresca con un sobre a medio cargar
 const deSuc = s => suc === "TODAS" || s === suc;
 
 function render(){
@@ -164,7 +180,7 @@ function render(){
   Object.keys(SECCIONES).forEach(s => $("#s-"+s).hidden = s !== tab);
   $("#titulo").innerHTML = `<i class="emo">${SECCIONES[tab][0]}</i>${SECCIONES[tab][1]}`;
   $("#sAct").textContent = "Actualizado " + new Date(D.generado).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
-  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, sobres:rSobres, cobros:rCobros, productos:rProductos})[tab]();
+  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, sobres:rSobres, cobros:rCobros, productos:rProductos, precios:rPrecios})[tab]();
 }
 
 /* =====================================================================
@@ -545,6 +561,116 @@ function rProductos(){
   $("#pAb").onchange = e => { pAbiertos = e.target.checked; rProductos(); };
 }
 
+
+/* =====================================================================
+   7b. PRECIOS — cambiar el precio (o el combo) de un producto del Catálogo, de a uno.
+       Usa lo que ya tiene la planilla: accion=precios (lista) y precio-editar (cambia + registra en "Cambios de precio").
+       En el precio se pueden escribir cuentas: 4500*2,13 · 4500x2.13 · +10% · -5%  → redondea a $50.
+   ===================================================================== */
+const REDONDEO = 50;                 // las cuentas se redondean a esto (un número escrito tal cual, no)
+const PCT_OJO = 40;                  // un cambio mayor a esto (%) pide confirmar: protege de tipeos (1200 en vez de 12000)
+let prCat = null, prBusca = "", prCambios = null, prHechos = {}, prConfirmar = null;
+async function prCargar(forzar){
+  if(LA.demo){ prCat = prCat || [{cod:"779101", nombre:"Birome BIC azul", cat:"ESCRITURA", precio:900, combo:"3x2400"}, {cod:"779202", nombre:"Cuaderno Rivadavia ABC tapa dura 50h", cat:"CUADERNOS", precio:6900, combo:""},
+    {cod:"779303", nombre:"Resma A4 75g Boreal", cat:"RESMAS", precio:9800, combo:"10x92000"}, {cod:"779404", nombre:"Plasticola 40g", cat:"ADHESIVOS", precio:1300, combo:""}]; prCambios = prCambios || []; return; }
+  if(prCat && !forzar) return;
+  const [a, b] = await Promise.all([LA.api("precios"), LA.api("precio-cambios")]);
+  prCat = a.items || []; prCambios = b.cambios || [];
+}
+/* "4500*2,13" "4500x2.13" "+10%" "-5%" "12.500" → número (o null si no se entiende). Solo números y * x + - % : no se ejecuta nada como código */
+function prEval(t, actual){
+  t = String(t || "").trim().replace(/\s+/g, "").replace(/\$/g, ""); if(!t) return null;
+  const n = x => Number(x.replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."));
+  let m = t.match(/^([+-])(\d+(?:[.,]\d+)?)%$/); if(m) return {v: Math.round(actual * (1 + (m[1] === "-" ? -1 : 1) * n(m[2]) / 100) / REDONDEO) * REDONDEO, cuenta:true};
+  m = t.match(/^(\d[\d.,]*)[*xX×](\d+(?:[.,]\d+)?)$/); if(m) return {v: Math.round(n(m[1]) * n(m[2]) / REDONDEO) * REDONDEO, cuenta:true};
+  m = t.match(/^\d[\d.,]*$/); if(m){ const v = Math.round(n(t)); return v > 0 ? {v, cuenta:false} : null; }
+  return null;
+}
+function prLista(){
+  const q = norm(prBusca).trim(); if(!q) return [];
+  const pal = q.split(/\s+/);
+  return prCat.filter(p => { const h = norm(p.nombre + " " + p.cod + " " + (p.alt || "") + " " + (p.cat || "")); return pal.every(w => h.includes(w)); }).slice(0, 40);
+}
+async function rPrecios(){
+  const S = $("#s-precios");
+  if(!prCat){ S.innerHTML = `<div class="card empty">Cargando el catálogo…</div>`; try{ await prCargar(); }catch(e){ S.innerHTML = `<div class="card empty">${esc(LA.ERR[e] || "No se pudo cargar el catálogo.")}</div>`; return; } }
+  S.innerHTML = `<div class="grid"><div class="card">
+    <h3><span>Cambiar precios</span><button class="btn sm" id="prRec" type="button" title="Volver a leer el Catálogo de la planilla">↻ Catálogo</button></h3>
+    <p class="note">Buscá el producto, escribí el precio nuevo y <b>Enter</b>. Podés poner una cuenta: <b>4500*2,13</b> (costo × margen), <b>+10%</b> o <b>-5%</b> (redondea a $ ${REDONDEO}). Las cajas lo toman en hasta 30 minutos.</p>
+    <div class="pr-busca"><input class="campo" id="prQ" autocomplete="off" spellcheck="false" placeholder="🔎 Nombre o código (ej: resma boreal)" value="${esc(prBusca)}"><span class="m" id="prN"></span></div>
+    <div class="tw"><table class="pr-t" id="prT"></table></div></div>
+    <div class="card"><h3>Últimos cambios</h3><p class="note">Los hechos desde acá (los que cambies a mano en la planilla no quedan registrados). ↩ vuelve al precio anterior.</p><div class="tw"><table id="prH"></table></div></div></div>`;
+  prTabla(); prHist();
+  const q = $("#prQ"); q.focus(); q.setSelectionRange(q.value.length, q.value.length);
+}
+function prTabla(){
+  const l = prLista();
+  $("#prN").textContent = !prBusca.trim() ? `${prCat.length.toLocaleString("es-AR")} productos en el Catálogo` : l.length >= 40 ? "Mostrando 40: escribí otra palabra para achicar" : `${l.length} resultado${l.length === 1 ? "" : "s"}`;
+  $("#prT").innerHTML = l.length ? `<tr><th>Producto</th><th class="r">Precio actual</th><th>Precio nuevo</th><th>Combo</th><th></th></tr>` + l.map((p, i) => { const h = prHechos[p.cod + "|" + p.nombre];
+    return `<tr data-i="${i}" class="${h ? "ok" : ""}"><td class="nom"><b>${esc(p.nombre)}</b><small>${esc(p.cod)}${p.cat ? " · " + esc(p.cat) : ""}${h ? ` · ✓ antes ${money(h)}` : ""}</small></td>
+      <td class="r"><b>${p.precio > 0 ? money(p.precio) : '<span class="m">abierto</span>'}</b></td>
+      <td><input class="campo num inp-p" data-i="${i}" inputmode="decimal" autocomplete="off" placeholder="${p.precio || ""}"><div class="prev" data-prev="${i}"></div></td>
+      <td><input class="campo inp-c" data-c="${i}" autocomplete="off" value="${esc(p.combo || "")}" placeholder="ej: 3x2500"></td>
+      <td><button class="btn sm primary" data-g="${i}" type="button">Guardar</button></td></tr>`; }).join("")
+    : prBusca.trim() ? `<tr><td class="empty">🔍 No está en el Catálogo. Si es nuevo, se agrega en la planilla.</td></tr>` : "";
+  prTabla.l = l;
+}
+function prPrev(i){
+  const p = prTabla.l[i], inp = $(`input[data-i="${i}"].inp-p`), el = $(`[data-prev="${i}"]`); if(!p || !el) return;
+  const r = prEval(inp.value, p.precio); prConfirmar = null;
+  if(!inp.value.trim()){ el.textContent = ""; el.className = "prev"; return; }
+  if(!r){ el.textContent = "No entiendo: número, 4500*2,13, +10% o -5%"; el.className = "prev ojo"; return; }
+  const d = p.precio > 0 ? (r.v / p.precio - 1) * 100 : 0;
+  el.className = "prev " + (Math.abs(d) >= PCT_OJO ? "ojo" : d > 0 ? "sube" : d < 0 ? "baja" : "");
+  el.textContent = `${r.cuenta ? "= " + money(r.v) + " · " : ""}${p.precio > 0 ? (d > 0 ? "+" : "") + d.toFixed(1) + " %" : ""}${Math.abs(d) >= PCT_OJO ? " · ¿seguro?" : ""}`;
+}
+async function prGuardar(i){
+  const p = prTabla.l[i]; if(!p) return;
+  const inp = $(`input[data-i="${i}"].inp-p`), combo = $(`input[data-c="${i}"]`).value.trim(), r = prEval(inp.value, p.precio);
+  const precio = inp.value.trim() ? (r && r.v) : p.precio;
+  if(!(precio > 0)){ inp.focus(); return LA.toast("Poné el precio nuevo (número o cuenta)"); }
+  if(precio === p.precio && combo === (p.combo || "")) return LA.toast("No cambió nada");
+  const d = p.precio > 0 ? Math.abs(precio / p.precio - 1) * 100 : 0;
+  if(d >= PCT_OJO && prConfirmar !== i){ prConfirmar = i; return LA.toast(`Cambia ${d.toFixed(0)} %: Enter de nuevo para confirmar`, 3500); }
+  prConfirmar = null; const btn = $(`[data-g="${i}"]`); btn.disabled = true; btn.textContent = "…";
+  try{
+    const antes = p.precio;
+    if(LA.demo){ p.precio = precio; p.combo = combo; prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), "Encargado", p.cod, p.nombre, antes, precio, combo]); }
+    else { const res = await LA.api("precio-editar", {cod:p.cod, nombreOrig:p.nombre, precio, combo, _sinReintento:1}); Object.assign(p, res.item); prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), ROLES[D.rol] || "", p.cod, p.nombre, antes, p.precio, p.combo || ""]); }
+    prHechos[p.cod + "|" + p.nombre] = antes;
+    LA.toast(`✓ ${p.nombre}: ${money(antes)} → ${money(p.precio)}`, 3500);
+    prTabla(); prHist(); const q = $("#prQ"); q.focus(); q.select();      // listo para el próximo producto
+  }catch(e){ if(e === "clave"){ LA.salir(LA.ERR.clave); return; } LA.toast("❌ " + ((e && e.msg) || LA.ERR[e] || "No se guardó"), 6000); btn.disabled = false; btn.textContent = "Guardar"; }
+}
+function prHist(){
+  const h = (prCambios || []).slice(0, 30);
+  $("#prH").innerHTML = h.length ? `<tr><th>Cuándo</th><th>Quién</th><th>Producto</th><th class="r">Antes</th><th class="r">Ahora</th><th class="r">%</th><th></th></tr>` + h.map((c, i) => { const d = c[5] ? (c[6] / c[5] - 1) * 100 : 0;
+    return `<tr><td class="num m">${fechaAR(c[0])} ${esc(c[1])}</td><td class="m">${esc(c[2])}</td><td>${esc(c[4])}<br><span class="m">${esc(c[3])}${c[7] ? " · combo " + esc(c[7]) : ""}</span></td><td class="r">${money(c[5])}</td><td class="r"><b>${money(c[6])}</b></td>
+      <td class="r ${Math.abs(d) >= PCT_OJO ? "dif-mal" : "m"}">${c[5] ? (d > 0 ? "+" : "") + d.toFixed(1) + "%" : ""}</td><td>${i < 10 && c[5] > 0 && c[5] !== c[6] ? `<button class="btn sm" data-un="${i}" type="button" title="Volver a ${money(c[5])}">↩</button>` : ""}</td></tr>`; }).join("")
+    : `<tr><td class="empty">Todavía no hay cambios registrados.</td></tr>`;
+}
+$("#s-precios").addEventListener("input", e => {
+  if(e.target.id === "prQ"){ prBusca = e.target.value; prTabla(); return; }
+  if(e.target.classList.contains("inp-p")) prPrev(+e.target.dataset.i);
+});
+$("#s-precios").addEventListener("keydown", e => {
+  if(e.target.id === "prQ" && (e.key === "ArrowDown" || e.key === "Enter")){ const f = $(".inp-p"); if(f){ e.preventDefault(); f.focus(); } return; }
+  const i = e.target.dataset.i ?? e.target.dataset.c; if(i == null) return;
+  if(e.key === "Enter"){ e.preventDefault(); prGuardar(+i); }
+  if(e.key === "Escape"){ e.preventDefault(); const q = $("#prQ"); q.focus(); q.select(); }
+  if(e.key === "ArrowDown" || e.key === "ArrowUp"){ const n = $(`input[data-i="${+i + (e.key === "ArrowDown" ? 1 : -1)}"].inp-p`); if(n){ e.preventDefault(); n.focus(); } }
+});
+$("#s-precios").addEventListener("click", async e => {
+  const g = e.target.closest("[data-g]"); if(g) return prGuardar(+g.dataset.g);
+  if(e.target.id === "prRec"){ try{ await prCargar(true); prTabla(); prHist(); LA.toast("Catálogo actualizado"); }catch(x){ LA.toast(LA.ERR[x] || "No se pudo leer el catálogo"); } return; }
+  const u = e.target.closest("[data-un]"); if(!u) return;
+  const c = prCambios[+u.dataset.un], p = prCat.find(x => x.cod === c[3] && x.nombre === c[4]) || prCat.find(x => x.cod === c[3]);
+  if(!p) return LA.toast("Ese producto ya no está igual en el Catálogo: corregilo buscándolo arriba");
+  if(u.dataset.ok !== "1"){ u.dataset.ok = "1"; u.textContent = `¿Volver a ${money(c[5])}?`; return; }
+  prBusca = p.nombre; $("#prQ").value = p.nombre; prTabla(); const i = prTabla.l.indexOf(p); if(i < 0) return;
+  $(`input[data-i="${i}"].inp-p`).value = c[5]; prConfirmar = i; prGuardar(i);
+});
+
 /* =====================================================================
    8. DATOS DE PRUEBA — inventados, para probar el panel sin la planilla
    ===================================================================== */
@@ -585,7 +711,7 @@ function datosDemo(){
   dia.filter((f,i) => i % 7 === 0).forEach(f => dia.push([f[0], f[1], "ctacte", 1, Math.round(f[4]/2)]));
   const sinFacturar = [[ "CC-1", ymd(new Date(ahora - 12*864e5)), "FALCON", "Escuela N° 5", 184500, ahora - 12*864e5], ["CC-2", ymd(new Date(ahora - 4*864e5)), "DEPOSITO", "Ejemplo SA", 96300, ahora - 4*864e5]];
   const r = [ymd(new Date(ahora - (dias-1)*864e5)), ymd(new Date(ahora))];
-  return {rol:"admin", dias, generado:ahora, r, secciones:["vivo","ventas","mensual","cierres","sobres","cobros","productos"], cobros, sinCierre, sobres, cobrosCC, sinFacturar,
+  return {rol:"admin", dias, generado:ahora, r, secciones:["vivo","ventas","mensual","cierres","sobres","cobros","productos","precios"], cobros, sinCierre, sobres, cobrosCC, sinFacturar,
     vivo:[["FALCON","1","Celi","08:58",0,ahora-4e4],["FALCON","2","Joa","09:05",2,ahora-9e4],["MORENO","","Manu R","08:30",0,ahora-3e4],["NACION","","Delfi","09:00",0,ahora-36e5],["SOMISA","","Luka","13:30",0,ahora-2e4]],
     dia, horas:Object.values(horas), productos:prod, mensual, cierres};
 
