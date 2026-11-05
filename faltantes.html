@@ -16,7 +16,7 @@
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
    v2.8: 🚪 Salir (pasar a otra cuenta) · Roman y Joa cambian de vista 📦 Reparto ⇄ 🛒 Compras · Vivi (link Solo anotar): pantalla simple
-         (anotar, buscar precio de venta, mandar a pedir) · ?embed: adentro del panel, con la clave del panel. Necesita script v3.44.
+         (anotar, buscar precio con costo y venta, mandar a pedir) · ?embed: adentro del panel, con la clave del panel. Necesita script v3.44.
    v2.7: 💲 arriba abre proveedores.html (con el mismo link, sin clave) y cada renglón tiene "🔎 Buscar precio en proveedores".
    ÍNDICE: 1. Estructura  2. Notas  3. Renglones  4. Menú del renglón  5. Aviso con deshacer
    ===================================================================== */
@@ -52,7 +52,9 @@ body.embed header.top .logo{display:none}
 .v-fila .campo{flex:1;min-width:0;font-size:16px}
 .v-res{margin-top:8px;display:grid;gap:2px;max-height:55vh;overflow:auto}
 .v-it{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--line);font-size:14px}
-.v-it b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.v-it b{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.v-it small{display:block;color:var(--muted);font-size:12px}
+.v-it b small{font-weight:500}
 .v-it .btn{padding:5px 9px;font-size:13px}
 #vSucs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:700}
 body.v-anotar .solo-equipo{display:none}
@@ -332,7 +334,7 @@ function tipsCompras(l){
   return P.length ? `<span>💡</span>` + P.map((p, i) => `<button type="button" data-p="${i}" title="Tocá para unirlos">${esc(p.t)}</button>`).join("") : "";
 }
 
-/* ---------- 📝 VIVI: elegir sucursal + escribir; buscar precio de venta (sin costos) y mandar a pedir ---------- */
+/* ---------- 📝 VIVI: elegir sucursal + escribir; buscar precio (costo y venta, como proveedores.html) y mandar a pedir ---------- */
 let vSuc = leerLS("vsuc", ""), vItems = null, vCargando = null;
 function renderVivi(){
   $("#vSucs").innerHTML = SUCS.map(s => `<button type="button" data-vs="${s}" aria-pressed="${s === vSuc}">${esc(sucNom(s))}</button>`).join("");
@@ -344,26 +346,44 @@ $("#vOk").onclick = () => { if(!vSuc){ toast("Elegí la sucursal"); return; } ag
 function cargarPrecios(){
   return vCargando || (vCargando = (async () => {
     $("#vRes").innerHTML = `<div class="vacia">Cargando precios…</div>`;
-    try{ const r = await api("prov-venta"); vItems = (r.items || []).map(x => [x[0], x[1], norm(x[0])]); }
-    catch(e){ vCargando = null; $("#vRes").innerHTML = `<div class="vacia">${esc(e === "clave" ? "Esta parte necesita el script v3.44." : errTxt(e))}</div>`; return; }
+    try{ vItems = await listasProv(); }
+    catch(e){ vCargando = null; $("#vRes").innerHTML = `<div class="vacia">${esc(errTxt(e))}</div>`; return; }
     buscarVivi();
   })());
+}
+/* Listas de proveedores (prov-datos, el mismo link). Se guardan en este celular (IndexedDB, igual que proveedores.html): solo se bajan si hay una lista nueva.
+   Costo = base (escalón u oferta) × (1 − desc) × (1 + recargo), por unidad · venta = costo × multiplicador, redondeado. */
+const vIDB = (modo, val) => new Promise(ok => { try{ const r = indexedDB.open("dabox-prov", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv");
+  r.onsuccess = () => { try{ const tx = r.result.transaction("kv", modo), st = tx.objectStore("kv"), q = modo === "readonly" ? st.get("datos") : st.put(val, "datos");
+    tx.oncomplete = () => ok(q.result); tx.onerror = () => ok(null); }catch(e){ ok(null); } }; r.onerror = () => ok(null); }catch(e){ ok(null); } });
+const PACK = [/\bx\s*(\d{1,4})\s*(?:u\b|u\.|un\b|uni\b|unid\b|unidades|uds?\b)/, /\bcaja\s*(?:x|de)\s*(\d{1,4})\b/];
+const unid = n => { const t = norm(n); if(/\bdocena\b/.test(t)) return 12; for(const r of PACK){ const m = t.match(r); if(m && +m[1] > 1 && +m[1] <= 5000) return +m[1]; } return 1; };
+async function listasProv(){
+  let g = demo ? null : await vIDB("readonly"), d;
+  const r = await api("prov-datos", g && g.version ? {v: g.version} : {});
+  if(r.igual && g) d = {provs: r.provs, items: g.items}; else { d = {provs: r.provs, items: r.items || []}; if(!demo) vIDB("readwrite", {version: r.version, provs: r.provs, items: d.items}); }
+  return d.items.map(it => { const c = d.provs[it[0]] || {nombre:"?", desc:0, rec:0, esc:0, mult:2.13, red:50}, t = []; let b = it[3], of = 0;
+    String(it[6] || "").split(/\s+/).forEach(x => { let m = x.match(/^x(\d+)=([\d.]+)$/); if(m) t.push([+m[1], +m[2]]); m = x.match(/^of=([\d.]+)$/); if(m) of = +m[1]; });
+    t.sort((a, z) => a[0] - z[0]); if(c.esc > 0 && t.length) b = t[Math.min(c.esc, t.length) - 1][1]; if(of && of < b) b = of;
+    const n = unid(it[2]), cu = b * (1 - c.desc / 100) * (1 + c.rec / 100) / n;
+    return {nom: it[2], cod: it[1], prov: c.nombre, n, cu, venta: Math.round(cu * c.mult / c.red) * c.red, k: norm(`${it[2]} ${it[1]} ${it[4]} ${c.nombre}`)}; });
 }
 function buscarVivi(){
   if(!vItems){ cargarPrecios(); return; }
   const t = norm($("#vQ").value).trim().split(/\s+/).filter(Boolean);
   if(!t.length){ $("#vRes").innerHTML = ""; return; }
-  const r = vItems.filter(x => t.every(w => x[2].includes(w))).sort((a, b) => a[0].length - b[0].length).slice(0, 25);
-  $("#vRes").innerHTML = r.map((x, i) => `<div class="v-it"><span>${esc(x[0])}</span><b>${LA.money(x[1])}</b><button class="btn" type="button" data-vp="${i}" title="Mandar a compras">🛒 Pedir</button></div>`).join("")
+  const r = vItems.filter(x => t.every(w => x.k.includes(w))).sort((a, b) => a.nom.length - b.nom.length).slice(0, 25);
+  $("#vRes").innerHTML = r.map((x, i) => `<div class="v-it"><span>${esc(x.nom)}<small>${esc(x.prov)} · ${esc(x.cod)}</small></span>
+    <b>${LA.money(x.venta)}${x.n > 1 ? " c/u" : ""}<small>costo ${LA.money(Math.round(x.cu))}</small></b><button class="btn" type="button" data-vp="${i}" title="Mandar a compras">🛒 Pedir</button></div>`).join("")
     || `<div class="vacia">No lo encontré. Probá con menos palabras o con la marca.</div>`;
   buscarVivi.r = r;
 }
 let vT; $("#vQ").addEventListener("input", () => { clearTimeout(vT); vT = setTimeout(buscarVivi, 120); });
 $("#vQ").addEventListener("focus", () => { if(!vItems) cargarPrecios(); });
 $("#vRes").onclick = async e => { const b = e.target.closest("[data-vp]"); if(!b) return; const x = buscarVivi.r[+b.dataset.vp]; if(!x) return;
-  const n = prompt(`¿Cuántos pedir? (${x[0]})`, ""); if(n === null) return;
+  const n = prompt(`¿Cuántos pedir? (${x.nom} · ${x.prov})`, ""); if(n === null) return;
   b.disabled = true;
-  try{ await api("prov-pedir", {texto: x[0], cant: String(Math.round(+String(n).replace(/\D/g, "")) || ""), prov: ""}); toast("🛒 Mandado a compras"); b.textContent = "✓ Pedido"; }
+  try{ await api("prov-pedir", {texto: `${x.nom} (${x.prov} ${x.cod})`, cant: String(Math.round(+String(n).replace(/\D/g, "")) || ""), prov: x.prov}); toast("🛒 Mandado a compras"); b.textContent = "✓ Pedido"; }
   catch(err){ toast(errTxt(err), 4000); b.disabled = false; } };
 
 /* =====================================================================
@@ -568,7 +588,8 @@ function demoApi(accion, p){
     {id:"F-FAL-5", fecha:f(9), hora:"16:30", suc:"FALCON", quien:"Mica", prod:"Repuesto Éxito N°3", obs:"", estado:"A pedir", cant:20, nada:false, act:t(8)},
     {id:"F-MOR-7", fecha:f(5), hora:"10:00", suc:"MORENO", quien:"Lucas", prod:"Mapas N°3 político", obs:"", estado:"Entregado", cant:30, nada:false, act:t(1)}];
   const cs = window._demo;
-  if(accion === "prov-venta") return Promise.resolve({items:[["Lupa 75 mm", 3500], ["Lupa 50 mm con luz", 4800], ["Resma A4 Ledesma 75 g", 9800], ["Resma A4 Boreal 70 g", 8900], ["Plasticola 30 g", 1100]]});
+  if(accion === "prov-datos") return Promise.resolve({version:"d", provs:[{nombre:"Tiotom", desc:10, rec:10.11, esc:0, mult:2.13, red:50}, {nombre:"Lispapel", desc:10, rec:21, esc:0, mult:2.13, red:50}],
+    items:[[0,"T1","LUPA 75 MM",1650,"","","",0,""], [1,"L2","Lupa 75mm mango negro",1400,"","","",0,""], [0,"T3","LUPA 50 MM C/LUZ",2200,"","","",0,""], [1,"L4","Resma A4 Ledesma 75 g",4300,"","","",0,""]]});
   if(accion === "prov-pedir") return Promise.resolve({ok:true});
   const qd = new URLSearchParams(location.search).get("demo"), vd = vista || (qd === "compras" ? "compras" : qd === "anotar" ? "anotar" : "reparto");
   if(accion === "falt-ver"){
