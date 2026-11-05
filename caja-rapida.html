@@ -241,6 +241,11 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .results .sub{grid-column:1;font-size:12px;color:var(--muted)}
 .results .pr{grid-row:1 / span 2;grid-column:2;font-weight:700;font-variant-numeric:tabular-nums}
 .results .open{grid-row:1 / span 2;grid-column:2;color:var(--muted);font-size:12px}
+/* v3.48 · 📋 De lista: productos que NO están en el catálogo, con precio de venta sugerido (promedio de las listas de proveedores) */
+.results li.sep{display:block;cursor:default;font-size:12px;font-weight:700;color:var(--muted);padding:12px 12px 4px;border-top:1px dashed var(--line);margin-top:4px}
+.results li.lista .nom::before{content:"📋 "}
+.results li.lista .pr{color:var(--warn)}
+.results li.mas{display:block;color:var(--muted);font-size:13px;font-weight:600;text-align:center}
 .hint{color:var(--muted);font-size:12px;margin:8px 2px 0;display:flex;flex-wrap:wrap;gap:8px 16px}
 .atajos{margin-top:12px}
 .atajos summary{cursor:pointer;color:var(--muted);font-size:12.5px;font-weight:600;width:max-content;padding:2px 4px;border-radius:4px}
@@ -1159,7 +1164,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-03 v3.47";
+const VERSION = "2026-11-05 v3.48";   // v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1655,16 +1660,73 @@ function buscar(texto, conFijos=true){   // devuelve TODOS los que coinciden, or
   return [...exact, ...parcial, ...r.filter(p => !exact.includes(p) && !parcial.includes(p))];
 }
 let foundTotal = 0;
+/* ---------- 📋 DE LISTA (v3.48) ----------
+   Si lo que buscan NO está en el catálogo, se ofrece lo que hay en las listas de los proveedores: solo nombre y precio de venta
+   (promedio entre proveedores, por unidad). La planilla nunca manda costos ni nombres de proveedor. Se vende como cualquier
+   producto (código LISTA, categoría DE LISTA): así en Ventas se ve qué conviene sumar al catálogo.
+   Las listas se bajan una vez (~2 MB) y quedan en esta PC; se actualizan solas si Roman sube una lista nueva. */
+const LST = {items:null, cargando:false, error:false}, LST_HORAS = 6, LST_MAX = 8;
+let listaPedida = "", listaTxt = "";
+const LDB = (() => { let db = null; const abrir = () => db || (db = new Promise((ok, mal) => { try{ const r = indexedDB.open("dabox-caja-listas", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); }catch(e){ mal(e); } }));
+  const tx = (m, f) => abrir().then(d => new Promise((ok, mal) => { const t = d.transaction("kv", m), x = f(t.objectStore("kv")); t.oncomplete = () => ok(x && x.result); t.onerror = () => mal(t.error); }));
+  return {get: k => tx("readonly", st => st.get(k)).catch(() => null), set: (k, v) => tx("readwrite", st => st.put(v, k)).catch(() => null)}; })();
+const LVAC = new Set(["de","del","la","el","con","para","por","sin","los","las","y","x","c","p","u","un","unid","unidad","hjs","hj","hojas","cm","mm","mts","mt","gr","grs"]);
+const lPal = t => norm(t).replace(/[^a-z0-9ñ]+/g, " ").split(" ").filter(w => w.length > 1 && !LVAC.has(w) && !/^\d+$/.test(w));
+const lNum = t => (norm(t).match(/\d+/g) || []).sort().join(",");
+const lPrep = items => items.map(r => ({nombre: String(r[0]), precio: +r[1] || 0, k: norm(r[0]), w: new Set(lPal(r[0])), n: lNum(r[0])}));
+const DEMO_LISTAS = [["Tijera Maped Essentials 13 cm", 1700], ["Tijera Maped Essentials 13 cm Pulse", 1900], ["Goma de borrar Maped Mini Technic 300", 550], ["Calculadora científica Talbot 240 funciones", 18750], ["Lupa escolar 60 mm", 2350]];
+async function cargarListas(){
+  if(LST.cargando) return; LST.cargando = true;
+  try{
+    if(DEMO){ LST.items = lPrep(DEMO_LISTAS); return; }
+    const g = await LDB.get("listas"); if(g && g.items) LST.items = lPrep(g.items);
+    if(cfg.url && (!g || Date.now() - (g.fecha || 0) > LST_HORAS * 36e5)){
+      const r = await api("prov-venta", g ? {v: g.version} : {});
+      if(r.igual && g){ g.fecha = Date.now(); LDB.set("listas", g); }
+      else if(r.items){ LST.items = lPrep(r.items); LDB.set("listas", {version: r.version, items: r.items, fecha: Date.now()}); }
+    }
+    LST.error = false;
+  }catch(e){ LST.error = !LST.items; }                 // sin conexión o script viejo: si había listas guardadas, se usan igual
+  finally{ LST.cargando = false; if(q.value.trim()) search(); }
+}
+function buscarListas(texto){
+  if(!LST.items) return [];
+  const toks = norm(texto).trim().split(/\s+/).filter(Boolean); if(!toks.length) return [];
+  let r = LST.items.filter(x => toks.every(t => x.k.includes(t)));
+  if(!r.length && toks.length >= 2){ const min = Math.ceil(toks.length * 0.6); r = LST.items.filter(x => toks.filter(t => x.k.includes(t)).length >= min); }
+  r = r.slice(0, 300).sort((a, b) => (a.k.startsWith(toks[0]) ? 0 : 1) - (b.k.startsWith(toks[0]) ? 0 : 1) || a.nombre.length - b.nombre.length);
+  const grupos = [];                                   // el mismo producto en varias listas → un solo renglón con el precio promedio
+  for(const x of r){
+    const g = grupos.find(g => g.n === x.n && (() => { let k = 0; for(const w of x.w) if(g.w.has(w)) k++; return k / (g.w.size + x.w.size - k) >= 0.6; })());
+    if(g) g.precios.push(x.precio); else grupos.push({nombre: x.nombre, w: x.w, n: x.n, precios: [x.precio]});
+    if(grupos.length >= LST_MAX * 3) break;
+  }
+  return grupos.slice(0, LST_MAX).map(g => ({cod: "LISTA", nombre: g.nombre, cat: "DE LISTA", _lista: true, _n: g.precios.length,
+    precio: Math.round(g.precios.reduce((a, b) => a + b, 0) / g.precios.length / 50) * 50}));
+}
 function search(){
-  const todos = buscar(parseQ(q.value).text);
-  foundTotal = todos.length; found = todos.slice(0, MAX_LISTA); sel = 0; renderResults();
+  const txt = parseQ(q.value).text, todos = buscar(txt);
+  if(norm(txt).trim() !== listaTxt){ listaTxt = norm(txt).trim(); listaPedida = ""; }
+  const quiereListas = listaTxt.length >= 3 && (!todos.length || listaPedida === listaTxt);
+  if(quiereListas && !LST.items && !LST.error) cargarListas();
+  const extra = quiereListas ? buscarListas(txt) : [];
+  foundTotal = todos.length; found = todos.slice(0, MAX_LISTA);
+  if(extra.length) found = found.concat(extra);
+  else if(todos.length && listaTxt.length >= 3 && listaPedida !== listaTxt) found.push({_mas: true});   // "¿no es ninguno? buscar en listas"
+  sel = 0; renderResults();
 }
 function renderResults(){
   const ul = $("#results");
   if(!q.value.trim()){ ul.innerHTML=""; return; }
-  if(!found.length){ ul.innerHTML = `<li class="empty" style="display:block">🤔 Sin resultados. Usá una categoría de arriba.</li>`; return; }
-  ul.innerHTML = found.map((p,i) => `<li role="option" data-i="${i}" aria-selected="${i===sel}"><span class="nom">${esc(p.nombre)}</span><span class="sub">${esc(p.cod)}${p.cat ? " · "+esc(p.cat) : ""}${p.combo ? " · "+comboTxt(p.combo) : ""}</span>${p._open ? '<span class="open">precio abierto</span>' : `<span class="pr">${enRevision(p.cod) ? '<span class="revision">🔔 revisar</span> ' : ""}${money(p.precio)}</span>`}</li>`).join("")
-    + `<li class="cuenta">${foundTotal > found.length ? `Mostrando ${found.length} de ${foundTotal} · escribí otra palabra para achicar` : `${foundTotal} resultado${foundTotal>1?"s":""}`}</li>`;
+  const buscandoL = listaTxt.length >= 3 && (!foundTotal || listaPedida === listaTxt) && LST.cargando && !found.some(p => p._lista);
+  if(!found.length){ ul.innerHTML = buscandoL ? `<li class="empty" style="display:block">⏳ No está en el catálogo. Buscando en las listas de proveedores…</li>`
+    : `<li class="empty" style="display:block">🤔 Sin resultados${listaTxt.length >= 3 && LST.items ? " (tampoco en las listas de proveedores)" : ""}. Usá una categoría de arriba.</li>`; return; }
+  const iL = found.findIndex(p => p._lista);
+  ul.innerHTML = found.map((p,i) => p._mas ? `<li class="mas" role="option" data-i="${i}" aria-selected="${i===sel}">🔎 ¿No es ninguno? Buscar en las listas de proveedores</li>`
+    : p._lista ? `${i === iL ? `<li class="sep">📋 No está en el catálogo · precio sugerido de las listas de proveedores</li>` : ""}<li class="lista" role="option" data-i="${i}" aria-selected="${i===sel}" title="Precio promedio de ${p._n} lista${p._n > 1 ? "s" : ""} de proveedores. Se vende como DE LISTA."><span class="nom">${esc(p.nombre)}</span><span class="sub">De lista · no está en el catálogo</span><span class="pr">${money(p.precio)}</span></li>`
+    : `<li role="option" data-i="${i}" aria-selected="${i===sel}"><span class="nom">${esc(p.nombre)}</span><span class="sub">${esc(p.cod)}${p.cat ? " · "+esc(p.cat) : ""}${p.combo ? " · "+comboTxt(p.combo) : ""}</span>${p._open ? '<span class="open">precio abierto</span>' : `<span class="pr">${enRevision(p.cod) ? '<span class="revision">🔔 revisar</span> ' : ""}${money(p.precio)}</span>`}</li>`).join("")
+    + (foundTotal ? `<li class="cuenta">${foundTotal > MAX_LISTA ? `Mostrando ${MAX_LISTA} de ${foundTotal} · escribí otra palabra para achicar` : `${foundTotal} resultado${foundTotal>1?"s":""}`}</li>` : "");
   const s = ul.querySelector('[aria-selected="true"]'); if(s) s.scrollIntoView({block:"nearest"});
 }
 $("#results").addEventListener("mousedown", e => { const li=e.target.closest("li[data-i]"); if(!li) return; e.preventDefault(); agregar(found[+li.dataset.i], parseQ(q.value).qty); });
@@ -1693,6 +1755,7 @@ function toggleFav(p){
 
 function agregar(p, qty){
   if(!p || !$("#cobro").hidden) return;
+  if(p._mas){ listaPedida = listaTxt; search(); const i = found.findIndex(x => x._lista); if(i >= 0){ sel = i; renderResults(); } return; }   // 🔎 buscar en listas
   const ex = !p._open && cart.find(l => l.cod === p.cod && l.nombre === p.nombre);
   if(ex) ex.cant += qty;
   else cart.push({cod:p.cod, nombre:p.nombre, cat:p.cat, cant:qty, precio:p._open?0:p.precio, open:p._open, ...(ccEdit ? {edit:true} : {}), ...(p.combo ? {combo:p.combo} : {})});
@@ -1707,7 +1770,7 @@ function altoCarrito(){
 addEventListener("resize", altoCarrito); addEventListener("scroll", altoCarrito, {passive:true});
 function renderCart(){
   $("#lines").innerHTML = (cart.length ? `<div class="hd"><span>Producto</span><span style="text-align:center">Cant.</span><span style="text-align:right">Subtotal</span><span></span></div>` : "") +
-    cart.map((l,i) => `<li><span class="n" title="${esc(l.nombre)}${l.combo ? " · combo " + escalones(l.combo).map(t => t.q + " x " + money(t.p)).join(" / ") : ""}">${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span>${l.open || l.edit ? `<input class="price${l.precio>0?"":" need"}" data-i="${i}" value="${l.precio||""}" placeholder="precio" inputmode="decimal" aria-label="Precio">` : `<small class="pu">${money(l.precio)} c/u</small>`}${l.open || ES_SERVICIO(l) ? "" : ` <button class="bell${enRevision(l.cod) ? " on" : ""}" data-bell="${i}" type="button" title="${enRevision(l.cod) ? "Precio en revisión" : "Avisar que el precio está mal"}">🔔</button>`}</span>
+    cart.map((l,i) => `<li><span class="n" title="${esc(l.nombre)}${l.cod === "LISTA" ? " · de lista de proveedores (no está en el catálogo)" : ""}${l.combo ? " · combo " + escalones(l.combo).map(t => t.q + " x " + money(t.p)).join(" / ") : ""}">${l.cod === "LISTA" ? "📋 " : ""}${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span>${l.open || l.edit ? `<input class="price${l.precio>0?"":" need"}" data-i="${i}" value="${l.precio||""}" placeholder="precio" inputmode="decimal" aria-label="Precio">` : `<small class="pu">${money(l.precio)} c/u</small>`}${l.open || ES_SERVICIO(l) || l.cod === "LISTA" ? "" : ` <button class="bell${enRevision(l.cod) ? " on" : ""}" data-bell="${i}" type="button" title="${enRevision(l.cod) ? "Precio en revisión" : "Avisar que el precio está mal"}">🔔</button>`}</span>
     <span class="step"><button class="mn" data-dec="${i}" type="button" tabindex="-1" aria-label="Uno menos">−</button><input class="qty" data-i="${i}" value="${l.cant}" inputmode="decimal" aria-label="Cantidad"><button class="mn" data-inc="${i}" type="button" tabindex="-1" aria-label="Uno más">+</button></span>
     <span class="s">${money(subt(l))}</span><button class="x" data-i="${i}" aria-label="Quitar">✕</button></li>`).join("");
   $("#tTotal").textContent = money(total());
