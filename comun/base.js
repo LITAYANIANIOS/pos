@@ -1,5 +1,7 @@
 /* =====================================================================
-   COMÚN · PANEL Y COMPRAS · DA BOX                                 v1.3
+   COMÚN · PANEL Y COMPRAS · DA BOX                                 v1.4
+   v1.4: "Recordar en este dispositivo" (30 días): la clave queda en ese celular/PC y abre panel, faltantes y proveedores sin volver a pedirla.
+         Sin tildar, todo sigue igual (se olvida al cerrar la pestaña y a los 30 min sin uso).
    Lo que comparten panel.html y compras.html, para no repetirlo en cada archivo:
    1. Utilidades   2. Sucursales   3. Avisos y tooltip   4. Conexión con la planilla
    5. Ingreso con clave (y cierre por inactividad)
@@ -47,7 +49,9 @@ document.addEventListener("scroll", () => tip.hidden = true, true);
 (() => { const m = location.hash.match(/[#&]s=([\w-]{20,})/); if(!m) return;
   try{ localStorage.setItem("dabox.url", `https://script.google.com/macros/s/${m[1]}/exec`); }catch(e){}
   history.replaceState(null, "", location.pathname + location.search); })();
-let url = leerLS("url",""), clave = leerSS("clave");
+const RECORDAR_DIAS = 30;             // "Recordar en este dispositivo": cuánto dura antes de volver a pedir la clave
+const claveRecordada = () => { try{ const x = JSON.parse(leerLS("claveR", "") || "null"); return x && x.hasta > Date.now() && x.c ? x.c : ""; }catch(e){ return ""; } };
+let url = leerLS("url",""), clave = leerSS("clave") || claveRecordada(), recordada = !leerSS("clave") && !!clave;
 const ERR = {clave:"🔑 Clave incorrecta (la clave de las cajas no sirve acá).", url:"🔗 La dirección no responde o el script está desactualizado.",
              tiempo:"⏳ La planilla tardó en responder. Probá de nuevo.", internet:"📡 Sin internet."};
 /* ✏️ lápiz de "cargando" (igual que en la caja): aparece arriba si la espera pasa de 0,4 s */
@@ -110,6 +114,8 @@ function ingreso(o){
       <p class="note">Cada clave muestra solo lo que le corresponde. Se olvida al cerrar la pestaña.</p>
       <label id="lUrl">Dirección de la planilla (Apps Script)<input class="campo" id="iUrl" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec"></label>
       <label>Clave <input class="campo secreto" id="iClave" type="text" spellcheck="false" autocomplete="off"></label>
+      <label class="check" style="margin-top:10px"><input type="checkbox" id="iRec"> Recordar en este dispositivo (${RECORDAR_DIAS} días)</label>
+      <p class="note" style="margin-top:2px">🔒 Solo en tu celular o tu PC. Nunca en la PC de una caja.</p>
       <div class="err" id="lErr" hidden></div>
       <button class="btn primary" id="bEntrar" type="submit">Entrar</button>
       <button class="link" id="bCambiarUrl" type="button" hidden>Cambiar la dirección de la planilla</button>
@@ -123,12 +129,13 @@ function ingreso(o){
     if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)){ mostrar("La dirección tiene que ser la de Apps Script (termina en /exec)."); $("#lUrl").hidden = false; return; }
     if(c.length < 10){ mostrar("La clave tiene al menos 10 caracteres."); return; }
     url = u; clave = c; enDemo = false; $("#bEntrar").textContent = "Entrando…";
-    try{ const d = await o.cargar(); guardarLS("url", url); guardarSS("clave", clave); entrar(d); }
+    try{ const d = await o.cargar(); guardarLS("url", url); guardarSS("clave", clave);
+      recordada = $("#iRec").checked; guardarLS("claveR", recordada ? JSON.stringify({c: clave, hasta: Date.now() + RECORDAR_DIAS * 864e5}) : ""); entrar(d); }
     catch(err){ clave = ""; mostrar(ERR[err] || (err && err.msg) || "No se pudo entrar."); if(err !== "clave") $("#lUrl").hidden = false; }
     finally{ $("#bEntrar").textContent = "Entrar"; }
   };
   ["pointerdown","keydown"].forEach(ev => document.addEventListener(ev, () => ultimoUso = Date.now(), true));
-  setInterval(() => { if(dentro && !enDemo && Date.now() - ultimoUso > MIN_INACTIVO*60000) salir(`🔒 Se cerró por ${MIN_INACTIVO} minutos sin uso.`); }, 60000);
+  setInterval(() => { if(dentro && !enDemo && !recordada && Date.now() - ultimoUso > MIN_INACTIVO*60000) salir(`🔒 Se cerró por ${MIN_INACTIVO} minutos sin uso.`); }, 60000);
   if(url && clave) o.cargar().then(entrar).catch(err => mostrar(err === "clave" ? ERR.clave : ""));
   else mostrar();
 }
@@ -142,8 +149,8 @@ function entrar(d){
   dentro = true; ultimoUso = Date.now(); $("#login").hidden = true; $("#app").hidden = false; $("#iClave").value = "";
   opts.alEntrar(d);
 }
-function salir(msg){ clave = ""; guardarSS("clave", ""); enDemo = false; mostrar(msg); }
+function salir(msg){ clave = ""; recordada = false; guardarSS("clave", ""); guardarLS("claveR", ""); enDemo = false; mostrar(msg); }
 
 window.LA = {$, esc, money, millones, pct, pad, ymd, fechaAR, norm, hace, leerLS, guardarLS, toast,
-  SUCS, NOMBRE_SUC, SUC_COLOR, sucNom, sucTag, api, ERR, ingreso, salir, LAPIZ, get demo(){ return enDemo; }};   // v1.3: LAPIZ (lo usa faltantes.html)
+  SUCS, NOMBRE_SUC, SUC_COLOR, sucNom, sucTag, api, ERR, ingreso, salir, LAPIZ, get demo(){ return enDemo; }, get clave(){ return clave; }};   // v1.4: clave (la usa faltantes.html)   // v1.3: LAPIZ (lo usa faltantes.html)
 })();
