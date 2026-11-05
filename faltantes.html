@@ -11,10 +11,13 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v2.6
+   FALTANTES · DA BOX                                              v2.8
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
+   v2.8: 🚪 Salir (pasar a otra cuenta) · Roman y Joa cambian de vista 📦 Reparto ⇄ 🛒 Compras · Vivi (link Solo anotar): pantalla simple
+         (anotar, buscar precio de venta, mandar a pedir) · ?embed: adentro del panel, con la clave del panel. Necesita script v3.44.
+   v2.7: 💲 arriba abre proveedores.html (con el mismo link, sin clave) y cada renglón tiene "🔎 Buscar precio en proveedores".
    ÍNDICE: 1. Estructura  2. Notas  3. Renglones  4. Menú del renglón  5. Aviso con deshacer
    ===================================================================== */
 /* ---------- 1. Estructura ---------- */
@@ -32,6 +35,27 @@ header.top .logo .emo{font-size:24px}
 .tips button{border:0;background:var(--surface-2);border-radius:99px;padding:5px 11px;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer}
 .tips button:hover{background:var(--sel)}
 .info{color:var(--muted);font-size:12px;margin:18px 2px 0}
+#vista button{padding:5px 10px;font-size:13px}
+body.embed .solo-suelto{display:none!important}
+/* 🛒 Compras (Joa) tiene su propia cara: barra celeste y su ícono, para no confundir las vistas */
+:root{--joa:#bfe3ec}@media (prefers-color-scheme:dark){:root{--joa:#24464d}}
+body.v-compras header.top{background:var(--joa);border-bottom-color:transparent}
+body.v-compras{background:color-mix(in srgb,var(--joa) 25%,var(--bg))}
+body.v-compras .tips button{background:var(--surface)}
+body.v-reparto header.top{background:var(--k-amarillo);border-bottom-color:transparent}
+body.embed header.top .logo{display:none}
+/* ---------- Vivi: anotar · buscar precio · pedir ---------- */
+.vivi{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));margin-bottom:16px}
+.v-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.v-card h2{font-size:16px;margin:0 0 4px}
+.v-fila{display:flex;gap:8px;margin-top:10px}
+.v-fila .campo{flex:1;min-width:0;font-size:16px}
+.v-res{margin-top:8px;display:grid;gap:2px;max-height:55vh;overflow:auto}
+.v-it{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--line);font-size:14px}
+.v-it b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.v-it .btn{padding:5px 9px;font-size:13px}
+#vSucs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:700}
+body.v-anotar .solo-equipo{display:none}
 /* ---------- 2. Notas (columnas como Keep) ---------- */
 .notas{columns:290px;column-gap:14px}
 .nota{break-inside:avoid;margin:0 0 14px;border-radius:10px;padding:12px 6px 6px;background:var(--k-gris);border:1px solid transparent}
@@ -94,12 +118,20 @@ header.top .logo .emo{font-size:24px}
 <body>
 <div id="app" hidden>
 <header class="top">
-  <div class="logo"><i class="emo">📝</i><div>Faltantes<small>Lita &amp; Añaños</small></div></div>
+  <div class="logo"><i class="emo" id="lEmo">📝</i><div>Faltantes<small id="lSub">Lita &amp; Añaños</small></div></div>
+  <div class="seg" id="vista" hidden><button type="button" data-v="reparto">📦 Reparto</button><button type="button" data-v="compras">🛒 Compras</button></div>
   <span class="rol" id="rol"></span>
+  <a class="ico solo-suelto solo-equipo" href="proveedores.html" target="_blank" rel="noopener" title="Precios de proveedores" style="text-decoration:none">💲</a>
   <button class="ico" id="bAct" type="button" title="Actualizar">↻</button>
+  <button class="ico solo-suelto" id="bSalir" type="button" title="Salir (para entrar con otro link o clave)">🚪</button>
 </header>
 <div class="wrap">
   <div class="quien" id="quien" hidden>👋 ¿Quién sos? <input class="campo" id="qNom" maxlength="30" placeholder="Ej: Vivi"><button class="btn sm primary" id="qOk" type="button">Listo</button></div>
+  <section class="vivi" id="vivi" hidden>
+    <div class="v-card"><h2>📝 Anotar lo que falta</h2><div class="chips" id="vSucs"></div>
+      <div class="v-fila"><input class="campo" id="vTxt" maxlength="120" placeholder="Ej: 3 lupas (o pegá una lista)" enterkeyhint="send" autocomplete="off"><button class="btn primary" id="vOk" type="button">Anotar</button></div></div>
+    <div class="v-card"><h2>🔎 Buscar precio</h2><input class="campo" id="vQ" type="search" placeholder="Ej: lupa, resma ledesma" autocomplete="off" style="margin-top:10px;font-size:16px"><div class="v-res" id="vRes"></div></div>
+  </section>
   <div class="tips" id="tips"></div>
   <div class="notas" id="notas"></div>
   <p class="info" id="info"></p>
@@ -139,13 +171,16 @@ const {$, esc, norm, fechaAR, hace, leerLS, guardarLS, toast, SUCS, sucNom, LAPI
 /* =====================================================================
    1. CONEXIÓN: link secreto (t) guardado en el celular, o clave del panel (solo esta pestaña)
    ===================================================================== */
-let url = leerLS("url", ""), tok = leerLS("ftok", ""), clave = (() => { try{ return sessionStorage.getItem("dabox.fclave") || ""; }catch(e){ return ""; } })();
+const EMBED = new URLSearchParams(location.search).has("embed");          // adentro del panel: usa la clave del panel (misma pestaña)
+if(EMBED) document.body.classList.add("embed");
+const ss = k => { try{ return sessionStorage.getItem(k) || ""; }catch(e){ return ""; } };
+let url = leerLS("url", ""), tok = EMBED ? "" : leerLS("ftok", ""), clave = EMBED ? ss("dabox.clave") : ss("dabox.fclave"), vista = leerLS("fvista", "");
 let D = null, rol = "", demo = false, quien = leerLS("fquien", ""), tipsAbiertos = false;
 async function api(accion, params = {}){
   if(demo) return demoApi(accion, params);
   LAPIZ(true);
   try{
-    const u = new URL(url); u.search = new URLSearchParams({accion, ...(tok ? {t: tok} : {clave}), quien, ...params});
+    const u = new URL(url); u.search = new URLSearchParams({accion, ...(tok ? {t: tok} : {clave}), quien, ...(vista ? {vista} : {}), ...params});
     const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 45000);
     let r; try{ r = await fetch(u, {cache:"no-store", signal:ctl.signal}); } finally{ clearTimeout(t); }
     if(!r.ok) throw "url";
@@ -157,7 +192,16 @@ async function api(accion, params = {}){
   finally{ LAPIZ(false); }
 }
 const errTxt = e => e === "clave" ? "🔑 El link o la clave ya no sirven (¿se cambiaron?). Pedile a Roman el link nuevo." : ERR[e] || (e && e.msg) || "No se pudo conectar.";
-async function cargar(){ D = await api("falt-ver"); rol = D.rol; render(); }
+async function cargar(){ D = await api("falt-ver"); rol = D.rol; if(vista && rol !== vista && rol !== "anotar"){ vista = ""; toast("Para cambiar de vista hay que publicar el script v3.44", 5000); } render(); }
+/* 📦 ⇄ 🛒: Roman y Joa ven y actúan en las dos */
+$("#vista").onclick = async e => { const b = e.target.closest("[data-v]"); if(!b || b.dataset.v === rol) return;
+  vista = b.dataset.v; guardarLS("fvista", vista); filtro = null;
+  if(demo){ D = demoApi("falt-ver"); rol = D.rol; render(); return; }
+  try{ await cargar(); }catch(err){ toast(errTxt(err), 4000); } };
+/* 🚪 salir: borra el link y la clave de este celular, para entrar con otra cuenta */
+$("#bSalir").onclick = () => abrirMenu("🚪 Salir de esta cuenta", "Para volver a entrar vas a necesitar el link o la clave.", [{t:"🚪 Salir", mal:true, f: () => {
+  tok = ""; clave = ""; quien = ""; vista = ""; demo = false; D = null; ["ftok", "fquien", "fvista"].forEach(k => guardarLS(k, ""));
+  try{ sessionStorage.removeItem("dabox.fclave"); }catch(e){} $("#iClave").value = ""; mostrarLogin("Saliste. Abrí otro link de faltantes o entrá con una clave."); }}]);
 function entrar(){ $("#login").hidden = true; $("#app").hidden = false; render(); }
 $("#fLogin").onsubmit = async e => {
   e.preventDefault();
@@ -167,7 +211,7 @@ $("#fLogin").onsubmit = async e => {
   try{ await cargar(); guardarLS("url", url); try{ sessionStorage.setItem("dabox.fclave", clave); }catch(x){} entrar(); }
   catch(err){ $("#lErr").textContent = errTxt(err); $("#lErr").hidden = false; if(err !== "clave") $("#lUrl").hidden = false; }
 };
-$("#bDemo").onclick = () => { demo = true; D = demoApi("falt-ver"); rol = D.rol; entrar(); };
+$("#bDemo").onclick = () => { demo = true; vista = ""; D = demoApi("falt-ver"); rol = D.rol; entrar(); };
 function mostrarLogin(msg){ $("#app").hidden = true; $("#login").hidden = false; $("#iUrl").value = url; $("#lUrl").hidden = !!url && !/dirección|script/i.test(msg || ""); $("#lErr").hidden = !msg;   /* si la dirección guardada falla, se puede corregir */ $("#lErr").textContent = msg || ""; }
 async function inicio(){
   if(new URLSearchParams(location.search).has("demo")){ $("#bDemo").click(); return; }
@@ -208,9 +252,15 @@ const parseCant = t => { const m = t.match(/^\s*(\d+)\s*[*xX×]?\s+(.+)$/) || t.
    ===================================================================== */
 function render(){
   if(!D) return;
-  $("#rol").textContent = rol === "compras" ? "🛒 Compras" : rol === "anotar" ? "📝 Anotar" : "📦 Reparto";
+  $("#rol").textContent = rol === "anotar" ? "📝 Anotar" : "";
+  $("#rol").hidden = rol !== "anotar"; $("#vista").hidden = rol === "anotar";
+  $("#vista").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === rol));
+  $("#vivi").hidden = rol !== "anotar"; if(rol === "anotar") renderVivi();
+  document.body.classList.toggle("v-compras", rol === "compras"); document.body.classList.toggle("v-reparto", rol === "reparto"); document.body.classList.toggle("v-anotar", rol === "anotar");
+  $("#lEmo").textContent = rol === "compras" ? "🛒" : rol === "reparto" ? "📦" : "📝";
+  $("#lSub").textContent = rol === "compras" ? "Compras · para pedir" : rol === "reparto" ? "Reparto · por sucursal" : "Lita & Añaños";
   $("#quien").hidden = !!quien || demo;
-  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. ${rol === "anotar" ? "Escribí en ＋ Agregar de cada sucursal (ej: 3 lupas) o pegá una lista entera. Roman reparte." : "Tocá un renglón para moverlo."}`;
+  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. ${rol === "anotar" ? "Abajo está lo anotado de cada sucursal. Roman reparte." : "Tocá un renglón para moverlo."}`;
   if(rol === "compras") renderCompras(); else renderReparto();
 }
 /* ---------- 📦 REPARTO: una nota por sucursal ---------- */
@@ -226,7 +276,7 @@ function renderReparto(){
     const nuevos = ab.filter(c => c.estado === "").length;
     return `<section class="nota" data-c="${s}" data-suc="${s}"><h2>${esc(sucNom(s))} <span class="n">${ab.length || ""}</span>${nuevos > 1 && rol !== "anotar" ? `<button class="ico" type="button" data-todo="${s}" title="Pasar todo lo nuevo a compras">⋯</button>` : ""}</h2>
       ${ab.sort(orden).map(renglon).join("") || (filtro ? "" : `<div class="vacia">Nada pendiente 🎉</div>`)}
-      ${filtro ? "" : `<label class="agregar">＋<input data-agregar="${s}" maxlength="120" placeholder="Agregar… (ej: 3 lupas)" enterkeyhint="done"></label>`}
+      ${filtro || rol === "anotar" ? "" : `<label class="agregar">＋<input data-agregar="${s}" maxlength="120" placeholder="Agregar… (ej: 3 lupas)" enterkeyhint="done"></label>`}
       ${hechos.length && !filtro ? `<details class="hechos"><summary>✓ ${hechos.length} cerrado${hechos.length > 1 ? "s" : ""}</summary>${hechos.map(renglon).join("")}</details>` : ""}</section>`;
   }).join("");
   $("#notas").innerHTML = notas || `<div class="empty">Nada con ese filtro.</div>`;
@@ -282,6 +332,40 @@ function tipsCompras(l){
   return P.length ? `<span>💡</span>` + P.map((p, i) => `<button type="button" data-p="${i}" title="Tocá para unirlos">${esc(p.t)}</button>`).join("") : "";
 }
 
+/* ---------- 📝 VIVI: elegir sucursal + escribir; buscar precio de venta (sin costos) y mandar a pedir ---------- */
+let vSuc = leerLS("vsuc", ""), vItems = null, vCargando = null;
+function renderVivi(){
+  $("#vSucs").innerHTML = SUCS.map(s => `<button type="button" data-vs="${s}" aria-pressed="${s === vSuc}">${esc(sucNom(s))}</button>`).join("");
+  if(vSuc) $("#vTxt").dataset.agregar = vSuc; else delete $("#vTxt").dataset.agregar;   // así Enter y pegar una lista usan lo mismo que las notas
+}
+$("#vSucs").onclick = e => { const b = e.target.closest("[data-vs]"); if(!b) return; vSuc = b.dataset.vs; guardarLS("vsuc", vSuc); renderVivi(); $("#vTxt").focus(); };
+$("#vTxt").addEventListener("keydown", e => { if(e.key === "Enter" && !vSuc){ e.preventDefault(); toast("Elegí la sucursal"); } });
+$("#vOk").onclick = () => { if(!vSuc){ toast("Elegí la sucursal"); return; } agregar(vSuc, $("#vTxt")); };
+function cargarPrecios(){
+  return vCargando || (vCargando = (async () => {
+    $("#vRes").innerHTML = `<div class="vacia">Cargando precios…</div>`;
+    try{ const r = await api("prov-venta"); vItems = (r.items || []).map(x => [x[0], x[1], norm(x[0])]); }
+    catch(e){ vCargando = null; $("#vRes").innerHTML = `<div class="vacia">${esc(e === "clave" ? "Esta parte necesita el script v3.44." : errTxt(e))}</div>`; return; }
+    buscarVivi();
+  })());
+}
+function buscarVivi(){
+  if(!vItems){ cargarPrecios(); return; }
+  const t = norm($("#vQ").value).trim().split(/\s+/).filter(Boolean);
+  if(!t.length){ $("#vRes").innerHTML = ""; return; }
+  const r = vItems.filter(x => t.every(w => x[2].includes(w))).sort((a, b) => a[0].length - b[0].length).slice(0, 25);
+  $("#vRes").innerHTML = r.map((x, i) => `<div class="v-it"><span>${esc(x[0])}</span><b>${LA.money(x[1])}</b><button class="btn" type="button" data-vp="${i}" title="Mandar a compras">🛒 Pedir</button></div>`).join("")
+    || `<div class="vacia">No lo encontré. Probá con menos palabras o con la marca.</div>`;
+  buscarVivi.r = r;
+}
+let vT; $("#vQ").addEventListener("input", () => { clearTimeout(vT); vT = setTimeout(buscarVivi, 120); });
+$("#vQ").addEventListener("focus", () => { if(!vItems) cargarPrecios(); });
+$("#vRes").onclick = async e => { const b = e.target.closest("[data-vp]"); if(!b) return; const x = buscarVivi.r[+b.dataset.vp]; if(!x) return;
+  const n = prompt(`¿Cuántos pedir? (${x[0]})`, ""); if(n === null) return;
+  b.disabled = true;
+  try{ await api("prov-pedir", {texto: x[0], cant: String(Math.round(+String(n).replace(/\D/g, "")) || ""), prov: ""}); toast("🛒 Mandado a compras"); b.textContent = "✓ Pedido"; }
+  catch(err){ toast(errTxt(err), 4000); b.disabled = false; } };
+
 /* =====================================================================
    4. MENÚ DEL RENGLÓN
    ===================================================================== */
@@ -292,6 +376,8 @@ function abrirMenu(tit, det, ops){
   $("#menu").hidden = false; setTimeout(() => { const b = $("#mOps button"); if(b) b.focus(); }, 30);
 }
 const cerrarMenu = () => { $("#menu").hidden = true; };
+/* 🔎 abre proveedores.html con el producto ya buscado (sin la cantidad: "3 lupas" → "lupas") */
+const buscarPrecio = txt => ({t:"🔎 Buscar precio en proveedores", f: () => window.open("proveedores.html#q=" + encodeURIComponent(String(txt).replace(/^\s*\d+\s*[x×*]?\s+/i, "").trim()), "proveedores")});
 function menuReparto(c){
   const op = (estado, t, mal) => ({t, mal, f: () => cambiarReparto([c.id], estado)});
   const rep = (mover, t) => ({t, f: () => reponer(c, mover)});
@@ -303,6 +389,7 @@ function menuReparto(c){
     : [op("","↩ Volver a abrir")];
   if(rol === "anotar") ops.length = 0;   // Vivi: solo mira el detalle
   else if(!CERR(c.estado)) ops.push({t:"✏️ Editar (texto, cantidad, sucursal)", f: () => abrirEditar(c)});
+  if(!CERR(c.estado)) ops.push(buscarPrecio(c.prod));
   const e = EST[c.estado] || EST[""];
   abrirMenu(`${c.nada ? "🚫" : (c.cant || "?") + " ×"} ${c.prod}`,
     `${esc(sucNom(c.suc))} · ${fechaAR(c.fecha)}${c.quien ? " · " + esc(c.quien) : ""} · <b>${e[0]} ${e[1]}</b>${c.por && c.estado ? " (" + esc(c.por) + ")" : ""}${atrasado(c) ? `<i>⏰ ${esc(CONSEJO[c.estado].replace("%d", edad(c)))}</i>` : ""}${c.obs ? `<i>“${esc(c.obs)}”</i>` : ""}`, ops);
@@ -311,7 +398,8 @@ function menuCompras(g, hecho){
   const ops = hecho ? [{t:"↩ Volver a la lista", f: () => cambiarCompras(g.k, "A pedir")}, ...(g.nsc ? [{t:"✓ Lo conseguí: agregado al pedido", f: () => cambiarCompras(g.k, "Pedido")}] : [])]
     : [{t:"✓ Agregado al pedido", f: () => cambiarCompras(g.k, "Pedido")}, {t:`🔍 No se consigue (vuelve en ${D.vuelveDias} días)`, f: () => cambiarCompras(g.k, "No se consigue")},
        {t:"📁 Mover a otra nota", f: () => menuMover(g)},
-       {t:"✏️ Cambiar el nombre", f: () => { const n = prompt("Nombre para pedir (si ponés el mismo que otro, se juntan):", g.nombre); if(n && n.trim() && n.trim() !== g.nombre) renombrar([g.k], n.trim()); }}];
+       {t:"✏️ Cambiar el nombre", f: () => { const n = prompt("Nombre para pedir (si ponés el mismo que otro, se juntan):", g.nombre); if(n && n.trim() && n.trim() !== g.nombre) renombrar([g.k], n.trim()); }},
+       buscarPrecio(g.nombre)];
   abrirMenu(`${g.cant ? g.cant + " ×" : ""} ${g.nombre}`, `${g.n > 1 ? `Lo piden ${g.n} veces` : "1 pedido"} · desde ${dias(g.desde) ? `hace ${dias(g.desde)} días` : "hoy"}${g.nada ? ` · 🚫 sin stock en ${g.nada}` : ""}${g.obs && g.obs.length ? `<i>${g.obs.map(o => "“" + esc(o) + "”").join(" · ")}</i>` : ""}`, ops);
 }
 
@@ -480,8 +568,11 @@ function demoApi(accion, p){
     {id:"F-FAL-5", fecha:f(9), hora:"16:30", suc:"FALCON", quien:"Mica", prod:"Repuesto Éxito N°3", obs:"", estado:"A pedir", cant:20, nada:false, act:t(8)},
     {id:"F-MOR-7", fecha:f(5), hora:"10:00", suc:"MORENO", quien:"Lucas", prod:"Mapas N°3 político", obs:"", estado:"Entregado", cant:30, nada:false, act:t(1)}];
   const cs = window._demo;
+  if(accion === "prov-venta") return Promise.resolve({items:[["Lupa 75 mm", 3500], ["Lupa 50 mm con luz", 4800], ["Resma A4 Ledesma 75 g", 9800], ["Resma A4 Boreal 70 g", 8900], ["Plasticola 30 g", 1100]]});
+  if(accion === "prov-pedir") return Promise.resolve({ok:true});
+  const qd = new URLSearchParams(location.search).get("demo"), vd = vista || (qd === "compras" ? "compras" : qd === "anotar" ? "anotar" : "reparto");
   if(accion === "falt-ver"){
-    if(new URLSearchParams(location.search).get("demo") === "compras"){
+    if(vd === "compras"){
       if(!window._demoC){ const g = {}; cs.filter(c => c.estado === "A pedir" || c.estado === "").forEach(c => { const k = norm(c.prod); const x = g[k] || (g[k] = {k, nombre:c.prod, cant:0, nada:0, n:0, desde:Infinity, obs:[], vuelve:false, nsc:false});
         x.cant += c.cant; x.nada += c.nada ? 1 : 0; x.n++; x.desde = Math.min(x.desde, tsFecha(c)); if(c.obs) x.obs.push(c.obs); });
         Object.values(g).forEach(x => { x.k = "~" + x.k; x.lista = ""; });
@@ -489,7 +580,7 @@ function demoApi(accion, p){
         window._demoC = {rol:"compras", generado:Date.now(), pedir:[...Object.values(g), tal], pedidos:[], listas:[["Colours","naranja"],["Preventa Talbot","amarillo"]], vuelveDias:15}; }
       return window._demoC;
     }
-    return {rol: new URLSearchParams(location.search).get("demo") === "anotar" ? "anotar" : "reparto", generado:Date.now(), cards:cs, vuelveDias:15};
+    return {rol: vd, generado:Date.now(), cards:cs, vuelveDias:15};
   }
   if(window._demoC){ const C = window._demoC;
     if(accion === "falt-libre") C.pedir.push({k:(p.lista || "") + "~" + norm(p.texto), lista:p.lista || "", libre:true, nombre:p.texto, cant:+p.cant || 0, nada:p.nada === "1" ? 1 : 0, n:1, desde:Date.now(), obs:[], vuelve:false, nsc:false});

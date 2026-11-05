@@ -10,9 +10,11 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v2.2
+   PANEL · DA BOX                                                 v2.3
    Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.3: 📝 Faltantes y 💲 Proveedores adentro del panel (Encargado y Compras, misma clave) · 🏷️ Precios: 💡 sugerido de las listas de proveedores
+         debajo del producto elegido (los 3 más parecidos, costo y venta por unidad; tocar = usar ese precio). Saca el link al tablero viejo (compras.html).
    v2.2: 🏷️ Precios (Encargado y Dueño): buscar un producto del Catálogo y cambiar precio o combo ahí mismo. Acepta cuentas
          (4500*2,13 · +10% · -5%) y redondea a $50. Registra cada cambio en "Cambios de precio" y se puede deshacer.
    v2.0: Ventas → Ventas / Ingresos (sin cta. cte. + pagos de cta. cte.), filtro por medio de pago, 📅 rango Desde/Hasta,
@@ -80,6 +82,11 @@ tr.sb-abierto td{background:var(--surface-2)}
 .pr-t .prev{font-size:12px;color:var(--muted);white-space:nowrap}
 .pr-t .prev.sube{color:var(--bad)} .pr-t .prev.baja{color:var(--ok)} .pr-t .prev.ojo{color:var(--bad);font-weight:700}
 .pr-t tr.ok td{background:var(--ok-soft)}
+.sp{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.sp:empty{display:none}
+.sp-b{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 9px;font-size:12px;cursor:pointer;text-align:left;color:var(--ink);max-width:340px}
+.sp-b:hover{background:var(--sel)} .sp-b b{font-size:13px} .sp-b .m{display:block}
+iframe.embebido{width:100%;height:calc(100vh - 120px);min-height:520px;border:0;border-radius:var(--r);background:var(--bg)}
 .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
 </style>
 </head>
@@ -107,6 +114,8 @@ tr.sb-abierto td{background:var(--surface-2)}
   <section id="s-cobros" hidden></section>
   <section id="s-productos" hidden></section>
   <section id="s-precios" hidden></section>
+  <section id="s-falt" hidden></section>
+  <section id="s-prov" hidden></section>
 </main>
 </div>
 
@@ -119,7 +128,7 @@ const {$, esc, money, millones, pct, pad, ymd, fechaAR, norm, hace, leerLS, guar
 /* =====================================================================
    1. CONFIGURACIÓN
    ===================================================================== */
-const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], sobres:["💰","Sobres"], cobros:["💳","Cobros"], productos:["📦","Productos"], precios:["🏷️","Precios"]};
+const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], sobres:["💰","Sobres"], cobros:["💳","Cobros"], productos:["📦","Productos"], precios:["🏷️","Precios"], falt:["📝","Faltantes"], prov:["💲","Proveedores"]};
 const ROLES = {admin:"Encargado", dueno:"Dueño", compras:"Compras"};
 const CON_COMPRAS = ["admin","compras"];                    // roles que ven el link al tablero de compras
 const PERIODOS = [[1,"Hoy"],[7,"7 días"],[30,"30 días"],[90,"90 días"],[365,"1 año"]];
@@ -148,9 +157,10 @@ async function actualizar(){
 function armarNav(){
   const secs = D.secciones.filter(s => SECCIONES[s]);
   if(["admin","dueno"].includes(D.rol) && !secs.includes("precios")) secs.push("precios");   // cambiar precios: la planilla vuelve a pedir la clave en cada cambio
+  if(CON_COMPRAS.includes(D.rol)) secs.push("falt", "prov");                                  // se abren acá adentro con la misma clave (faltantes.html y proveedores.html)
   if(!secs.includes(tab)) tab = secs[0];
   $("#nav").innerHTML = secs.map(s => `<button role="tab" data-s="${s}" aria-selected="${s===tab}"><i class="emo">${SECCIONES[s][0]}</i>${SECCIONES[s][1]}</button>`).join("")
-    + (CON_COMPRAS.includes(D.rol) ? `<hr><a href="compras.html"><i class="emo">🛒</i>Compras</a>` : "");
+;
   $("#sRol").textContent = "Panel · " + (ROLES[D.rol] || D.rol);
 }
 $("#nav").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; tab = b.dataset.s; armarNav(); render(); });
@@ -158,9 +168,9 @@ $("#s-vivo").addEventListener("click", e => { if(e.target.id === "vIrCierres"){ 
 function renderFiltros(){
   $("#fDias").innerHTML = PERIODOS.map(([d,l]) => `<button data-d="${d}" aria-pressed="${!rango && d===dias}">${l}</button>`).join("") + `<button data-d="r" aria-pressed="${!!rango}" title="Elegir fechas">📅 ${rango ? enPer().slice(4) : "Fechas"}</button>`;
   $("#fSuc").innerHTML = ["TODAS", ...SUCS].map(s => `<button data-s="${s}" aria-pressed="${s===suc}">${s==="TODAS" ? "Todas" : `<i class="dot" style="background:${SUC_COLOR[s]}"></i>${sucNom(s)}`}</button>`).join("");
-  $("#fDias").hidden = ["vivo","mensual","cobros","sobres","precios"].includes(tab); if($("#fDias").hidden) $("#fRango").hidden = true;         // esas secciones no dependen del período
+  $("#fDias").hidden = ["vivo","mensual","cobros","sobres","precios","falt","prov"].includes(tab); if($("#fDias").hidden) $("#fRango").hidden = true;         // esas secciones no dependen del período
   $("#fSuc").hidden = tab === "vivo" || tab === "precios";
-  document.querySelector("main > .filtros").hidden = tab === "precios";
+  document.querySelector("main > .filtros").hidden = ["precios","falt","prov"].includes(tab);
 }
 $("#fDias").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return;
   if(b.dataset.d === "r"){ const f = $("#fRango"); f.hidden = !f.hidden; if(!f.hidden){ const r = rango || (D && D.r) || [ymd(new Date()), ymd(new Date())]; $("#rD").value = r[0]; $("#rH").value = r[1]; $("#rD").focus(); } return; }
@@ -171,7 +181,7 @@ $("#rOk").onclick = () => { const d = $("#rD").value, h = $("#rH").value;
 $("#fSuc").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; suc = b.dataset.s; render(); });
 $("#bAct").onclick = actualizar;
 $("#bSalir").onclick = () => LA.salir();
-setInterval(() => { if(D && !document.hidden && !$("#app").hidden && !sbAbierto && tab !== "precios") actualizar(); }, REFRESCO_MIN*60000);   // en Precios no se redibuja (no se pierde lo escrito)   // no refresca con un sobre a medio cargar
+setInterval(() => { if(D && !document.hidden && !$("#app").hidden && !sbAbierto && !["precios","falt","prov"].includes(tab)) actualizar(); }, REFRESCO_MIN*60000);   // en Precios no se redibuja (no se pierde lo escrito)   // no refresca con un sobre a medio cargar
 const deSuc = s => suc === "TODAS" || s === suc;
 
 function render(){
@@ -180,7 +190,12 @@ function render(){
   Object.keys(SECCIONES).forEach(s => $("#s-"+s).hidden = s !== tab);
   $("#titulo").innerHTML = `<i class="emo">${SECCIONES[tab][0]}</i>${SECCIONES[tab][1]}`;
   $("#sAct").textContent = "Actualizado " + new Date(D.generado).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
-  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, sobres:rSobres, cobros:rCobros, productos:rProductos, precios:rPrecios})[tab]();
+  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, sobres:rSobres, cobros:rCobros, productos:rProductos, precios:rPrecios, falt:() => rEmbebido("falt"), prov:() => rEmbebido("prov")})[tab]();
+}
+/* 📝 💲 adentro del panel: la página se carga una sola vez (no se pierde lo escrito al cambiar de sección) y usa la clave del panel */
+function rEmbebido(s){
+  const S = $("#s-" + s); if(S.firstChild) return;
+  S.innerHTML = `<iframe class="embebido" title="${SECCIONES[s][1]}" src="${s === "falt" ? "faltantes.html?embed" + (LA.demo ? "&demo" : "") : "proveedores.html"}"></iframe>`;
 }
 
 /* =====================================================================
@@ -607,7 +622,7 @@ function prTabla(){
   const l = prLista();
   $("#prN").textContent = !prBusca.trim() ? `${prCat.length.toLocaleString("es-AR")} productos en el Catálogo` : l.length >= 40 ? "Mostrando 40: escribí otra palabra para achicar" : `${l.length} resultado${l.length === 1 ? "" : "s"}`;
   $("#prT").innerHTML = l.length ? `<tr><th>Producto</th><th class="r">Precio actual</th><th>Precio nuevo</th><th>Combo</th><th></th></tr>` + l.map((p, i) => { const h = prHechos[p.cod + "|" + p.nombre];
-    return `<tr data-i="${i}" class="${h ? "ok" : ""}"><td class="nom"><b>${esc(p.nombre)}</b><small>${esc(p.cod)}${p.cat ? " · " + esc(p.cat) : ""}${h ? ` · ✓ antes ${money(h)}` : ""}</small></td>
+    return `<tr data-i="${i}" class="${h ? "ok" : ""}"><td class="nom"><b>${esc(p.nombre)}</b><small>${esc(p.cod)}${p.cat ? " · " + esc(p.cat) : ""}${h ? ` · ✓ antes ${money(h)}` : ""}</small><div class="sp" data-sp="${i}"></div></td>
       <td class="r"><b>${p.precio > 0 ? money(p.precio) : '<span class="m">abierto</span>'}</b></td>
       <td><input class="campo num inp-p" data-i="${i}" inputmode="decimal" autocomplete="off" placeholder="${p.precio || ""}"><div class="prev" data-prev="${i}"></div></td>
       <td><input class="campo inp-c" data-c="${i}" autocomplete="off" value="${esc(p.combo || "")}" placeholder="ej: 3x2500"></td>
@@ -649,6 +664,48 @@ function prHist(){
       <td class="r ${Math.abs(d) >= PCT_OJO ? "dif-mal" : "m"}">${c[5] ? (d > 0 ? "+" : "") + d.toFixed(1) + "%" : ""}</td><td>${i < 10 && c[5] > 0 && c[5] !== c[6] ? `<button class="btn sm" data-un="${i}" type="button" title="Volver a ${money(c[5])}">↩</button>` : ""}</td></tr>`; }).join("")
     : `<tr><td class="empty">Todavía no hay cambios registrados.</td></tr>`;
 }
+/* 💡 SUGERIDO DE PROVEEDORES: al elegir un producto (foco en el precio nuevo) aparecen los 3 más parecidos de las listas.
+   Usa prov-datos (clave del panel) y lo que ya guardó proveedores.html en esta PC (IndexedDB): solo baja algo si hay una lista nueva.
+   🔒 Los costos vienen de la planilla con clave: nunca están en este archivo. */
+let pvD = null, pvIdx = null, pvCargando = null;
+const PV_VACIAS = new Set(["de","del","la","el","con","para","por","sin","los","las","y","x","c","p","u","un","unid","unidad","unidades","hjs","hj","hojas"]);
+const pvPal = t => [...new Set(norm(t).replace(/\([^)]*\)/g, " ").replace(/[^a-z0-9ñ]+/g, " ").split(" ").filter(w => w.length > 1 && !PV_VACIAS.has(w)))];
+const PV_PACK = [/\bx\s*(\d{1,4})\s*(?:u\b|u\.|un\b|uni\b|unid\b|unidades|uds?\b)/, /\bcaja\s*(?:x|de)\s*(\d{1,4})\b/];
+const pvUnid = n => { const t = norm(n); if(/\bdocena\b/.test(t)) return 12; for(const r of PV_PACK){ const m = t.match(r); if(m && +m[1] > 1 && +m[1] <= 5000) return +m[1]; } return 1; };
+function pvCosto(it){                                 // igual que proveedores.html: base (o escalón/oferta) × (1 − desc) × (1 + recargo), por unidad
+  const c = pvD.provs[it[0]] || {desc:0, rec:0, esc:0, mult:2.13, red:50}, t = [], ext = String(it[6] || ""); let b = it[3], of = 0;
+  ext.split(/\s+/).forEach(x => { let m = x.match(/^x(\d+)=([\d.]+)$/); if(m) t.push([+m[1], +m[2]]); m = x.match(/^of=([\d.]+)$/); if(m) of = +m[1]; });
+  t.sort((a, z) => a[0] - z[0]); if(c.esc > 0 && t.length) b = t[Math.min(c.esc, t.length) - 1][1]; if(of && of < b) b = of;
+  const cu = b * (1 - c.desc / 100) * (1 + c.rec / 100) / pvUnid(it[2]);
+  return {cu, sug: Math.round(cu * c.mult / c.red) * c.red, prov: c.nombre || "?"};
+}
+const pvIDB = (modo, val) => new Promise(ok => { try{ const r = indexedDB.open("dabox-prov", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv");
+  r.onsuccess = () => { try{ const tx = r.result.transaction("kv", modo), st = tx.objectStore("kv"), q = modo === "readonly" ? st.get("datos") : st.put(val, "datos");
+    tx.oncomplete = () => ok(q.result); tx.onerror = () => ok(null); }catch(e){ ok(null); } }; r.onerror = () => ok(null); }catch(e){ ok(null); } });
+function pvCargar(){
+  return pvCargando || (pvCargando = (async () => {
+    if(LA.demo){ pvD = {provs:[{nombre:"Tiotom", desc:10, rec:10.11, esc:0, mult:2.13, red:50}, {nombre:"Lispapel", desc:10, rec:21, esc:0, mult:2.13, red:50}],
+      items:[[0,"T1","BIROME BIC CRISTAL AZUL X 50 U.",14500,"","","",0,""], [1,"L7","Birome Bic cristal azul",380,"","","",0,""], [0,"T9","RESMA A4 BOREAL 75 GRS",4300,"","","",0,""], [1,"L3","Resma A4 75g Boreal x 500",4100,"","","",0,""], [0,"T4","PLASTICOLA 40 GR",560,"","","",0,""]]}; }
+    else {
+      const g = await pvIDB("readonly");
+      try{ const r = await LA.api("prov-datos", {...(g && g.version ? {v: g.version} : {}), _silencio:true});
+        pvD = r.igual && g ? {provs: r.provs, items: g.items} : {provs: r.provs, items: r.items || []};
+        if(!r.igual) pvIDB("readwrite", {version: r.version, provs: r.provs, items: pvD.items}); }
+      catch(e){ pvD = {provs:[], items:[]}; }                                         // sin listas o el script viejo: no se muestra nada
+    }
+    pvIdx = new Map(); pvD.n = pvD.items.map((it, i) => { const w = pvPal(it[2]); w.forEach(x => { if(!pvIdx.has(x)) pvIdx.set(x, []); pvIdx.get(x).push(i); }); return w.length; });
+  })());
+}
+async function prSug(i){
+  const p = prTabla.l[i], el = $(`[data-sp="${i}"]`); if(!p || !el || el.dataset.ok) return;
+  el.dataset.ok = "1"; await pvCargar(); if(!pvD.items.length) return;
+  const w = pvPal(p.nombre), k = new Map();
+  w.forEach(x => (pvIdx.get(x) || []).forEach(j => k.set(j, (k.get(j) || 0) + 1)));
+  const top = [...k].map(([j, n]) => [j, n / (w.length + pvD.n[j] - n)]).filter(x => x[1] >= 0.25).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  el.innerHTML = top.map(([j]) => { const it = pvD.items[j], c = pvCosto(it);
+    return `<button class="sp-b" type="button" data-usa="${i}" data-v="${c.sug}" title="Usar ${money(c.sug)}">💡 ${esc(c.prov)} · venta <b>${money(c.sug)}</b><span class="m">${esc(it[2].slice(0, 48))} · costo ${money(Math.round(c.cu))}${pvUnid(it[2]) > 1 ? " c/u" : ""}</span></button>`; }).join("");
+}
+$("#s-precios").addEventListener("focusin", e => { if(e.target.classList.contains("inp-p")) prSug(+e.target.dataset.i); });
 $("#s-precios").addEventListener("input", e => {
   if(e.target.id === "prQ"){ prBusca = e.target.value; prTabla(); return; }
   if(e.target.classList.contains("inp-p")) prPrev(+e.target.dataset.i);
@@ -662,6 +719,7 @@ $("#s-precios").addEventListener("keydown", e => {
 });
 $("#s-precios").addEventListener("click", async e => {
   const g = e.target.closest("[data-g]"); if(g) return prGuardar(+g.dataset.g);
+  const us = e.target.closest("[data-usa]"); if(us){ const i = +us.dataset.usa, inp = $(`input[data-i="${i}"].inp-p`); inp.value = us.dataset.v; prPrev(i); inp.focus(); return; }
   if(e.target.id === "prRec"){ try{ await prCargar(true); prTabla(); prHist(); LA.toast("Catálogo actualizado"); }catch(x){ LA.toast(LA.ERR[x] || "No se pudo leer el catálogo"); } return; }
   const u = e.target.closest("[data-un]"); if(!u) return;
   const c = prCambios[+u.dataset.un], p = prCat.find(x => x.cod === c[3] && x.nombre === c[4]) || prCat.find(x => x.cod === c[3]);
