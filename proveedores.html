@@ -10,10 +10,11 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PROVEEDORES · DA BOX                                             v1.0
+   PROVEEDORES · DA BOX                                             v1.1
    Buscar precios en las listas de todos los proveedores a la vez (Roman, Joa, Vivi).
    ÍNDICE: 1. Lectores de listas (Excel → filas)  2. Datos y costos  3. Buscar y mostrar
            4. Comparar  5. Pedir  6. Subir listas (solo encargado)  7. Arranque
+   v1.1: costo y sugerido por unidad cuando el nombre dice cuántas trae (X 36 U., docena, caja x 12): se compara por unidad.
    Los costos NO están en este archivo (el repo es público): vienen de la planilla con clave.
    ===================================================================== */
 body{background:var(--bg)}
@@ -87,7 +88,7 @@ kbd{font:600 11px var(--sans);background:var(--surface-2);border:1px solid var(-
 <!-- 4. Comparar -->
 <div class="ov" id="ovComp" hidden><div class="modal ancho">
   <h2>⚖️ Comparar entre proveedores</h2><p class="note" id="compInfo"></p>
-  <div class="tw"><table class="prev"><thead><tr><th>Proveedor</th><th>Producto</th><th class="r">Costo</th><th class="r">Sugerido</th><th class="r">vs. el más barato</th></tr></thead><tbody id="compRes"></tbody></table></div>
+  <div class="tw"><table class="prev"><thead><tr><th>Proveedor</th><th>Producto</th><th class="r">Costo c/u</th><th class="r">Sugerido c/u</th><th class="r">vs. el más barato</th></tr></thead><tbody id="compRes"></tbody></table></div>
   <div class="acciones"><button class="btn" data-cerrar>Cerrar</button></div>
 </div></div>
 
@@ -196,7 +197,7 @@ const extDe = t => { const o = {t: []}; String(t || "").split(/\s+/).forEach(x =
   if(/^x\d+$/.test(m[1])) o.t.push([+m[1].slice(1), +m[2]]); else o[m[1]] = /^(of)$/.test(m[1]) ? +m[2] : m[2]; }); o.t.sort((a, b) => a[0] - b[0]); return o; };
 function preparar(items){
   return items.map(r => { const it = {p: r[0], cod: r[1], nom: r[2], lista: r[3], ean: r[4], rub: r[5], e: extDe(r[6]), ant: r[7], cambio: r[8]};
-    it.k = norm(`${it.nom} ${it.cod} ${it.ean} ${it.rub} ${D.provs[it.p]?.nombre || ""}`); return it; });
+    it.k = norm(`${it.nom} ${it.cod} ${it.ean} ${it.rub} ${D.provs[it.p]?.nombre || ""}`); it.n = unidades(it.nom); return it; });
 }
 // Costo = base × (1 − desc) × (1 + recargo). Base: lista, el escalón de bulto que diga la hoja, o la oferta si es menor.
 function costo(it){
@@ -204,9 +205,19 @@ function costo(it){
   let b = it.lista, nota = "";
   if(c.esc > 0 && it.e.t.length){ const z = it.e.t[Math.min(c.esc, it.e.t.length) - 1]; b = z[1]; nota = `precio x${z[0]}`; }
   if(it.e.of && it.e.of < b){ b = it.e.of; nota = "oferta"; }
-  const v = b * (1 - c.desc / 100) * (1 + c.rec / 100);
-  return {v, sug: Math.round(v * c.mult / c.red) * c.red, nota};
+  const v = b * (1 - c.desc / 100) * (1 + c.rec / 100), n = it.n || 1, cu = v / n;
+  return {v, n, cu, sug: Math.round(v * c.mult / c.red) * c.red, sugU: Math.round(cu * c.mult / c.red) * c.red, nota};   // cu y sugU: por unidad
 }
+// Cuántas unidades trae lo que se compra, leído del nombre: "X 36 U.", "x100 unid", "(DOCENA)", "CAJA X 12".
+// Sirve para comparar proveedores que venden por caja con los que venden suelto (siempre se compara por unidad).
+const PACK = [/\bx\s*(\d{1,4})\s*(?:u\b|u\.|un\b|uni\b|unid\b|unid\.|unidades|uds?\b)/, /\bcaja\s*(?:x|de)\s*(\d{1,4})\b/];
+function unidades(nom){
+  const t = norm(nom); if(/\bdocena\b/.test(t)) return 12;
+  for(const r of PACK){ const m = t.match(r); if(m && +m[1] > 1 && +m[1] <= 5000) return +m[1]; }
+  return 1;
+}
+// Nombre sin la cantidad del pack ni códigos entre paréntesis: para comparar "GOMA X 36 U. (011300)" con "GOMA" suelta
+const nomBase = s => norm(s).replace(PACK[0], " ").replace(PACK[1], " ").replace(/\bdocena\b/g, " ").replace(/[(\[][^)\]]*[)\]]/g, " ");
 const provDe = it => D.provs[it.p] || {nombre: "?"};
 const tipEsc = s => esc(esc(s));                          // data-tip se muestra con innerHTML (comun/base.js): doble escape para textos que vienen de los Excel
 const pvTag = it => `<span class="pv"><i class="dot" style="background:${COLORES[it.p % COLORES.length]}"></i>${esc(provDe(it).nombre)}</span>`;
@@ -235,7 +246,7 @@ const numeros = s => (norm(s).match(/\d+/g) || []).filter(n => n.length < 8);
 function armarCat(items){
   catalogo = items; catIdx = {ean: new Map(), pal: new Map()};
   items.forEach((c, i) => { [c.cod, ...String(c.alt || "").split(/[\s,;|]+/)].forEach(k => { k = String(k).replace(/^0+/, ""); if(k.length >= 7) catIdx.ean.set(k, i); });
-    c._w = new Set(palabras(c.nombre)); c._n = numeros(c.nombre); c._w.forEach(w => { if(!catIdx.pal.has(w)) catIdx.pal.set(w, []); catIdx.pal.get(w).push(i); }); });
+    c._w = new Set(palabras(nomBase(c.nombre))); c._n = numeros(nomBase(c.nombre)); c._w.forEach(w => { if(!catIdx.pal.has(w)) catIdx.pal.set(w, []); catIdx.pal.get(w).push(i); }); });
 }
 // ¿Lo tenemos en DA BOX? Por EAN o, si no, por nombre parecido (mismas medidas/números y la mayoría de las palabras)
 function enCatalogo(it){
@@ -243,7 +254,7 @@ function enCatalogo(it){
   if(it._cat !== undefined) return it._cat;
   const e = String(it.ean || "").replace(/^0+/, "");
   if(e && catIdx.ean.has(e)) return it._cat = {c: catalogo[catIdx.ean.get(e)], seguro: true};
-  const w = new Set(palabras(it.nom)), n = numeros(it.nom).sort().join(","), cuenta = new Map();
+  const w = new Set(palabras(nomBase(it.nom))), n = numeros(nomBase(it.nom)).sort().join(","), cuenta = new Map();
   w.forEach(x => (catIdx.pal.get(x) || []).forEach(i => cuenta.set(i, (cuenta.get(i) || 0) + 1)));
   let mejor = null, ms = 0;
   cuenta.forEach((k, i) => { const c = catalogo[i]; if(c._n.slice().sort().join(",") !== n) return; const s = k / (w.size + c._w.size - k); if(s > ms){ ms = s; mejor = c; } });
@@ -260,7 +271,7 @@ function buscar(){
   if(!t.length) return [];
   const out = [];
   for(const it of D.its){ if(filtro.size && !filtro.has(it.p)) continue; if(t.every(x => it.k.includes(x))) out.push(it); }
-  if(orden === "costo") out.sort((a, b) => costo(a).v - costo(b).v);
+  if(orden === "costo") out.sort((a, b) => costo(a).cu - costo(b).cu);        // por unidad: caja de 36 vs suelto
   else { const pri = t[0]; out.sort((a, b) => (b.k.startsWith(pri) - a.k.startsWith(pri)) || (a.nom.length - b.nom.length)); }
   return out;
 }
@@ -284,8 +295,8 @@ function render(){
     return `<tr data-i="${i}" class="${i === sel ? "sel" : ""}"><td class="c-pv">${pvTag(it)}</td>
       <td class="c-nom nom"><b>${esc(it.nom)}</b><div class="m">${esc(it.cod)}${it.ean ? " · EAN " + esc(it.ean) : ""}${it.rub ? " · " + esc(it.rub) : ""}</div>${tags(it)}</td>
       <td class="r c-lista m">${money(it.lista)}</td>
-      <td class="r c-cos"><span class="costo" data-tip="${tipEsc(provDe(it).nombre)}: −${provDe(it).desc}% · +${provDe(it).rec}%${c.nota ? " · " + c.nota : ""}">${money(c.v)}</span></td>
-      <td class="r sug c-sug">${money(c.sug)}</td>
+      <td class="r c-cos"><span class="costo" data-tip="${tipEsc(provDe(it).nombre)}: −${provDe(it).desc}% · +${provDe(it).rec}%${c.nota ? " · " + c.nota : ""}">${money(c.v)}</span>${c.n > 1 ? `<div class="m" data-tip="Trae ${c.n} unidades (leído del nombre)">x${c.n} · <b>${money(c.cu)} c/u</b></div>` : ""}</td>
+      <td class="r sug c-sug">${c.n > 1 ? `${money(c.sugU)} c/u<div class="m">x${c.n}: ${money(c.sug)}</div>` : money(c.sug)}</td>
       <td class="acc"><button class="btn" data-a="comp" data-tip="Comparar con otros proveedores (C)">⚖️</button> <button class="btn" data-a="pedir" data-tip="Mandar a compras (P)">🛒</button></td></tr>`; }).join("");
 }
 function chips(){
@@ -322,17 +333,17 @@ document.addEventListener("keydown", e => {
    ===================================================================== */
 function comparar(it){
   if(!it) return;
-  const w = new Set(palabras(it.nom)), nums = numeros(it.nom), res = [];
+  const w = new Set(palabras(nomBase(it.nom))), nums = numeros(nomBase(it.nom)), res = [];
   for(const x of D.its){
-    if(nums.some(n => !numeros(x.nom).includes(n))) continue;
-    const xw = palabras(x.nom); let k = 0; for(const p of xw) if(w.has(p)) k++;
+    const xb = nomBase(x.nom); if(nums.some(n => !numeros(xb).includes(n))) continue;
+    const xw = palabras(xb); let k = 0; for(const p of xw) if(w.has(p)) k++;
     const s = k / (w.size + new Set(xw).size - k); if(s >= 0.4 || x === it) res.push([x, s]);
   }
-  const top = res.sort((a, b) => b[1] - a[1]).slice(0, 15).map(r => r[0]).sort((a, b) => costo(a).v - costo(b).v), min = top.length ? costo(top[0]).v : 0;
+  const top = res.sort((a, b) => b[1] - a[1]).slice(0, 15).map(r => r[0]).sort((a, b) => costo(a).cu - costo(b).cu), min = top.length ? costo(top[0]).cu : 0;
   $("#compInfo").innerHTML = `Parecidos a <b>${esc(it.nom)}</b> (${esc(provDe(it).nombre)}). Revisá que sea el mismo producto: la comparación es por nombre.`;
   $("#compRes").innerHTML = top.map(x => { const c = costo(x);
-    return `<tr${x === it ? ' style="background:var(--sel)"' : ""}><td>${pvTag(x)}</td><td>${esc(x.nom)}<div class="m">${esc(x.cod)}</div></td><td class="r"><b>${money(c.v)}</b></td><td class="r">${money(c.sug)}</td>
-      <td class="r">${c.v === min ? '<span class="pill ok">el más barato</span>' : `+${((c.v / min - 1) * 100).toFixed(0)}%`}</td></tr>`; }).join("")
+    return `<tr${x === it ? ' style="background:var(--sel)"' : ""}><td>${pvTag(x)}</td><td>${esc(x.nom)}<div class="m">${esc(x.cod)}</div></td><td class="r"><b>${money(c.cu)}</b>${c.n > 1 ? `<div class="m">x${c.n}: ${money(c.v)}</div>` : ""}</td><td class="r">${money(c.sugU)}</td>
+      <td class="r">${c.cu === min ? '<span class="pill ok">el más barato</span>' : `+${((c.cu / min - 1) * 100).toFixed(0)}%`}</td></tr>`; }).join("")
     || `<tr><td colspan="5" class="empty">No encontré el mismo producto en otro proveedor.</td></tr>`;
   abrirOv("#ovComp");
 }
