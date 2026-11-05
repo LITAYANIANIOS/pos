@@ -15,6 +15,7 @@
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
+   v2.8: 🛒 Compras con estética de oficina propia (notas con cinta, clip con ojos, contador del día con medalla, frases al vaciar una nota).
    v2.8: 🚪 Salir (pasar a otra cuenta) · Roman y Joa cambian de vista 📦 Reparto ⇄ 🛒 Compras · Vivi (link Solo anotar): pantalla simple
          (anotar, buscar precio con costo y venta, mandar a pedir) · ?embed: adentro del panel, con la clave del panel. Necesita script v3.44.
    v2.7: 💲 arriba abre proveedores.html (con el mismo link, sin clave) y cada renglón tiene "🔎 Buscar precio en proveedores".
@@ -42,6 +43,17 @@ body.embed .solo-suelto{display:none!important}
 body.v-compras header.top{background:var(--joa);border-bottom-color:transparent}
 body.v-compras{background:color-mix(in srgb,var(--joa) 25%,var(--bg))}
 body.v-compras .tips button{background:var(--surface)}
+/* 📎 oficina de Joa: notas pegadas con cinta, clip con ojos cuando no hay nada, contador del día */
+.deco,.j-hoy{display:none}
+body.v-compras .deco{display:block;width:30px;height:30px;flex:none;margin-right:-4px}
+body.v-compras .j-hoy:not(:empty){display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--surface);white-space:nowrap}
+body.v-compras .nota:not(.nueva){position:relative;box-shadow:0 2px 7px rgb(0 0 0 / .08)}
+body.v-compras .nota:not(.nueva)::before{content:"";position:absolute;top:-3px;left:50%;width:70px;height:17px;transform:translateX(-50%) rotate(-2.5deg);background:rgb(255 255 255 / .55);border:1px solid rgb(0 0 0 / .06);box-shadow:0 1px 2px rgb(0 0 0 / .06)}
+body.v-compras .nota:nth-child(even)::before{transform:translateX(-50%) rotate(2deg)}
+@media (max-width:560px){body.v-compras .deco{display:none!important} body.v-compras header.top .logo div{display:none}
+  header.top{gap:5px;padding:8px 10px} header.top .ico{width:30px} #vista button{padding:4px 6px;font-size:12px} .j-hoy{padding:3px 7px!important}}
+.clip-vacio{display:flex;gap:12px;align-items:center;padding:6px 8px 10px;color:var(--muted);font-size:14px}
+.clip-vacio svg{width:46px;height:62px;flex:none}
 body.v-reparto header.top{background:var(--k-amarillo);border-bottom-color:transparent}
 body.embed header.top .logo{display:none}
 /* ---------- Vivi: anotar · buscar precio · pedir ---------- */
@@ -121,6 +133,8 @@ body.v-anotar .solo-equipo{display:none}
 <div id="app" hidden>
 <header class="top">
   <div class="logo"><i class="emo" id="lEmo">📝</i><div>Faltantes<small id="lSub">Lita &amp; Añaños</small></div></div>
+  <svg class="deco" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="6" width="20" height="20" rx="1.5" fill="#fff3a8" transform="rotate(6 17 16)"/><path d="M12 13h10M12 17h10M12 21h6" stroke="#b9a640" stroke-width="1.6" stroke-linecap="round" transform="rotate(6 17 16)"/><path d="M10 3v14a3.5 3.5 0 0 0 7 0V5a2.3 2.3 0 0 0-4.6 0v11" fill="none" stroke="#6f7c84" stroke-width="1.8" stroke-linecap="round"/></svg>
+  <span class="j-hoy" id="jHoy" title="Renglones agregados al pedido hoy"></span>
   <div class="seg" id="vista" hidden><button type="button" data-v="reparto">📦 Reparto</button><button type="button" data-v="compras">🛒 Compras</button></div>
   <span class="rol" id="rol"></span>
   <a class="ico solo-suelto solo-equipo" href="proveedores.html" target="_blank" rel="noopener" title="Precios de proveedores" style="text-decoration:none">💲</a>
@@ -303,7 +317,20 @@ function tipsReparto(ab){
   return P.length ? `<span>💡</span>` + P.map((p, i) => `<button type="button" data-p="${i}">${esc(p.t)}</button>`).join("") : "";
 }
 /* ---------- 🛒 COMPRAS (Joa): una nota "Para pedir", sumada y sin sucursal ---------- */
+/* ---------- 📎 la oficina de Joa (solo adorno: nada de esto cambia datos) ---------- */
+const CLIP = `<svg viewBox="0 0 40 54" aria-hidden="true"><path d="M27 14v24a8 8 0 0 1-16 0V10a5.5 5.5 0 0 1 11 0v26a3 3 0 0 1-6 0V14" fill="none" stroke="#7d8a92" stroke-width="3.2" stroke-linecap="round"/><circle cx="14.5" cy="22" r="3.4" fill="#fff" stroke="#1f2a24" stroke-width="1.2"/><circle cx="23.5" cy="22" r="3.4" fill="#fff" stroke="#1f2a24" stroke-width="1.2"/><circle cx="15.3" cy="22.6" r="1.5" fill="#1f2a24"/><circle cx="24.3" cy="22.6" r="1.5" fill="#1f2a24"/><path d="M15.5 28.5q3.5 2.6 7 0" fill="none" stroke="#1f2a24" stroke-width="1.3" stroke-linecap="round"/></svg>`;
+const VACIAS = ["Nada para pedir. Andá a tomarte un mate ☕", "Lista vacía. Los proveedores te extrañan.", "Cero pendientes. Esto es un récord (probablemente).", "Todo pedido. El clip y yo estamos orgullosos."];
+const FRASES = ["Nota liquidada. Eficiencia nivel gerente regional (de compras).", "Otra nota menos. El proveedor no sabe lo que le espera.", "Nota vacía. Esto merece una medialuna.", "Todo tildado. Si hubiera un cuadro de honor, estarías ahí."];
+const al = l => l[Math.floor(Math.random() * l.length)];
+let fV = null; const fraseVacia = () => fV || (fV = al(VACIAS));
+const hoyK = () => new Date().toISOString().slice(0, 10);
+function contarHoy(sumar){                                   // cuántos agregó al pedido hoy, en este celular
+  let x = {}; try{ x = JSON.parse(leerLS("jhoy", "{}")); }catch(e){} if(x.d !== hoyK()) x = {d: hoyK(), n: 0};
+  if(sumar){ x.n = Math.max(0, x.n + sumar); guardarLS("jhoy", JSON.stringify(x)); if(sumar > 0 && [10, 25, 50].includes(x.n)) toast(`🏅 ${x.n} agregados hoy. Comprador del día.`, 4000); }
+  $("#jHoy").textContent = x.n ? `${x.n >= 10 ? "🏅" : "✓"} ${x.n} hoy` : "";
+}
 function renderCompras(){
+  contarHoy(0);
   const orden = (a,b) => (b.nada - a.nada) || (b.vuelve - a.vuelve) || (a.desde - b.desde);
   const pedir = (D.pedir || []).slice().sort(orden), pedidos = D.pedidos || [], listas = D.listas || [];
   $("#tips").innerHTML = tipsCompras(pedir);
@@ -314,7 +341,7 @@ function renderCompras(){
     ${!hecho && dias(g.desde) >= 7 ? `<span class="a">⏰ ${dias(g.desde)}d</span>` : "<span></span>"}</div>`;
   const nota = (nombre, color, items) => `<section class="nota" data-c="${nombre ? "L-" + esc(color || "gris") : "COMPRAS"}">
       <h2>${nombre ? "📁 " + esc(nombre) : "🛒 Para pedir"} <span class="n">${items.length || ""}</span><button class="ico" type="button" data-nota="${esc(nombre)}" title="Opciones de la nota">⋯</button></h2>
-      ${items.map(g => ln(g, false)).join("") || `<div class="vacia">${nombre ? "Vacía: mové renglones acá o agregá abajo." : "No hay nada para pedir 🎉"}</div>`}
+      ${items.map(g => ln(g, false)).join("") || (nombre ? `<div class="vacia">Vacía: mové renglones acá o agregá abajo.</div>` : `<div class="clip-vacio">${CLIP}<span>${esc(fraseVacia())}</span></div>`)}
       <label class="agregar">＋<input data-libre="${esc(nombre)}" maxlength="120" placeholder="Agregar… (ej: 10 agendas Talbot)" enterkeyhint="done"></label></section>`;
   $("#notas").innerHTML = nota("", "", pedir.filter(g => !g.lista || !listas.some(l => l[0] === g.lista)))
     + listas.map(([n, c]) => nota(n, c, pedir.filter(g => g.lista === n))).join("")
@@ -491,7 +518,9 @@ async function cambiarCompras(k, estado, sinDeshacer){
   const g = de.splice(i, 1)[0], nsc0 = g.nsc; a.push(g); g.nsc = estado === "No se consigue"; g.vuelve = false; render();
   try{
     await api("falt-estado", {claves: k, estado});
-    if(!sinDeshacer) avisoDeshacer(estado === "Pedido" ? "✓ Agregado al pedido" : estado === "No se consigue" ? `🔍 Vuelve a tu lista en ${D.vuelveDias} días` : "↩ Volvió a la lista",
+    if(estado === "Pedido") contarHoy(1); else if(estado === "A pedir") contarHoy(-1);       // destildar descuenta
+    const vacioNota = estado === "Pedido" && g.lista && !D.pedir.some(x => x.lista === g.lista);
+    if(!sinDeshacer) avisoDeshacer(vacioNota ? "✓ " + al(FRASES) : estado === "Pedido" ? "✓ Agregado al pedido" : estado === "No se consigue" ? `🔍 Vuelve a tu lista en ${D.vuelveDias} días` : "↩ Volvió a la lista",
       () => cambiarCompras(k, estado === "A pedir" ? (nsc0 ? "No se consigue" : "Pedido") : "A pedir", true));
   }catch(err){ a.splice(a.indexOf(g), 1); de.splice(i, 0, g); g.nsc = nsc0; render(); toast(errTxt(err), 4000); }
 }
