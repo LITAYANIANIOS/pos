@@ -1164,7 +1164,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-05 v3.48";   // v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-05 v3.49";   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1674,8 +1674,8 @@ const LDB = (() => { let db = null; const abrir = () => db || (db = new Promise(
 const LVAC = new Set(["de","del","la","el","con","para","por","sin","los","las","y","x","c","p","u","un","unid","unidad","hjs","hj","hojas","cm","mm","mts","mt","gr","grs"]);
 const lPal = t => norm(t).replace(/[^a-z0-9ñ]+/g, " ").split(" ").filter(w => w.length > 1 && !LVAC.has(w) && !/^\d+$/.test(w));
 const lNum = t => (norm(t).match(/\d+/g) || []).sort().join(",");
-const lPrep = items => items.map(r => ({nombre: String(r[0]), precio: +r[1] || 0, k: norm(r[0]), w: new Set(lPal(r[0])), n: lNum(r[0])}));
-const DEMO_LISTAS = [["Tijera Maped Essentials 13 cm", 1700], ["Tijera Maped Essentials 13 cm Pulse", 1900], ["Goma de borrar Maped Mini Technic 300", 550], ["Calculadora científica Talbot 240 funciones", 18750], ["Lupa escolar 60 mm", 2350]];
+const lPrep = items => items.map(r => ({nombre: String(r[0]), precio: +r[1] || 0, suelto: +r[2] || 0, u: +r[3] || 0, k: norm(r[0]), w: new Set(lPal(r[0])), n: lNum(r[0])}));   // v3.49: [nombre, entero, suelto, unidades]
+const DEMO_LISTAS = [["Goma de borrar Maped Mini x36", 19800, 550, 36], ["Minas 0,5 HB tubito x12", 1200, 100, 12], ["Tijera Maped Essentials 13 cm", 1700], ["Tijera Maped Essentials 13 cm Pulse", 1900], ["Goma de borrar Maped Mini Technic 300", 550], ["Calculadora científica Talbot 240 funciones", 18750], ["Lupa escolar 60 mm", 2350]];
 async function cargarListas(){
   if(LST.cargando) return; LST.cargando = true;
   try{
@@ -1699,11 +1699,14 @@ function buscarListas(texto){
   const grupos = [];                                   // el mismo producto en varias listas → un solo renglón con el precio promedio
   for(const x of r){
     const g = grupos.find(g => g.n === x.n && (() => { let k = 0; for(const w of x.w) if(g.w.has(w)) k++; return k / (g.w.size + x.w.size - k) >= 0.6; })());
-    if(g) g.precios.push(x.precio); else grupos.push({nombre: x.nombre, w: x.w, n: x.n, precios: [x.precio]});
+    if(g){ g.precios.push(x.precio); if(x.suelto) g.sueltos.push(x.suelto); } else grupos.push({nombre: x.nombre, w: x.w, n: x.n, u: x.u, precios: [x.precio], sueltos: x.suelto ? [x.suelto] : []});
     if(grupos.length >= LST_MAX * 3) break;
   }
-  return grupos.slice(0, LST_MAX).map(g => ({cod: "LISTA", nombre: g.nombre, cat: "DE LISTA", _lista: true, _n: g.precios.length,
-    precio: Math.round(g.precios.reduce((a, b) => a + b, 0) / g.precios.length / 50) * 50}));
+  const prom = l => Math.round(l.reduce((a, b) => a + b, 0) / l.length / 50) * 50;
+  /* v3.49: si viene en pack (x12, x36…) salen 2 renglones: ENTERO (el pack como se vende) y SUELTO (1 unidad). El cajero elige; en Ventas queda cuál fue */
+  return grupos.slice(0, LST_MAX).flatMap(g => { const e = {cod: "LISTA", nombre: g.nombre, cat: "DE LISTA", _lista: true, _n: g.precios.length, precio: prom(g.precios)};
+    if(!g.sueltos.length || !(g.u > 1)) return [e];
+    return [{...e, _sub: `Entero: el pack de ${g.u}`}, {...e, nombre: g.nombre.replace(/\s*x\s*\d+\s*$/i, "") + " · suelto", precio: prom(g.sueltos), _sub: `Suelto: 1 de ${g.u}`}]; });
 }
 function search(){
   const txt = parseQ(q.value).text, todos = buscar(txt);
@@ -1724,7 +1727,7 @@ function renderResults(){
     : `<li class="empty" style="display:block">🤔 Sin resultados${listaTxt.length >= 3 && LST.items ? " (tampoco en las listas de proveedores)" : ""}. Usá una categoría de arriba.</li>`; return; }
   const iL = found.findIndex(p => p._lista);
   ul.innerHTML = found.map((p,i) => p._mas ? `<li class="mas" role="option" data-i="${i}" aria-selected="${i===sel}">🔎 ¿No es ninguno? Buscar en las listas de proveedores</li>`
-    : p._lista ? `${i === iL ? `<li class="sep">📋 No está en el catálogo · precio sugerido de las listas de proveedores</li>` : ""}<li class="lista" role="option" data-i="${i}" aria-selected="${i===sel}" title="Precio promedio de ${p._n} lista${p._n > 1 ? "s" : ""} de proveedores. Se vende como DE LISTA."><span class="nom">${esc(p.nombre)}</span><span class="sub">De lista · no está en el catálogo</span><span class="pr">${money(p.precio)}</span></li>`
+    : p._lista ? `${i === iL ? `<li class="sep">📋 No está en el catálogo · precio sugerido de las listas de proveedores</li>` : ""}<li class="lista" role="option" data-i="${i}" aria-selected="${i===sel}" title="Precio promedio de ${p._n} lista${p._n > 1 ? "s" : ""} de proveedores. Se vende como DE LISTA."><span class="nom">${esc(p.nombre)}</span><span class="sub">${p._sub ? esc(p._sub) + " · " : ""}De lista · no está en el catálogo</span><span class="pr">${money(p.precio)}</span></li>`
     : `<li role="option" data-i="${i}" aria-selected="${i===sel}"><span class="nom">${esc(p.nombre)}</span><span class="sub">${esc(p.cod)}${p.cat ? " · "+esc(p.cat) : ""}${p.combo ? " · "+comboTxt(p.combo) : ""}</span>${p._open ? '<span class="open">precio abierto</span>' : `<span class="pr">${enRevision(p.cod) ? '<span class="revision">🔔 revisar</span> ' : ""}${money(p.precio)}</span>`}</li>`).join("")
     + (foundTotal ? `<li class="cuenta">${foundTotal > MAX_LISTA ? `Mostrando ${MAX_LISTA} de ${foundTotal} · escribí otra palabra para achicar` : `${foundTotal} resultado${foundTotal>1?"s":""}`}</li>` : "");
   const s = ul.querySelector('[aria-selected="true"]'); if(s) s.scrollIntoView({block:"nearest"});

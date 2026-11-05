@@ -10,10 +10,15 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PROVEEDORES · DA BOX                                             v1.1
+   PROVEEDORES · DA BOX                                             v1.4
    Buscar precios en las listas de todos los proveedores a la vez (Roman, Joa, Vivi).
    ÍNDICE: 1. Lectores de listas (Excel → filas)  2. Datos y costos  3. Buscar y mostrar
            4. Comparar  5. Pedir  6. Subir listas (solo encargado)  7. Arranque
+   v1.4: el precio grande es el del producto ENTERO (un tubito x12 minas se vende entero); el "c/u" queda chico abajo, por si se fracciona.
+         Comparar sigue siendo por unidad.
+   v1.3: entra con la clave recordada (base.js v1.4) · el link de faltantes sigue sirviendo.
+   v1.2: se entra también con el link de faltantes (sin clave) y desde faltantes con "🔎 Buscar precio" (#q=texto).
+         Si no hay resultado con todas las palabras, muestra los parecidos.
    v1.1: costo y sugerido por unidad cuando el nombre dice cuántas trae (X 36 U., docena, caja x 12): se compara por unidad.
    Los costos NO están en este archivo (el repo es público): vienen de la planilla con clave.
    ===================================================================== */
@@ -112,11 +117,16 @@ kbd{font:600 11px var(--sans);background:var(--surface-2);border:1px solid var(-
   <div class="acciones"><button class="btn" data-cerrar>Cerrar</button><button class="btn primary" id="subOk" hidden>Subir</button></div>
 </div></div>
 
-<script src="comun/base.js?v=4"></script>
+<script src="comun/base.js?v=6"></script>
 <script>
 (()=>{
 "use strict";
 const {$, esc, money, norm, toast, api, leerLS} = LA;
+/* Entrar con el link de faltantes: la llave (dabox.ftok) ya quedó guardada en esta PC/celular al abrir faltantes.html.
+   Con la llave se busca y se pide; para SUBIR listas hace falta la clave del encargado. */
+const tok = leerLS("ftok", ""), claveSesion = LA.clave;          // clave de esta pestaña o la recordada (base.js v1.4): con clave, manda la clave
+let modoLink = !!tok && !claveSesion && !!leerLS("url", "");
+const P = o => modoLink ? {...o, t: tok, quien: leerLS("fquien", "")} : o;
 
 /* =====================================================================
    1. LECTORES DE LISTAS: cada proveedor manda un formato distinto.
@@ -230,7 +240,7 @@ const IDB = (() => { let db = null; const abrir = () => db || (db = new Promise(
 
 async function cargar(forzar){
   const guardado = forzar ? null : await IDB.get("datos");
-  const r = await api("prov-datos", guardado ? {v: guardado.version} : {});
+  const r = await api("prov-datos", P(guardado ? {v: guardado.version} : {}));
   if(r.igual && guardado){ D = {...guardado, rol: r.rol, provs: r.provs}; }
   else { D = {rol: r.rol, version: r.version, provs: r.provs, items: r.items || []}; IDB.set("datos", {version: D.version, provs: D.provs, items: D.items}); }
   D.its = preparar(D.items);
@@ -264,13 +274,22 @@ function enCatalogo(it){
 /* =====================================================================
    3. BUSCAR Y MOSTRAR
    ===================================================================== */
-let filtro = new Set(), orden = "rel", lista = [], sel = 0;
+let filtro = new Set(), orden = "rel", lista = [], sel = 0, parecidos = false;
 const MAX = 120;
 function buscar(){
   const q = norm($("#q").value).trim(), t = q.split(/\s+/).filter(Boolean);
   if(!t.length) return [];
   const out = [];
   for(const it of D.its){ if(filtro.size && !filtro.has(it.p)) continue; if(t.every(x => it.k.includes(x))) out.push(it); }
+  parecidos = false;
+  if(!out.length && t.length >= 2){                         // nada con TODAS las palabras: los que tienen casi todas (ej. "75g" vs "75 grs")
+    // cada palabra pesa según lo rara que es: "ledesma" (marca) vale más que "resma" o "a4"
+    const min = Math.max(1, Math.ceil(t.length * 0.6)), sc = new Map(), df = t.map(x => { let n = 1; for(const it of D.its) if(it.k.includes(x)) n++; return n; });
+    const peso = df.map(n => Math.log((D.its.length + 1) / n));
+    for(const it of D.its){ if(filtro.size && !filtro.has(it.p)) continue; let k = 0, w = 0; t.forEach((x, i) => { if(it.k.includes(x)){ k++; w += peso[i]; } }); if(k >= min){ sc.set(it, w); out.push(it); } }
+    out.sort((a, b) => sc.get(b) - sc.get(a)); parecidos = out.length > 0;
+    if(orden !== "costo") return out;
+  }
   if(orden === "costo") out.sort((a, b) => costo(a).cu - costo(b).cu);        // por unidad: caja de 36 vs suelto
   else { const pri = t[0]; out.sort((a, b) => (b.k.startsWith(pri) - a.k.startsWith(pri)) || (a.nom.length - b.nom.length)); }
   return out;
@@ -290,13 +309,13 @@ function render(){
   lista = buscar(); sel = Math.min(sel, Math.max(0, lista.length - 1));
   const q = $("#q").value.trim(), vis = lista.slice(0, MAX);
   $("#vacio").hidden = !!q; $("#tabla").hidden = !q;
-  $("#info").textContent = !q ? "" : lista.length ? `${lista.length > MAX ? `Primeros ${MAX} de ${lista.length.toLocaleString("es-AR")}` : lista.length + (lista.length === 1 ? " resultado" : " resultados")}${filtro.size ? " (filtrado por proveedor)" : ""}` : "Nada con esas palabras. Probá con menos o con la marca.";
+  $("#info").textContent = !q ? "" : lista.length ? `${parecidos ? "Ninguno tiene todas las palabras · parecidos: " : ""}${lista.length > MAX ? `Primeros ${MAX} de ${lista.length.toLocaleString("es-AR")}` : lista.length + (lista.length === 1 ? " resultado" : " resultados")}${filtro.size ? " (filtrado por proveedor)" : ""}` : "Nada con esas palabras. Probá con menos o con la marca.";
   $("#res").innerHTML = vis.map((it, i) => { const c = costo(it);
     return `<tr data-i="${i}" class="${i === sel ? "sel" : ""}"><td class="c-pv">${pvTag(it)}</td>
       <td class="c-nom nom"><b>${esc(it.nom)}</b><div class="m">${esc(it.cod)}${it.ean ? " · EAN " + esc(it.ean) : ""}${it.rub ? " · " + esc(it.rub) : ""}</div>${tags(it)}</td>
       <td class="r c-lista m">${money(it.lista)}</td>
-      <td class="r c-cos"><span class="costo" data-tip="${tipEsc(provDe(it).nombre)}: −${provDe(it).desc}% · +${provDe(it).rec}%${c.nota ? " · " + c.nota : ""}">${money(c.v)}</span>${c.n > 1 ? `<div class="m" data-tip="Trae ${c.n} unidades (leído del nombre)">x${c.n} · <b>${money(c.cu)} c/u</b></div>` : ""}</td>
-      <td class="r sug c-sug">${c.n > 1 ? `${money(c.sugU)} c/u<div class="m">x${c.n}: ${money(c.sug)}</div>` : money(c.sug)}</td>
+      <td class="r c-cos"><span class="costo" data-tip="${tipEsc(provDe(it).nombre)}: −${provDe(it).desc}% · +${provDe(it).rec}%${c.nota ? " · " + c.nota : ""}">${money(c.v)}</span>${c.n > 1 ? `<div class="m" data-tip="Trae ${c.n} unidades (leído del nombre)">x${c.n} · ${money(c.cu)} c/u</div>` : ""}</td>
+      <td class="r sug c-sug">${money(c.sug)}${c.n > 1 ? `<div class="m" data-tip="Solo si se vende suelto">suelto ${money(c.sugU)} c/u</div>` : ""}</td>
       <td class="acc"><button class="btn" data-a="comp" data-tip="Comparar con otros proveedores (C)">⚖️</button> <button class="btn" data-a="pedir" data-tip="Mandar a compras (P)">🛒</button></td></tr>`; }).join("");
 }
 function chips(){
@@ -361,7 +380,7 @@ function pedir(it){
 $("#fPedir").onsubmit = async e => {
   e.preventDefault(); const txt = $("#pedTxt").value.trim(); if(!txt) return;
   $("#pedOk").disabled = true; $("#pedOk").textContent = "Mandando…";
-  try{ const r = await api("prov-pedir", {texto: txt, cant: Math.round(numAR($("#pedCant").value)) || "", prov: provDe(pidiendo).nombre});
+  try{ const r = await api("prov-pedir", P({texto: txt, cant: Math.round(numAR($("#pedCant").value)) || "", prov: provDe(pidiendo).nombre}));
     cerrarOv(); toast(`🛒 Anotado para compras${r.lista ? " en la nota " + r.lista : ""}`); }
   catch(err){ $("#pedErr").textContent = LA.ERR[err] || err?.msg || "No se pudo mandar."; $("#pedErr").hidden = false; }
   finally{ $("#pedOk").disabled = false; $("#pedOk").textContent = "Mandar"; }
@@ -436,7 +455,7 @@ function previa(){
 $("#subPrev").addEventListener("change", e => { const c = e.target.closest("[data-g]"); if(c) porSubir[+c.dataset.g].sacar = c.checked; });
 $("#subPrev").addEventListener("click", e => { const b = e.target.closest("[data-q]"); if(b){ porSubir.splice(+b.dataset.q, 1); previa(); if(!porSubir.length) $("#subOk").hidden = true; } });
 async function post(cuerpo){                               // la clave va en el cuerpo (no en la dirección) y la planilla contesta si guardó
-  const url = leerLS("url", ""), clave = (() => { try{ return sessionStorage.getItem("dabox.clave") || ""; }catch(e){ return ""; } })();
+  const url = leerLS("url", ""), clave = LA.clave;
   const r = await fetch(url, {method: "POST", body: JSON.stringify({...cuerpo, clave})});
   const j = await r.json(); if(j.error) throw new Error(j.error); return j;
 }
@@ -464,10 +483,20 @@ document.addEventListener("click", e => { if(e.target.matches("[data-cerrar]") |
 /* =====================================================================
    7. ARRANQUE: ingreso con clave (comun/base.js). Claves: encargado, compras o la de proveedores (Vivi).
    ===================================================================== */
-$("#bSalir").onclick = () => LA.salir();
+// #q=texto: viene de faltantes ("🔎 Buscar precio"): se busca solo
+const qIni = (() => { const m = location.hash.match(/[#&]q=([^&]*)/); if(!m) return ""; history.replaceState(null, "", location.pathname + location.search);
+  try{ return decodeURIComponent(m[1]).replace(/\+/g, " ").slice(0, 120); }catch(e){ return ""; } })();
+function alEntrar(){
+  $("#bSubir").hidden = D.rol !== "admin"; $("#bSalir").textContent = modoLink ? "🔑 Clave" : "Salir";
+  $("#bSalir").dataset.tip = modoLink ? "Entraste con el link de faltantes. Para subir listas, entrá con la clave del encargado." : "";
+  chips(); if(qIni && !$("#q").value){ $("#q").value = qIni; sel = 0; } render(); $("#q").focus(); cargarCatalogo();
+}
+let conClave = false;
+function entrarConClave(){ if(conClave) return; conClave = true; modoLink = false; LA.ingreso({app: "Proveedores", emoji: "📦", cargar: () => cargar(false), alEntrar}); }
+$("#bSalir").onclick = () => modoLink ? entrarConClave() : LA.salir();
 $("#bRec").onclick = async () => { try{ await cargar(true); chips(); render(); toast("✓ Listas actualizadas"); }catch(e){ toast(LA.ERR[e] || e?.msg || "No se pudo actualizar"); } };
-LA.ingreso({app: "Proveedores", emoji: "📦", cargar: () => cargar(false),
-  alEntrar(){ $("#bSubir").hidden = D.rol !== "admin"; chips(); render(); $("#q").focus(); cargarCatalogo(); }});
+if(modoLink) cargar(false).then(() => { $("#app").hidden = false; alEntrar(); }).catch(() => entrarConClave());   // link viejo o cambiado: pide clave
+else entrarConClave();
 })();
 </script>
 </body>

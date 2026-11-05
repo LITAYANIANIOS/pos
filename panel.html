@@ -10,9 +10,13 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v2.3
+   PANEL · DA BOX                                                 v2.6
    Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.6: 🏷️ Precios = el Catálogo desde el panel: cambiar códigos de barras, ＋ dar de alta productos y, al buscar, ver lo mismo en las listas
+         de proveedores con "＋ Cargar" (nombre, código de barras y precio sugerido ya puestos). Necesita script v3.45.
+   v2.5: 💡 sugerido de proveedores = precio del producto entero (el c/u suelto queda como dato).
+   v2.4: Joa (Compras) arranca en 📝 Faltantes · 🔎 Buscar precio en Faltantes salta a 💲 Proveedores · "Recordar en este dispositivo" (base.js v1.4).
    v2.3: 📝 Faltantes y 💲 Proveedores adentro del panel (Encargado y Compras, misma clave) · 🏷️ Precios: 💡 sugerido de las listas de proveedores
          debajo del producto elegido (los 3 más parecidos, costo y venta por unidad; tocar = usar ese precio). Saca el link al tablero viejo (compras.html).
    v2.2: 🏷️ Precios (Encargado y Dueño): buscar un producto del Catálogo y cambiar precio o combo ahí mismo. Acepta cuentas
@@ -79,6 +83,17 @@ tr.sb-abierto td{background:var(--surface-2)}
 .pr-t input.campo{padding:7px 10px;background:var(--surface)}
 .pr-t .inp-p{width:130px;text-align:right;font-weight:700}
 .pr-t .inp-c{width:150px}
+.pr-t .inp-a{width:170px;font-size:13px}
+.pr-alta{background:var(--accent-soft);border-radius:var(--r);padding:14px;margin-bottom:14px}
+.pr-alta .g{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+.pr-alta .g2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+.pr-alta label{display:grid;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}
+.pr-alta .acc{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;align-items:center}
+.pr-prov{margin-top:14px;border-top:1px dashed var(--line);padding-top:10px}
+.pr-prov h4{margin:0 0 6px;font-size:13px;color:var(--muted)}
+.pr-prov .it{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px}
+.pr-prov .it .m{display:block}
+@media (max-width:760px){.pr-alta .g,.pr-alta .g2{grid-template-columns:1fr}}
 .pr-t .prev{font-size:12px;color:var(--muted);white-space:nowrap}
 .pr-t .prev.sube{color:var(--bad)} .pr-t .prev.baja{color:var(--ok)} .pr-t .prev.ojo{color:var(--bad);font-weight:700}
 .pr-t tr.ok td{background:var(--ok-soft)}
@@ -119,7 +134,7 @@ iframe.embebido{width:100%;height:calc(100vh - 120px);min-height:520px;border:0;
 </main>
 </div>
 
-<script src="comun/base.js?v=4"></script>
+<script src="comun/base.js?v=6"></script>
 <script>
 (()=>{
 "use strict";
@@ -158,6 +173,7 @@ function armarNav(){
   const secs = D.secciones.filter(s => SECCIONES[s]);
   if(["admin","dueno"].includes(D.rol) && !secs.includes("precios")) secs.push("precios");   // cambiar precios: la planilla vuelve a pedir la clave en cada cambio
   if(CON_COMPRAS.includes(D.rol)) secs.push("falt", "prov");                                  // se abren acá adentro con la misma clave (faltantes.html y proveedores.html)
+  if(D.rol === "compras"){ secs.sort((a, b) => (a === "productos") - (b === "productos")); if(!tab) tab = "falt"; }   // Joa arranca en Faltantes
   if(!secs.includes(tab)) tab = secs[0];
   $("#nav").innerHTML = secs.map(s => `<button role="tab" data-s="${s}" aria-selected="${s===tab}"><i class="emo">${SECCIONES[s][0]}</i>${SECCIONES[s][1]}</button>`).join("")
 ;
@@ -195,8 +211,14 @@ function render(){
 /* 📝 💲 adentro del panel: la página se carga una sola vez (no se pierde lo escrito al cambiar de sección) y usa la clave del panel */
 function rEmbebido(s){
   const S = $("#s-" + s); if(S.firstChild) return;
-  S.innerHTML = `<iframe class="embebido" title="${SECCIONES[s][1]}" src="${s === "falt" ? "faltantes.html?embed" + (LA.demo ? "&demo" : "") : "proveedores.html"}"></iframe>`;
+  S.innerHTML = `<iframe class="embebido" title="${SECCIONES[s][1]}" src="${s === "falt" ? "faltantes.html?embed" + (LA.demo ? "&demo" : "") : "proveedores.html" + (provQ ? "?r=" + Date.now() + "#q=" + encodeURIComponent(provQ) : "")}"></iframe>`; provQ = "";
 }
+/* 🔎 "Buscar precio" desde 📝 Faltantes: salta a 💲 Proveedores con la búsqueda hecha */
+let provQ = "";
+window.addEventListener("message", e => {
+  if(e.origin !== location.origin || !e.data || e.data.dabox !== "prov") return;
+  provQ = String(e.data.q || "").slice(0, 120); $("#s-prov").innerHTML = ""; tab = "prov"; armarNav(); render();
+});
 
 /* =====================================================================
    3. EN VIVO — cada PC avisa a la planilla cada minuto (hoja Estado)
@@ -610,10 +632,11 @@ async function rPrecios(){
   const S = $("#s-precios");
   if(!prCat){ S.innerHTML = `<div class="card empty">Cargando el catálogo…</div>`; try{ await prCargar(); }catch(e){ S.innerHTML = `<div class="card empty">${esc(LA.ERR[e] || "No se pudo cargar el catálogo.")}</div>`; return; } }
   S.innerHTML = `<div class="grid"><div class="card">
-    <h3><span>Cambiar precios</span><button class="btn sm" id="prRec" type="button" title="Volver a leer el Catálogo de la planilla">↻ Catálogo</button></h3>
+    <h3><span>Catálogo</span><span><button class="btn sm primary" id="prNuevo" type="button">＋ Producto nuevo</button> <button class="btn sm" id="prRec" type="button" title="Volver a leer el Catálogo de la planilla">↻</button></span></h3>
+    <div class="pr-alta" id="prAlta" hidden></div>
     <p class="note">Buscá el producto, escribí el precio nuevo y <b>Enter</b>. Podés poner una cuenta: <b>4500*2,13</b> (costo × margen), <b>+10%</b> o <b>-5%</b> (redondea a $ ${REDONDEO}). Las cajas lo toman en hasta 30 minutos.</p>
     <div class="pr-busca"><input class="campo" id="prQ" autocomplete="off" spellcheck="false" placeholder="🔎 Nombre o código (ej: resma boreal)" value="${esc(prBusca)}"><span class="m" id="prN"></span></div>
-    <div class="tw"><table class="pr-t" id="prT"></table></div></div>
+    <div class="tw"><table class="pr-t" id="prT"></table></div><div class="pr-prov" id="prProv" hidden></div></div>
     <div class="card"><h3>Últimos cambios</h3><p class="note">Los hechos desde acá (los que cambies a mano en la planilla no quedan registrados). ↩ vuelve al precio anterior.</p><div class="tw"><table id="prH"></table></div></div></div>`;
   prTabla(); prHist();
   const q = $("#prQ"); q.focus(); q.setSelectionRange(q.value.length, q.value.length);
@@ -621,14 +644,15 @@ async function rPrecios(){
 function prTabla(){
   const l = prLista();
   $("#prN").textContent = !prBusca.trim() ? `${prCat.length.toLocaleString("es-AR")} productos en el Catálogo` : l.length >= 40 ? "Mostrando 40: escribí otra palabra para achicar" : `${l.length} resultado${l.length === 1 ? "" : "s"}`;
-  $("#prT").innerHTML = l.length ? `<tr><th>Producto</th><th class="r">Precio actual</th><th>Precio nuevo</th><th>Combo</th><th></th></tr>` + l.map((p, i) => { const h = prHechos[p.cod + "|" + p.nombre];
+  $("#prT").innerHTML = l.length ? `<tr><th>Producto</th><th class="r">Precio actual</th><th>Precio nuevo</th><th>Combo</th><th>Códigos de barras</th><th></th></tr>` + l.map((p, i) => { const h = prHechos[p.cod + "|" + p.nombre];
     return `<tr data-i="${i}" class="${h ? "ok" : ""}"><td class="nom"><b>${esc(p.nombre)}</b><small>${esc(p.cod)}${p.cat ? " · " + esc(p.cat) : ""}${h ? ` · ✓ antes ${money(h)}` : ""}</small><div class="sp" data-sp="${i}"></div></td>
       <td class="r"><b>${p.precio > 0 ? money(p.precio) : '<span class="m">abierto</span>'}</b></td>
       <td><input class="campo num inp-p" data-i="${i}" inputmode="decimal" autocomplete="off" placeholder="${p.precio || ""}"><div class="prev" data-prev="${i}"></div></td>
       <td><input class="campo inp-c" data-c="${i}" autocomplete="off" value="${esc(p.combo || "")}" placeholder="ej: 3x2500"></td>
+      <td><input class="campo inp-a" data-a="${i}" autocomplete="off" spellcheck="false" value="${esc(p.alt || "")}" placeholder="779…, 779…"></td>
       <td><button class="btn sm primary" data-g="${i}" type="button">Guardar</button></td></tr>`; }).join("")
-    : prBusca.trim() ? `<tr><td class="empty">🔍 No está en el Catálogo. Si es nuevo, se agrega en la planilla.</td></tr>` : "";
-  prTabla.l = l;
+    : prBusca.trim() ? `<tr><td class="empty">🔍 No está en el Catálogo. Cargalo desde una lista de abajo o con <b>＋ Producto nuevo</b>.</td></tr>` : "";
+  prTabla.l = l; prProv();
 }
 function prPrev(i){
   const p = prTabla.l[i], inp = $(`input[data-i="${i}"].inp-p`), el = $(`[data-prev="${i}"]`); if(!p || !el) return;
@@ -642,18 +666,19 @@ function prPrev(i){
 async function prGuardar(i){
   const p = prTabla.l[i]; if(!p) return;
   const inp = $(`input[data-i="${i}"].inp-p`), combo = $(`input[data-c="${i}"]`).value.trim(), r = prEval(inp.value, p.precio);
+  const alt = $(`input[data-a="${i}"]`).value.trim(), cambiaAlt = alt !== (p.alt || "");
   const precio = inp.value.trim() ? (r && r.v) : p.precio;
   if(!(precio > 0)){ inp.focus(); return LA.toast("Poné el precio nuevo (número o cuenta)"); }
-  if(precio === p.precio && combo === (p.combo || "")) return LA.toast("No cambió nada");
+  if(precio === p.precio && combo === (p.combo || "") && !cambiaAlt) return LA.toast("No cambió nada");
   const d = p.precio > 0 ? Math.abs(precio / p.precio - 1) * 100 : 0;
   if(d >= PCT_OJO && prConfirmar !== i){ prConfirmar = i; return LA.toast(`Cambia ${d.toFixed(0)} %: Enter de nuevo para confirmar`, 3500); }
   prConfirmar = null; const btn = $(`[data-g="${i}"]`); btn.disabled = true; btn.textContent = "…";
   try{
     const antes = p.precio;
-    if(LA.demo){ p.precio = precio; p.combo = combo; prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), "Encargado", p.cod, p.nombre, antes, precio, combo]); }
-    else { const res = await LA.api("precio-editar", {cod:p.cod, nombreOrig:p.nombre, precio, combo, _sinReintento:1}); Object.assign(p, res.item); prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), ROLES[D.rol] || "", p.cod, p.nombre, antes, p.precio, p.combo || ""]); }
+    if(LA.demo){ p.precio = precio; p.combo = combo; p.alt = alt; prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), "Encargado", p.cod, p.nombre, antes, precio, combo]); }
+    else { const res = await LA.api("precio-editar", {cod:p.cod, nombreOrig:p.nombre, precio, combo, ...(cambiaAlt ? {alt} : {}), _sinReintento:1}); Object.assign(p, res.item); prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), ROLES[D.rol] || "", p.cod, p.nombre, antes, p.precio, p.combo || ""]); }
     prHechos[p.cod + "|" + p.nombre] = antes;
-    LA.toast(`✓ ${p.nombre}: ${money(antes)} → ${money(p.precio)}`, 3500);
+    LA.toast(`✓ ${p.nombre}: ${antes !== p.precio ? `${money(antes)} → ${money(p.precio)}` : "guardado"}${cambiaAlt ? " · códigos de barras" : ""}`, 3500);
     prTabla(); prHist(); const q = $("#prQ"); q.focus(); q.select();      // listo para el próximo producto
   }catch(e){ if(e === "clave"){ LA.salir(LA.ERR.clave); return; } LA.toast("❌ " + ((e && e.msg) || LA.ERR[e] || "No se guardó"), 6000); btn.disabled = false; btn.textContent = "Guardar"; }
 }
@@ -676,8 +701,8 @@ function pvCosto(it){                                 // igual que proveedores.h
   const c = pvD.provs[it[0]] || {desc:0, rec:0, esc:0, mult:2.13, red:50}, t = [], ext = String(it[6] || ""); let b = it[3], of = 0;
   ext.split(/\s+/).forEach(x => { let m = x.match(/^x(\d+)=([\d.]+)$/); if(m) t.push([+m[1], +m[2]]); m = x.match(/^of=([\d.]+)$/); if(m) of = +m[1]; });
   t.sort((a, z) => a[0] - z[0]); if(c.esc > 0 && t.length) b = t[Math.min(c.esc, t.length) - 1][1]; if(of && of < b) b = of;
-  const cu = b * (1 - c.desc / 100) * (1 + c.rec / 100) / pvUnid(it[2]);
-  return {cu, sug: Math.round(cu * c.mult / c.red) * c.red, prov: c.nombre || "?"};
+  const v = b * (1 - c.desc / 100) * (1 + c.rec / 100), n = pvUnid(it[2]);              // v2.5: precio del producto ENTERO; c/u solo como dato
+  return {v, n, sug: Math.round(v * c.mult / c.red) * c.red, sugU: Math.round(v / n * c.mult / c.red) * c.red, prov: c.nombre || "?"};
 }
 const pvIDB = (modo, val) => new Promise(ok => { try{ const r = indexedDB.open("dabox-prov", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv");
   r.onsuccess = () => { try{ const tx = r.result.transaction("kv", modo), st = tx.objectStore("kv"), q = modo === "readonly" ? st.get("datos") : st.put(val, "datos");
@@ -703,7 +728,55 @@ async function prSug(i){
   w.forEach(x => (pvIdx.get(x) || []).forEach(j => k.set(j, (k.get(j) || 0) + 1)));
   const top = [...k].map(([j, n]) => [j, n / (w.length + pvD.n[j] - n)]).filter(x => x[1] >= 0.25).sort((a, b) => b[1] - a[1]).slice(0, 3);
   el.innerHTML = top.map(([j]) => { const it = pvD.items[j], c = pvCosto(it);
-    return `<button class="sp-b" type="button" data-usa="${i}" data-v="${c.sug}" title="Usar ${money(c.sug)}">💡 ${esc(c.prov)} · venta <b>${money(c.sug)}</b><span class="m">${esc(it[2].slice(0, 48))} · costo ${money(Math.round(c.cu))}${pvUnid(it[2]) > 1 ? " c/u" : ""}</span></button>`; }).join("");
+    return `<button class="sp-b" type="button" data-usa="${i}" data-v="${c.sug}" title="Usar ${money(c.sug)}">💡 ${esc(c.prov)} · venta <b>${money(c.sug)}</b><span class="m">${esc(it[2].slice(0, 48))} · costo ${money(Math.round(c.v))}${c.n > 1 ? ` · suelto ${money(c.sugU)} c/u` : ""}</span></button>`; }).join("");
+}
+/* ＋ ALTA: un producto nuevo en el Catálogo (accion=producto-nuevo, script v3.45). Código vacío = el 1er código de barras (o P00001…) */
+function prAltaAbrir(x){
+  const cats = [...new Set((prCat || []).map(p => p.cat).filter(Boolean))].sort();
+  $("#prAlta").innerHTML = `<b>＋ Producto nuevo</b>${x.nota ? ` <span class="m">· de la lista de ${esc(x.nota)}</span>` : ""}
+    <div class="g" style="margin-top:8px"><label>Nombre (como lo buscan en la caja)<input class="campo" id="aNom" maxlength="120" value="${esc(x.nombre || "")}"></label>
+      <label>Categoría<input class="campo" id="aCat" list="prCats" maxlength="40" autocomplete="off"></label>
+      <label>Precio (o cuenta: 4500*2,13)<input class="campo num" id="aPre" inputmode="decimal" autocomplete="off" value="${x.precio || ""}"><span class="m" id="aPrev"></span></label></div>
+    <div class="g2"><label>Códigos de barras (separados por coma)<input class="campo" id="aAlt" spellcheck="false" autocomplete="off" value="${esc(x.alt || "")}"></label>
+      <label>Combo (opcional)<input class="campo" id="aCom" autocomplete="off" placeholder="ej: 3x2500"></label>
+      <label>Código interno (opcional)<input class="campo" id="aCod" spellcheck="false" autocomplete="off" placeholder="vacío = el código de barras"></label></div>
+    <datalist id="prCats">${cats.map(c => `<option value="${esc(c)}">`).join("")}</datalist>
+    <div class="acc"><span class="m">Enter guarda · Esc cancela · las cajas lo ven en hasta 30 min</span><button class="btn" id="prAltaNo" type="button">Cancelar</button><button class="btn primary" id="prAltaOk" type="button">Guardar en el Catálogo</button></div>`;
+  $("#prAlta").hidden = false; $("#aNom").focus(); $("#aNom").select();
+}
+function prAltaCerrar(){ $("#prAlta").hidden = true; $("#prAlta").innerHTML = ""; $("#prQ").focus(); }
+async function prAltaGuardar(){
+  const v = id => $(id).value.trim(), r = prEval(v("#aPre"), 0), b = $("#prAltaOk");
+  if(v("#aNom").length < 3){ $("#aNom").focus(); return LA.toast("Escribí el nombre"); }
+  if(!r || !(r.v > 0)){ $("#aPre").focus(); return LA.toast("Poné el precio (número o cuenta)"); }
+  const d = {nombre: v("#aNom"), cat: v("#aCat"), precio: r.v, alt: v("#aAlt"), combo: v("#aCom"), cod: v("#aCod")};
+  b.disabled = true; b.textContent = "Guardando…";
+  try{
+    const item = LA.demo ? {...d, cod: d.cod || d.alt.split(/[\s,]+/)[0] || "P00001", cat: d.cat.toUpperCase(), alt: d.alt.split(/[\s,]+/).slice(d.cod ? 0 : 1).join(", ")}
+      : (await LA.api("producto-nuevo", {...d, _sinReintento:1})).item;
+    prCat.push(item); prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), (ROLES[D.rol] || "") + " · ALTA", item.cod, item.nombre, 0, item.precio, item.combo || ""]);
+    prHechos[item.cod + "|" + item.nombre] = 0; prAltaCerrar(); prBusca = item.nombre; $("#prQ").value = item.nombre; prTabla(); prHist();
+    LA.toast(`✓ Alta: ${item.nombre} · ${money(item.precio)} · código ${item.cod}`, 4500);
+  }catch(e){ if(e === "clave"){ LA.salir(LA.ERR.clave); return; } LA.toast("❌ " + ((e && e.msg) || LA.ERR[e] || "No se guardó"), 6000); b.disabled = false; b.textContent = "Guardar en el Catálogo"; }
+}
+$("#s-precios").addEventListener("input", e => { if(e.target.id === "aPre"){ const r = prEval(e.target.value, 0); $("#aPrev").textContent = r && r.cuenta ? "= " + money(r.v) : ""; } });
+/* 💲 lo mismo en las listas de proveedores (debajo del Catálogo): para comparar o cargarlo con un toque */
+let prProvT;
+function prProv(){
+  clearTimeout(prProvT); const el = $("#prProv"), q = norm(prBusca).trim(), w = q.split(/\s+/).filter(Boolean);
+  if(q.length < 3){ el.hidden = true; return; }
+  prProvT = setTimeout(async () => {
+    await pvCargar(); if(norm(prBusca).trim() !== q) return;
+    if(!pvD.items.length){ el.hidden = true; return; }
+    if(!pvD.k) pvD.k = pvD.items.map(it => norm(`${it[2]} ${it[1]} ${it[4]}`));
+    const codsCat = new Set((prCat || []).flatMap(p => [p.cod, ...String(p.alt || "").split(/[\s,;|]+/)]).map(c => String(c).replace(/^0+/, "")).filter(c => c.length >= 7));
+    const res = []; for(let j = 0; j < pvD.items.length && res.length < 200; j++) if(w.every(x => pvD.k[j].includes(x))) res.push(j);
+    const l = res.sort((a, b) => pvD.items[a][2].length - pvD.items[b][2].length).slice(0, 6).map(j => { const it = pvD.items[j], c = pvCosto(it);
+      return {nom: it[2], cod: it[1], ean: String(it[4] || ""), prov: c.prov, v: c.v, sug: c.sug, ya: it[4] && codsCat.has(String(it[4]).replace(/^0+/, ""))}; });
+    prProv.l = l; el.hidden = !l.length;
+    el.innerHTML = `<h4>💲 En las listas de proveedores (${res.length >= 200 ? "200+" : res.length})</h4>` + l.map((x, i) => `<div class="it"><span>${esc(x.nom)}<span class="m">${esc(x.prov)} · ${esc(x.cod)}${x.ean ? " · EAN " + esc(x.ean) : ""} · costo ${money(Math.round(x.v))}</span></span>
+      <b>${money(x.sug)}</b>${x.ya ? `<span class="pill ok">✓ en el Catálogo</span>` : `<button class="btn sm" type="button" data-cargar="${i}" title="Cargarlo al Catálogo con estos datos">＋ Cargar</button>`}</div>`).join("");
+  }, 250);
 }
 $("#s-precios").addEventListener("focusin", e => { if(e.target.classList.contains("inp-p")) prSug(+e.target.dataset.i); });
 $("#s-precios").addEventListener("input", e => {
@@ -712,7 +785,8 @@ $("#s-precios").addEventListener("input", e => {
 });
 $("#s-precios").addEventListener("keydown", e => {
   if(e.target.id === "prQ" && (e.key === "ArrowDown" || e.key === "Enter")){ const f = $(".inp-p"); if(f){ e.preventDefault(); f.focus(); } return; }
-  const i = e.target.dataset.i ?? e.target.dataset.c; if(i == null) return;
+  if(e.target.closest("#prAlta")){ if(e.key === "Enter"){ e.preventDefault(); prAltaGuardar(); } if(e.key === "Escape"){ e.preventDefault(); prAltaCerrar(); } return; }
+  const i = e.target.dataset.i ?? e.target.dataset.c ?? e.target.dataset.a; if(i == null) return;
   if(e.key === "Enter"){ e.preventDefault(); prGuardar(+i); }
   if(e.key === "Escape"){ e.preventDefault(); const q = $("#prQ"); q.focus(); q.select(); }
   if(e.key === "ArrowDown" || e.key === "ArrowUp"){ const n = $(`input[data-i="${+i + (e.key === "ArrowDown" ? 1 : -1)}"].inp-p`); if(n){ e.preventDefault(); n.focus(); } }
@@ -720,6 +794,10 @@ $("#s-precios").addEventListener("keydown", e => {
 $("#s-precios").addEventListener("click", async e => {
   const g = e.target.closest("[data-g]"); if(g) return prGuardar(+g.dataset.g);
   const us = e.target.closest("[data-usa]"); if(us){ const i = +us.dataset.usa, inp = $(`input[data-i="${i}"].inp-p`); inp.value = us.dataset.v; prPrev(i); inp.focus(); return; }
+  if(e.target.id === "prNuevo") return prAltaAbrir({nombre: prBusca.trim()});
+  if(e.target.id === "prAltaNo") return prAltaCerrar();
+  if(e.target.id === "prAltaOk") return prAltaGuardar();
+  const ca = e.target.closest("[data-cargar]"); if(ca){ const x = prProv.l[+ca.dataset.cargar]; if(x) prAltaAbrir({nombre: x.nom, alt: x.ean, precio: x.sug, nota: `${x.prov} · costo ${money(Math.round(x.v))}`}); return; }
   if(e.target.id === "prRec"){ try{ await prCargar(true); prTabla(); prHist(); LA.toast("Catálogo actualizado"); }catch(x){ LA.toast(LA.ERR[x] || "No se pudo leer el catálogo"); } return; }
   const u = e.target.closest("[data-un]"); if(!u) return;
   const c = prCambios[+u.dataset.un], p = prCat.find(x => x.cod === c[3] && x.nombre === c[4]) || prCat.find(x => x.cod === c[3]);
