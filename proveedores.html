@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Proveedores · Lita &amp; Añaños</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f6c445'/%3E%3Cpath d='M12 24l20-10 20 10v18L32 52 12 42z M12 24l20 10 20-10 M32 34v18' fill='none' stroke='%231f2a24' stroke-width='4.5' stroke-linejoin='round'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#f6c445">
+<link rel="stylesheet" href="comun/estilos.css?v=1">
+<style>
+/* =====================================================================
+   PROVEEDORES · DA BOX                                             v1.0
+   Buscar precios en las listas de todos los proveedores a la vez (Roman, Joa, Vivi).
+   ÍNDICE: 1. Lectores de listas (Excel → filas)  2. Datos y costos  3. Buscar y mostrar
+           4. Comparar  5. Pedir  6. Subir listas (solo encargado)  7. Arranque
+   Los costos NO están en este archivo (el repo es público): vienen de la planilla con clave.
+   ===================================================================== */
+body{background:var(--bg)}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 20px 60px}
+.top .der{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.top small{display:block;color:var(--muted);font-size:13px;font-weight:500;margin-top:2px}
+.busca{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 10px}
+.busca input{font-size:18px;padding:13px 16px;border-radius:10px}
+.barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:2px 0 10px}
+.barra .der{margin-left:auto;display:flex;gap:10px;align-items:center}
+.chips{margin:0} .chips button .m{margin-left:4px}
+.info{font-size:12.5px;color:var(--muted);margin:0 2px 8px}
+table.res td{vertical-align:top}
+table.res tr.sel td{background:var(--sel)}
+.pv{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:13px;white-space:nowrap}
+.nom b{font-weight:600} .nom .m{margin-top:2px}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 6px;border-radius:4px;margin:3px 4px 0 0;background:var(--surface-2);color:var(--muted)}
+.tag.sube{background:var(--bad-soft);color:var(--bad)} .tag.baja{background:var(--ok-soft);color:var(--ok)}
+.tag.of{background:var(--accent-soft);color:var(--warn)} .tag.ya{background:var(--ok-soft);color:var(--ok)}
+.costo{font-weight:700;font-size:15px} .sug{font-weight:600}
+.acc{white-space:nowrap;text-align:right} .acc .btn{padding:5px 8px;font-size:13px}
+.vacio{padding:40px 10px;text-align:center;color:var(--muted)}
+.vacio b{display:block;font-size:16px;color:var(--ink);margin-bottom:6px}
+.modal.ancho{max-width:880px}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:26px;text-align:center;color:var(--muted);cursor:pointer;margin-top:12px}
+.drop.on{border-color:var(--accent);background:var(--accent-soft)}
+.prev td,.prev th{font-size:13px}
+.mapa{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}
+.mapa label{margin-top:0!important}
+kbd{font:600 11px var(--sans);background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+@media (max-width:760px){
+  .wrap{padding:12px 12px 40px}
+  table.res thead{display:none}
+  table.res tr{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:4px 14px;padding:10px 6px;border-bottom:1px solid var(--line)}
+  table.res tr.sel{background:var(--sel)} table.res tr.sel td{background:none}
+  table.res td{border:0;padding:0}
+  table.res td.c-pv,table.res td.c-nom{grid-column:1/-1}
+  table.res td.c-lista{display:none}
+  table.res td.c-cos::before{content:"Costo ";font-size:11px;color:var(--muted);font-weight:500}
+  table.res td.c-sug::before{content:"Venta ";font-size:11px;color:var(--muted);font-weight:500}
+  .mapa{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app" hidden>
+  <div class="top">
+    <h1><i class="emo">📦</i><span>Proveedores<small id="resumen">—</small></span></h1>
+    <div class="der">
+      <button class="btn" id="bSubir" hidden>⬆️ Subir listas</button>
+      <button class="btn sm" id="bRec" data-tip="Volver a bajar las listas de la planilla">↻</button>
+      <button class="btn sm" id="bSalir">Salir</button>
+    </div>
+  </div>
+  <div class="busca"><input class="campo" id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Buscar en todos los proveedores: nombre, marca, código o EAN   ( / )" enterkeyhint="search"></div>
+  <div class="barra">
+    <div class="chips" id="chips"></div>
+    <div class="der">
+      <div class="seg" id="orden"><button data-o="rel" aria-pressed="true">Relevancia</button><button data-o="costo" aria-pressed="false">Más barato</button></div>
+    </div>
+  </div>
+  <p class="info" id="info"></p>
+  <div class="tw"><table class="res" id="tabla">
+    <thead><tr><th>Proveedor</th><th>Producto</th><th class="r c-lista">Lista</th><th class="r">Costo</th><th class="r">Sugerido</th><th></th></tr></thead>
+    <tbody id="res"></tbody>
+  </table></div>
+  <div class="vacio" id="vacio"><b>Escribí qué buscás</b>Ej.: <i>canopla talbot</i>, <i>resaltador filgo</i>, <i>7798071680551</i>. Todas las palabras tienen que estar, en cualquier orden.<br><br>
+    <kbd>↑</kbd> <kbd>↓</kbd> moverse · <kbd>Enter</kbd> o <kbd>Alt</kbd>+<kbd>C</kbd> comparar · <kbd>Alt</kbd>+<kbd>P</kbd> pedir · <kbd>Esc</kbd> borrar</div>
+</div>
+
+<!-- 4. Comparar -->
+<div class="ov" id="ovComp" hidden><div class="modal ancho">
+  <h2>⚖️ Comparar entre proveedores</h2><p class="note" id="compInfo"></p>
+  <div class="tw"><table class="prev"><thead><tr><th>Proveedor</th><th>Producto</th><th class="r">Costo</th><th class="r">Sugerido</th><th class="r">vs. el más barato</th></tr></thead><tbody id="compRes"></tbody></table></div>
+  <div class="acciones"><button class="btn" data-cerrar>Cerrar</button></div>
+</div></div>
+
+<!-- 5. Pedir -->
+<div class="ov" id="ovPedir" hidden><form class="modal" id="fPedir" autocomplete="off">
+  <h2>🛒 Mandar a compras</h2><p class="note" id="pedInfo"></p>
+  <label>Qué pedir <input class="campo" id="pedTxt" maxlength="160"></label>
+  <label>Cantidad (opcional) <input class="campo" id="pedCant" inputmode="numeric"></label>
+  <div class="err" id="pedErr" hidden></div>
+  <div class="acciones"><button class="btn" type="button" data-cerrar>Cancelar</button><button class="btn primary" type="submit" id="pedOk">Mandar</button></div>
+</form></div>
+
+<!-- 6. Subir listas -->
+<div class="ov" id="ovSubir" hidden><div class="modal ancho">
+  <h2>⬆️ Subir listas de proveedores</h2>
+  <p class="note">Arrastrá los Excel o CSV tal como los mandan (podés soltar varios: ej. las 3 listas de Tiotom juntas). Se leen en esta PC y se reconoce el proveedor solo.
+    Si la lista trae solo los <b>modificados</b>, se actualizan esos y el resto queda como estaba.</p>
+  <div class="drop" id="drop" tabindex="0">📄 Soltá los archivos acá o <u>tocá para elegirlos</u><input type="file" id="archivos" multiple accept=".xls,.xlsx,.csv" hidden></div>
+  <div id="subPrev"></div>
+  <div class="err" id="subErr" hidden></div>
+  <div class="acciones"><button class="btn" data-cerrar>Cerrar</button><button class="btn primary" id="subOk" hidden>Subir</button></div>
+</div></div>
+
+<script src="comun/base.js?v=4"></script>
+<script>
+(()=>{
+"use strict";
+const {$, esc, money, norm, toast, api, leerLS} = LA;
+
+/* =====================================================================
+   1. LECTORES DE LISTAS: cada proveedor manda un formato distinto.
+   Cada lector devuelve filas [código, producto, precio, EAN, rubro, extra].
+   Extra (texto): x12=575 x144=538 (precio por bulto) · of=6274.47 (oferta) · emb=6/18 · paq=10 · iva=10,5%
+   ===================================================================== */
+const numAR = v => { if(typeof v === "number") return v; let s = String(v ?? "").replace(/[$\s]/g, "");
+  if(/,\d+$/.test(s)) s = s.replace(/\./g, "").replace(",", "."); else if(/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+  const n = parseFloat(s); return isFinite(n) ? n : 0; };
+const fechaDe = (txt, archivo) => {                       // primera fecha dd/mm/aaaa de las primeras filas, o la del nombre del archivo (31-10-26)
+  for(const r of txt.slice(0, 6)) for(const c of r){ const m = String(c).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`; }
+  const m = String(archivo).match(/(\d{2})[-_.](\d{2})[-_.](\d{2,4})/); if(m) return `${m[3].length === 2 ? "20" + m[3] : m[3]}-${m[2]}-${m[1]}`;
+  return LA.ymd(new Date());
+};
+const fila0 = (txt, pred) => { for(let i = 0; i < Math.min(40, txt.length); i++){ const h = txt[i].map(c => norm(c).trim()); if(pred(h)) return i; } return -1; };
+const LECTORES = [
+  { prov: "PCA", detecta: h => h.includes("opcion") && h.includes("codigo") && h.includes("producto"),
+    leer(raw, txt, e){ const h = txt[e].map(c => norm(c).trim()), C = h.indexOf("codigo"), P = h.indexOf("producto"), O = h.indexOf("opcion"), $p = h.indexOf("precio"), K = h.indexOf("categoria");
+      const g = new Map();
+      for(let i = e + 1; i < txt.length; i++){ const cod = String(txt[i][C]).trim(); if(!cod) continue;
+        const q = +(String(txt[i][O]).match(/x\s*(\d+)/i) || [])[1] || 0, p = numAR(raw[i][$p]); if(!q || !(p > 0)) continue;
+        const x = g.get(cod) || {cod, nom: txt[i][P], rub: String(txt[i][K] || "").replace(/\s*->\s*/g, " › "), t: new Map()}; if(!x.t.has(q)) x.t.set(q, p); g.set(cod, x); }
+      return [...g.values()].map(x => { const t = [...x.t].sort((a, b) => a[0] - b[0]); const lista = (t.find(z => z[0] === 1) || t[0])[1];
+        return [x.cod, x.nom, lista, "", x.rub, t.filter(z => z[0] > 1).map(z => `x${z[0]}=${z[1]}`).join(" ")]; }); } },
+  { prov: "Ale", detecta: h => h.includes("barra") && h.some(c => /unid x paq/.test(c)),
+    leer(raw, txt, e){ const h = txt[e].map(c => norm(c).trim()), C = h.indexOf("codigo"), D = h.indexOf("descripcion"), P = h.indexOf("precio"), B = h.indexOf("barra"),
+        Q = h.findIndex(c => /unid x paq/.test(c)), J = h.findIndex(c => /unid x caja/.test(c)), out = [];
+      for(let i = e + 1; i < txt.length; i++){ const q = +txt[i][Q] || 1, cj = +txt[i][J] || 0;
+        out.push([txt[i][C], txt[i][D], numAR(raw[i][P]), txt[i][B], "", [q > 1 ? `paq=${q}` : "", cj > 1 ? `caja=${cj}` : ""].filter(Boolean).join(" ")]); }
+      return out; } },
+  { prov: "Tiotom", detecta: h => h.includes("emb.") && h.includes("u.v.") && h.includes("precio"),
+    leer(raw, txt, e){ let rub = ""; const out = [];
+      for(let i = e + 1; i < txt.length; i++){ const r = txt[i];
+        if(r[0] && !r[4] && !r[1]){ rub = String(r[0]).trim(); continue; }                  // fila de rubro: ABROCHADORAS
+        const iva = String(r[5]).trim();
+        out.push([r[0], r[1], numAR(raw[i][4]), "", rub, [r[2] && String(r[2]) !== "1" ? `emb=${r[2]}` : "", iva && iva !== "21%" ? `iva=${iva}` : ""].filter(Boolean).join(" ")]); }
+      return out; } },
+  { prov: "Lispapel", detecta: h => h.includes("codigo") && h.includes("articulo") && h.includes("precio"),
+    leer(raw, txt, e){ const h = txt[e].map(c => norm(c).trim()), out = [];             // la versión "IMPRESIÓN" trae 2 bloques lado a lado
+      h.forEach((c, j) => { if(c !== "codigo") return; for(let i = e + 1; i < txt.length; i++) out.push([txt[i][j], txt[i][j + 1], numAR(raw[i][j + 2]), "", "", ""]); });
+      return out; } },
+  { prov: "Dique", detecta: h => h.filter(Boolean).join("|") === "codigo|nombre|precio",
+    leer(raw, txt, e){ const out = [];
+      for(let i = e + 1; i < txt.length; i++){ const t = String(txt[i][2] || ""), ext = [];
+        const precios = [...t.matchAll(/\$?\s*([\d.]+,\d+)/g)].map(m => numAR(m[1]));
+        const of = t.match(/\$?\s*([\d.]+,\d+)\s*Oferta/i); if(of) ext.push(`of=${numAR(of[1])}`);
+        for(const m of t.matchAll(/(\d+)\s*Uni\s*x\s*\$?\s*([\d.]+,\d+)/gi)) ext.push(`x${m[1]}=${numAR(m[2])}`);
+        out.push([txt[i][0], txt[i][1], precios[0] || numAR(raw[i][2]), "", "", ext.join(" ")]); }
+      return out; } }
+];
+function limpiarFilas(filas){                             // sin vacías, sin repetidas, textos prolijos
+  const vistos = new Set(), out = [];
+  for(const f of filas){ const cod = String(f[0] ?? "").trim().replace(/\.0$/, ""), nom = String(f[1] ?? "").replace(/\s+/g, " ").trim(), p = Math.round(numAR(f[2]) * 100) / 100;
+    if(!cod || !nom || !(p > 0) || vistos.has(cod)) continue; vistos.add(cod);
+    out.push([cod, nom, p, String(f[3] || "").replace(/\D/g, ""), String(f[4] || "").trim(), String(f[5] || "").trim()]); }
+  return out;
+}
+// Lee un archivo: {prov, fecha, filas} si reconoce el formato; si no, {desconocido, raw, txt} para elegir columnas a mano
+function leerArchivo(buf, nombre){
+  const wb = XLSX.read(buf, {type: "array"}), res = [];
+  for(const sn of wb.SheetNames){
+    const sh = wb.Sheets[sn], raw = XLSX.utils.sheet_to_json(sh, {header: 1, raw: true, defval: ""}), txt = XLSX.utils.sheet_to_json(sh, {header: 1, raw: false, defval: ""});
+    if(!txt.length) continue;
+    for(const L of LECTORES){ const e = fila0(txt, L.detecta); if(e >= 0){ res.push({prov: L.prov, fecha: fechaDe(txt, nombre), filas: limpiarFilas(L.leer(raw, txt, e)), hoja: sn}); break; } }
+  }
+  if(res.length){ res.sort((a, b) => b.filas.length - a.filas.length); return res[0]; }   // Ale trae "LISTA DE PRECIOS" y "MODIFICACIONES": vale la más completa
+  const sh = wb.Sheets[wb.SheetNames[0]];
+  return {desconocido: true, raw: XLSX.utils.sheet_to_json(sh, {header: 1, raw: true, defval: ""}), txt: XLSX.utils.sheet_to_json(sh, {header: 1, raw: false, defval: ""})};
+}
+
+/* =====================================================================
+   2. DATOS Y COSTOS
+   item = {p (índice de proveedor), cod, nom, lista, ean, rub, ext, ant (precio anterior), cambio (fecha), k (texto para buscar)}
+   ===================================================================== */
+let D = {rol: "", version: "", provs: [], items: []}, catalogo = null, catIdx = null;
+const COLORES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "#8e6bd1", "#c2477a", "#6b7d2a", "#2b8a99"];
+const extDe = t => { const o = {t: []}; String(t || "").split(/\s+/).forEach(x => { const m = x.match(/^(\w+)=(.+)$/); if(!m) return;
+  if(/^x\d+$/.test(m[1])) o.t.push([+m[1].slice(1), +m[2]]); else o[m[1]] = /^(of)$/.test(m[1]) ? +m[2] : m[2]; }); o.t.sort((a, b) => a[0] - b[0]); return o; };
+function preparar(items){
+  return items.map(r => { const it = {p: r[0], cod: r[1], nom: r[2], lista: r[3], ean: r[4], rub: r[5], e: extDe(r[6]), ant: r[7], cambio: r[8]};
+    it.k = norm(`${it.nom} ${it.cod} ${it.ean} ${it.rub} ${D.provs[it.p]?.nombre || ""}`); return it; });
+}
+// Costo = base × (1 − desc) × (1 + recargo). Base: lista, el escalón de bulto que diga la hoja, o la oferta si es menor.
+function costo(it){
+  const c = D.provs[it.p] || {desc: 0, rec: 0, esc: 0, mult: 2.13, red: 50};
+  let b = it.lista, nota = "";
+  if(c.esc > 0 && it.e.t.length){ const z = it.e.t[Math.min(c.esc, it.e.t.length) - 1]; b = z[1]; nota = `precio x${z[0]}`; }
+  if(it.e.of && it.e.of < b){ b = it.e.of; nota = "oferta"; }
+  const v = b * (1 - c.desc / 100) * (1 + c.rec / 100);
+  return {v, sug: Math.round(v * c.mult / c.red) * c.red, nota};
+}
+const provDe = it => D.provs[it.p] || {nombre: "?"};
+const tipEsc = s => esc(esc(s));                          // data-tip se muestra con innerHTML (comun/base.js): doble escape para textos que vienen de los Excel
+const pvTag = it => `<span class="pv"><i class="dot" style="background:${COLORES[it.p % COLORES.length]}"></i>${esc(provDe(it).nombre)}</span>`;
+
+/* IndexedDB: las listas quedan guardadas en esta PC y solo se bajan de nuevo si alguien subió una lista nueva */
+const IDB = (() => { let db = null; const abrir = () => db || (db = new Promise((ok, mal) => { try{ const r = indexedDB.open("dabox-prov", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("kv"); r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); }catch(e){ mal(e); } }));
+  const tx = (m, f) => abrir().then(d => new Promise((ok, mal) => { const t = d.transaction("kv", m), q = f(t.objectStore("kv")); t.oncomplete = () => ok(q && q.result); t.onerror = () => mal(t.error); }));
+  return {get: k => tx("readonly", s => s.get(k)).catch(() => null), set: (k, v) => tx("readwrite", s => s.put(v, k)).catch(() => null)}; })();
+
+async function cargar(forzar){
+  const guardado = forzar ? null : await IDB.get("datos");
+  const r = await api("prov-datos", guardado ? {v: guardado.version} : {});
+  if(r.igual && guardado){ D = {...guardado, rol: r.rol, provs: r.provs}; }
+  else { D = {rol: r.rol, version: r.version, provs: r.provs, items: r.items || []}; IDB.set("datos", {version: D.version, provs: D.provs, items: D.items}); }
+  D.its = preparar(D.items);
+  return D;
+}
+async function cargarCatalogo(){                          // catálogo de DA BOX (sin clave, como precios.html): para "ya lo tenemos"
+  const g = await IDB.get("catalogo"); if(g && Date.now() - g.fecha < 6 * 36e5) armarCat(g.items);
+  try{ const r = await api("precios", {_silencio: true}); IDB.set("catalogo", {fecha: Date.now(), items: r.items || []}); armarCat(r.items || []); render(); }catch(e){}
+}
+const VACIAS = new Set(["de","del","la","el","con","para","por","sin","los","las","y","x","c","p","u","un","unid","unidad","hjs","hj","hojas","cm","mm","mts","mt","gr","grs"]);
+const palabras = s => norm(s).replace(/[^a-z0-9ñ]+/g, " ").split(" ").filter(w => w.length > 1 && !VACIAS.has(w) && !/^\d+$/.test(w));
+const numeros = s => (norm(s).match(/\d+/g) || []).filter(n => n.length < 8);
+function armarCat(items){
+  catalogo = items; catIdx = {ean: new Map(), pal: new Map()};
+  items.forEach((c, i) => { [c.cod, ...String(c.alt || "").split(/[\s,;|]+/)].forEach(k => { k = String(k).replace(/^0+/, ""); if(k.length >= 7) catIdx.ean.set(k, i); });
+    c._w = new Set(palabras(c.nombre)); c._n = numeros(c.nombre); c._w.forEach(w => { if(!catIdx.pal.has(w)) catIdx.pal.set(w, []); catIdx.pal.get(w).push(i); }); });
+}
+// ¿Lo tenemos en DA BOX? Por EAN o, si no, por nombre parecido (mismas medidas/números y la mayoría de las palabras)
+function enCatalogo(it){
+  if(!catIdx) return null;
+  if(it._cat !== undefined) return it._cat;
+  const e = String(it.ean || "").replace(/^0+/, "");
+  if(e && catIdx.ean.has(e)) return it._cat = {c: catalogo[catIdx.ean.get(e)], seguro: true};
+  const w = new Set(palabras(it.nom)), n = numeros(it.nom).sort().join(","), cuenta = new Map();
+  w.forEach(x => (catIdx.pal.get(x) || []).forEach(i => cuenta.set(i, (cuenta.get(i) || 0) + 1)));
+  let mejor = null, ms = 0;
+  cuenta.forEach((k, i) => { const c = catalogo[i]; if(c._n.slice().sort().join(",") !== n) return; const s = k / (w.size + c._w.size - k); if(s > ms){ ms = s; mejor = c; } });
+  return it._cat = ms >= 0.55 ? {c: mejor, seguro: false} : null;
+}
+
+/* =====================================================================
+   3. BUSCAR Y MOSTRAR
+   ===================================================================== */
+let filtro = new Set(), orden = "rel", lista = [], sel = 0;
+const MAX = 120;
+function buscar(){
+  const q = norm($("#q").value).trim(), t = q.split(/\s+/).filter(Boolean);
+  if(!t.length) return [];
+  const out = [];
+  for(const it of D.its){ if(filtro.size && !filtro.has(it.p)) continue; if(t.every(x => it.k.includes(x))) out.push(it); }
+  if(orden === "costo") out.sort((a, b) => costo(a).v - costo(b).v);
+  else { const pri = t[0]; out.sort((a, b) => (b.k.startsWith(pri) - a.k.startsWith(pri)) || (a.nom.length - b.nom.length)); }
+  return out;
+}
+function tags(it){
+  const c = costo(it), x = [];
+  if(it.ant && it.cambio){ const d = (it.lista / it.ant - 1) * 100; x.push(`<span class="tag ${d > 0 ? "sube" : "baja"}" data-tip="Antes ${money(it.ant)} · cambió el ${LA.fechaAR(it.cambio)}">${d > 0 ? "▲ +" : "▼ "}${d.toFixed(1).replace(".", ",")}% · ${LA.fechaAR(it.cambio).slice(0, 5)}</span>`); }
+  if(it.e.of) x.push(`<span class="tag of">🏷️ oferta ${money(it.e.of)}</span>`);
+  if(it.e.t.length) x.push(`<span class="tag" data-tip="Precio de lista por cantidad${c.nota.startsWith("precio x") ? `. El costo usa el ${c.nota}` : ""}">${it.e.t.map(z => `x${z[0]} ${money(z[1])}`).join(" · ")}</span>`);
+  if(it.e.paq) x.push(`<span class="tag">paquete x${esc(it.e.paq)}</span>`);
+  if(it.e.emb) x.push(`<span class="tag" data-tip="Embalaje del proveedor">emb. ${esc(it.e.emb)}</span>`);
+  if(it.e.iva) x.push(`<span class="tag">IVA ${esc(it.e.iva)}</span>`);
+  const ya = enCatalogo(it); if(ya) x.push(`<span class="tag ya" data-tip="${tipEsc(ya.c.nombre)}${ya.seguro ? " (mismo código de barras)" : " (nombre parecido: confirmá)"}">✓ ${ya.seguro ? "Lo tenemos" : "¿Lo tenemos?"} · ${money(ya.c.precio)}</span>`);
+  return x.join("");
+}
+function render(){
+  lista = buscar(); sel = Math.min(sel, Math.max(0, lista.length - 1));
+  const q = $("#q").value.trim(), vis = lista.slice(0, MAX);
+  $("#vacio").hidden = !!q; $("#tabla").hidden = !q;
+  $("#info").textContent = !q ? "" : lista.length ? `${lista.length > MAX ? `Primeros ${MAX} de ${lista.length.toLocaleString("es-AR")}` : lista.length + (lista.length === 1 ? " resultado" : " resultados")}${filtro.size ? " (filtrado por proveedor)" : ""}` : "Nada con esas palabras. Probá con menos o con la marca.";
+  $("#res").innerHTML = vis.map((it, i) => { const c = costo(it);
+    return `<tr data-i="${i}" class="${i === sel ? "sel" : ""}"><td class="c-pv">${pvTag(it)}</td>
+      <td class="c-nom nom"><b>${esc(it.nom)}</b><div class="m">${esc(it.cod)}${it.ean ? " · EAN " + esc(it.ean) : ""}${it.rub ? " · " + esc(it.rub) : ""}</div>${tags(it)}</td>
+      <td class="r c-lista m">${money(it.lista)}</td>
+      <td class="r c-cos"><span class="costo" data-tip="${tipEsc(provDe(it).nombre)}: −${provDe(it).desc}% · +${provDe(it).rec}%${c.nota ? " · " + c.nota : ""}">${money(c.v)}</span></td>
+      <td class="r sug c-sug">${money(c.sug)}</td>
+      <td class="acc"><button class="btn" data-a="comp" data-tip="Comparar con otros proveedores (C)">⚖️</button> <button class="btn" data-a="pedir" data-tip="Mandar a compras (P)">🛒</button></td></tr>`; }).join("");
+}
+function chips(){
+  const n = D.provs.map(() => 0); D.its.forEach(it => n[it.p]++);
+  $("#chips").innerHTML = `<button data-p="" aria-pressed="${!filtro.size}">Todos</button>` + D.provs.map((p, i) => n[i] ? `<button data-p="${i}" aria-pressed="${filtro.has(i)}"><i class="dot" style="background:${COLORES[i % COLORES.length]}"></i> ${esc(p.nombre)}<span class="m">${n[i].toLocaleString("es-AR")}</span></button>` : "").join("");
+  const total = D.its.length, fechas = D.provs.filter((p, i) => n[i]).map(p => `${p.nombre} ${LA.fechaAR(p.fecha).slice(0, 5)}`).join(" · ");
+  $("#resumen").textContent = total ? `${total.toLocaleString("es-AR")} productos · listas del ${fechas}` : "Todavía no hay listas cargadas";
+}
+$("#chips").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.p === "") filtro.clear(); else { const i = +b.dataset.p; filtro.has(i) ? filtro.delete(i) : filtro.add(i); }
+  chips(); render(); $("#q").focus(); });
+$("#orden").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; orden = b.dataset.o;
+  $("#orden").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); render(); $("#q").focus(); });
+let tq; $("#q").addEventListener("input", () => { clearTimeout(tq); tq = setTimeout(() => { sel = 0; render(); }, 90); });
+$("#res").addEventListener("click", e => { const tr = e.target.closest("tr[data-i]"); if(!tr) return; sel = +tr.dataset.i;
+  const a = e.target.closest("[data-a]"); if(a) (a.dataset.a === "comp" ? comparar : pedir)(lista[sel]); else render(); });
+document.addEventListener("keydown", e => {
+  if(!$("#app").hidden && [...document.querySelectorAll(".ov")].every(o => o.hidden)){
+    const enQ = document.activeElement === $("#q");
+    if(e.key === "/" && !enQ){ e.preventDefault(); $("#q").focus(); $("#q").select(); return; }
+    if(e.key === "Escape"){ $("#q").value = ""; render(); $("#q").focus(); return; }
+    if(!lista.length) return;
+    if(e.key === "ArrowDown"){ e.preventDefault(); sel = Math.min(sel + 1, Math.min(lista.length, MAX) - 1); render(); $("#res").children[sel]?.scrollIntoView({block: "nearest"}); }
+    if(e.key === "ArrowUp"){ e.preventDefault(); sel = Math.max(sel - 1, 0); render(); $("#res").children[sel]?.scrollIntoView({block: "nearest"}); }
+    // C y P: fuera del buscador (o con Alt desde el buscador, para no cortar lo que se escribe)
+    if(/^[cC]$/.test(e.key) && (e.altKey || !enQ)){ e.preventDefault(); comparar(lista[sel]); }
+    if(/^[pP]$/.test(e.key) && (e.altKey || !enQ)){ e.preventDefault(); pedir(lista[sel]); }
+    if(e.key === "Enter" && enQ){ e.preventDefault(); comparar(lista[sel]); }
+  } else if(e.key === "Escape") cerrarOv();
+});
+
+/* =====================================================================
+   4. COMPARAR: lo mismo (o casi) en los otros proveedores. Mismos números (medidas, cantidades) y palabras parecidas.
+   ===================================================================== */
+function comparar(it){
+  if(!it) return;
+  const w = new Set(palabras(it.nom)), nums = numeros(it.nom), res = [];
+  for(const x of D.its){
+    if(nums.some(n => !numeros(x.nom).includes(n))) continue;
+    const xw = palabras(x.nom); let k = 0; for(const p of xw) if(w.has(p)) k++;
+    const s = k / (w.size + new Set(xw).size - k); if(s >= 0.4 || x === it) res.push([x, s]);
+  }
+  const top = res.sort((a, b) => b[1] - a[1]).slice(0, 15).map(r => r[0]).sort((a, b) => costo(a).v - costo(b).v), min = top.length ? costo(top[0]).v : 0;
+  $("#compInfo").innerHTML = `Parecidos a <b>${esc(it.nom)}</b> (${esc(provDe(it).nombre)}). Revisá que sea el mismo producto: la comparación es por nombre.`;
+  $("#compRes").innerHTML = top.map(x => { const c = costo(x);
+    return `<tr${x === it ? ' style="background:var(--sel)"' : ""}><td>${pvTag(x)}</td><td>${esc(x.nom)}<div class="m">${esc(x.cod)}</div></td><td class="r"><b>${money(c.v)}</b></td><td class="r">${money(c.sug)}</td>
+      <td class="r">${c.v === min ? '<span class="pill ok">el más barato</span>' : `+${((c.v / min - 1) * 100).toFixed(0)}%`}</td></tr>`; }).join("")
+    || `<tr><td colspan="5" class="empty">No encontré el mismo producto en otro proveedor.</td></tr>`;
+  abrirOv("#ovComp");
+}
+
+/* =====================================================================
+   5. PEDIR: queda como renglón "A pedir" en la lista de compras de Joa (faltantes.html), en la nota del proveedor si existe
+   ===================================================================== */
+let pidiendo = null;
+function pedir(it){
+  if(!it) return; pidiendo = it; const c = costo(it);
+  $("#pedInfo").textContent = `${provDe(it).nombre} · código ${it.cod} · costo ${money(c.v)}`;
+  $("#pedTxt").value = `${it.nom} (${provDe(it).nombre} ${it.cod})`; $("#pedCant").value = ""; $("#pedErr").hidden = true;
+  abrirOv("#ovPedir"); setTimeout(() => $("#pedCant").focus(), 30);
+}
+$("#fPedir").onsubmit = async e => {
+  e.preventDefault(); const txt = $("#pedTxt").value.trim(); if(!txt) return;
+  $("#pedOk").disabled = true; $("#pedOk").textContent = "Mandando…";
+  try{ const r = await api("prov-pedir", {texto: txt, cant: Math.round(numAR($("#pedCant").value)) || "", prov: provDe(pidiendo).nombre});
+    cerrarOv(); toast(`🛒 Anotado para compras${r.lista ? " en la nota " + r.lista : ""}`); }
+  catch(err){ $("#pedErr").textContent = LA.ERR[err] || err?.msg || "No se pudo mandar."; $("#pedErr").hidden = false; }
+  finally{ $("#pedOk").disabled = false; $("#pedOk").textContent = "Mandar"; }
+};
+
+/* =====================================================================
+   6. SUBIR LISTAS (solo encargado). El Excel se lee acá (SheetJS) y viajan solo filas limpias.
+   ===================================================================== */
+let porSubir = [];                                          // [{prov, fecha, filas, archivos, sacar}]
+const cargarLector = () => window.XLSX ? Promise.resolve() : new Promise((ok, mal) => { const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.integrity = "sha512-r22gChDnGvBylk90+2e/ycr3RVrDi8DIOkIGNhJlKfuyQM4tIRAI062MaV8sfjQKYVGjOBaZBOA87z+IhZE9DA==";
+  s.crossOrigin = "anonymous"; s.referrerPolicy = "no-referrer"; s.onload = ok; s.onerror = () => mal(new Error("No se pudo cargar el lector de Excel (¿sin internet?)")); document.head.appendChild(s); });
+$("#bSubir").onclick = async () => { porSubir = []; $("#subPrev").innerHTML = ""; $("#subErr").hidden = true; $("#subOk").hidden = true; abrirOv("#ovSubir");
+  try{ await cargarLector(); }catch(e){ $("#subErr").textContent = e.message; $("#subErr").hidden = false; } };
+$("#drop").onclick = () => $("#archivos").click();
+$("#drop").onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); $("#archivos").click(); } };
+["dragenter", "dragover"].forEach(ev => $("#drop").addEventListener(ev, e => { e.preventDefault(); $("#drop").classList.add("on"); }));
+["dragleave", "drop"].forEach(ev => $("#drop").addEventListener(ev, e => { e.preventDefault(); $("#drop").classList.remove("on"); }));
+$("#drop").addEventListener("drop", e => leerArchivos([...e.dataTransfer.files]));
+$("#archivos").onchange = e => { leerArchivos([...e.target.files]); e.target.value = ""; };   // copia: al vaciar el campo la lista se borra
+async function leerArchivos(files){
+  $("#subErr").hidden = true;
+  try{ await cargarLector(); }catch(e){ $("#subErr").textContent = e.message; $("#subErr").hidden = false; return; }
+  for(const f of files){
+    if(f.size > 15e6){ toast(`${f.name}: demasiado grande`); continue; }
+    try{
+      const r = leerArchivo(new Uint8Array(await f.arrayBuffer()), f.name);
+      if(r.desconocido){ mapear(r, f.name); continue; }
+      sumar(r.prov, r.fecha, r.filas, f.name);
+    }catch(e){ $("#subErr").textContent = `${f.name}: no lo pude leer (${e.message}).`; $("#subErr").hidden = false; }
+  }
+  previa();
+}
+function sumar(prov, fecha, filas, archivo){
+  let g = porSubir.find(x => x.prov.toLowerCase() === prov.toLowerCase());
+  if(!g){ g = {prov, fecha, filas: [], archivos: [], sacar: false}; porSubir.push(g); }
+  g.filas = limpiarFilas(g.filas.concat(filas)); g.archivos.push(archivo); if(fecha > g.fecha) g.fecha = fecha;
+}
+// Formato que no conozco: se eligen las columnas a mano (sirve para cualquier proveedor nuevo)
+function mapear(r, archivo){
+  const e = r.txt.findIndex(x => x.filter(c => String(c).trim()).length >= 3); if(e < 0){ toast(`${archivo}: no tiene datos`); return; }
+  const cols = r.txt[e].map((c, j) => `<option value="${j}">${esc(String(c).trim() || "Columna " + (j + 1))} — ej: ${esc(String((r.txt[e + 1] || [])[j] ?? "").slice(0, 24))}</option>`).join("");
+  const id = "m" + Date.now();
+  $("#subPrev").insertAdjacentHTML("beforeend", `<div class="card" id="${id}" style="margin-top:12px"><h3>❓ ${esc(archivo)}: no reconozco el formato</h3>
+    <p class="note">Elegí de qué proveedor es y qué columna es cada cosa (la fila ${e + 1} se toma como títulos). Si el proveedor es nuevo, escribí el nombre: queda en la hoja Proveedores con descuento 0 e IVA 21 % para que lo ajustes.</p>
+    <div class="mapa"><label>Proveedor <input class="campo" data-k="prov" list="provsDL" placeholder="Nombre"></label>
+      <label>Código <select class="campo" data-k="cod">${cols}</select></label><label>Producto <select class="campo" data-k="nom">${cols}</select></label><label>Precio <select class="campo" data-k="pre">${cols}</select></label></div>
+    <datalist id="provsDL">${D.provs.map(p => `<option value="${esc(p.nombre)}">`).join("")}</datalist>
+    <div class="acciones"><button class="btn primary" data-ok>Usar estas columnas</button></div></div>`);
+  const box = document.getElementById(id), sel = k => box.querySelector(`[data-k="${k}"]`);
+  sel("nom").value = 1; sel("pre").value = Math.min(2, r.txt[e].length - 1);
+  box.querySelector("[data-ok]").onclick = () => { const prov = sel("prov").value.trim(); if(!/^[\wÁÉÍÓÚÑáéíóúñ .&-]{2,30}$/.test(prov)){ toast("Poné el nombre del proveedor"); return; }
+    const c = +sel("cod").value, n = +sel("nom").value, p = +sel("pre").value;
+    sumar(prov, LA.ymd(new Date()), limpiarFilas(r.txt.slice(e + 1).map((x, i) => [x[c], x[n], numAR(r.raw[e + 1 + i][p]), "", "", ""])), archivo); box.remove(); previa(); };
+}
+function previa(){
+  document.querySelectorAll("#subPrev > table").forEach(t => t.remove());
+  if(!porSubir.length) return;
+  const filas = porSubir.map((g, gi) => {
+    const pi = D.provs.findIndex(p => p.nombre.toLowerCase() === g.prov.toLowerCase()), ya = new Map(D.its.filter(it => it.p === pi).map(it => [it.cod, it]));
+    let nuevos = 0, suben = 0, bajan = 0, iguales = 0; const vino = new Set();
+    g.filas.forEach(f => { vino.add(f[0]); const v = ya.get(f[0]); if(!v) nuevos++; else if(Math.abs(v.lista - f[2]) < 0.01) iguales++; else if(f[2] > v.lista) suben++; else bajan++; });
+    const faltan = [...ya.keys()].filter(k => !vino.has(k)).length; g.faltan = faltan;
+    return `<tr><td>${pi >= 0 ? `<span class="pv"><i class="dot" style="background:${COLORES[pi % COLORES.length]}"></i>${esc(g.prov)}</span>` : `<b>${esc(g.prov)}</b> <span class="pill warn">nuevo</span>`}<div class="m">${g.archivos.map(esc).join(" · ")}</div></td>
+      <td class="m">${LA.fechaAR(g.fecha)}</td><td class="r"><b>${g.filas.length.toLocaleString("es-AR")}</b></td><td class="r">${nuevos}</td>
+      <td class="r" style="color:var(--bad)">${suben}</td><td class="r" style="color:var(--ok)">${bajan}</td><td class="r m">${iguales}</td>
+      <td class="r">${faltan ? `<label class="check" data-tip="Tildalo solo si es la lista COMPLETA del proveedor. Si son los modificados del mes, dejalo sin tildar."><input type="checkbox" data-g="${gi}"${g.sacar ? " checked" : ""}> sacar ${faltan}</label>` : "—"}</td>
+      <td><button class="btn sm" data-q="${gi}" data-tip="No subir este">✕</button></td></tr>`; });
+  $("#subPrev").insertAdjacentHTML("beforeend", `<table class="prev" style="margin-top:14px"><thead><tr><th>Proveedor</th><th>Fecha</th><th class="r">Productos</th><th class="r">Nuevos</th><th class="r">Suben</th><th class="r">Bajan</th><th class="r">Igual</th><th class="r">No vinieron</th><th></th></tr></thead><tbody>${filas.join("")}</tbody></table>`);
+  $("#subOk").hidden = false; $("#subOk").textContent = `Subir ${porSubir.length === 1 ? porSubir[0].prov : porSubir.length + " proveedores"}`;
+}
+$("#subPrev").addEventListener("change", e => { const c = e.target.closest("[data-g]"); if(c) porSubir[+c.dataset.g].sacar = c.checked; });
+$("#subPrev").addEventListener("click", e => { const b = e.target.closest("[data-q]"); if(b){ porSubir.splice(+b.dataset.q, 1); previa(); if(!porSubir.length) $("#subOk").hidden = true; } });
+async function post(cuerpo){                               // la clave va en el cuerpo (no en la dirección) y la planilla contesta si guardó
+  const url = leerLS("url", ""), clave = (() => { try{ return sessionStorage.getItem("dabox.clave") || ""; }catch(e){ return ""; } })();
+  const r = await fetch(url, {method: "POST", body: JSON.stringify({...cuerpo, clave})});
+  const j = await r.json(); if(j.error) throw new Error(j.error); return j;
+}
+$("#subOk").onclick = async () => {
+  const b = $("#subOk"); b.disabled = true; $("#subErr").hidden = true; const hechos = [];
+  try{
+    for(const g of porSubir.slice()){
+      b.textContent = `Subiendo ${g.prov}… (${g.filas.length.toLocaleString("es-AR")})`; LA.LAPIZ(true);
+      try{ const r = await post({tipo: "prov-subir", prov: g.prov, fecha: g.fecha, filas: g.filas, sacar: !!g.sacar});
+        hechos.push(`${r.prov}: ${r.total.toLocaleString("es-AR")} productos · ${r.nuevos} nuevos · ${r.suben} suben · ${r.bajan} bajan${r.sacados ? ` · ${r.sacados} sacados` : ""}`);
+        porSubir.splice(porSubir.indexOf(g), 1); }
+      finally{ LA.LAPIZ(false); }
+    }
+    cerrarOv(); toast("✓ " + hechos.join(" — "), 7000);
+    await cargar(true); chips(); render();
+  }catch(e){ $("#subErr").textContent = (hechos.length ? "Se subió: " + hechos.join(" — ") + ". " : "") + "Error: " + (e.message === "Failed to fetch" ? "sin conexión o el script no tiene la versión 3.43" : e.message); $("#subErr").hidden = false; previa(); }
+  finally{ b.disabled = false; if(porSubir.length) previa(); }
+};
+
+/* ---------- ventanitas ---------- */
+function abrirOv(s){ $(s).hidden = false; }
+function cerrarOv(){ document.querySelectorAll(".ov").forEach(o => o.hidden = true); $("#q").focus(); }
+document.addEventListener("click", e => { if(e.target.matches("[data-cerrar]") || e.target.classList.contains("ov")) cerrarOv(); });
+
+/* =====================================================================
+   7. ARRANQUE: ingreso con clave (comun/base.js). Claves: encargado, compras o la de proveedores (Vivi).
+   ===================================================================== */
+$("#bSalir").onclick = () => LA.salir();
+$("#bRec").onclick = async () => { try{ await cargar(true); chips(); render(); toast("✓ Listas actualizadas"); }catch(e){ toast(LA.ERR[e] || e?.msg || "No se pudo actualizar"); } };
+LA.ingreso({app: "Proveedores", emoji: "📦", cargar: () => cargar(false),
+  alEntrar(){ $("#bSubir").hidden = D.rol !== "admin"; chips(); render(); $("#q").focus(); cargarCatalogo(); }});
+})();
+</script>
+</body>
+</html>
