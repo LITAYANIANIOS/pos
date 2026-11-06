@@ -11,10 +11,13 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v2.8
+   FALTANTES · DA BOX                                              v3.0
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
+   v3.0: sin cantidades ("3 lupas" queda como texto) · estado en palabras con color y "🚚 En camino" en su propia tarjeta · Joa busca en proveedores
+         sin salir del tablero · Reparto en el celular arranca con la pantalla simple · nombre obligatorio para anotar · Reparto con toque western 🤠.
+   v2.9: la clave recordada del panel (base.js v1.4) también abre faltantes · en el panel, 🔎 Buscar precio salta a 💲 Proveedores.
    v2.8: 🛒 Compras con estética de oficina propia (notas con cinta, clip con ojos, contador del día con medalla, frases al vaciar una nota).
    v2.8: 🚪 Salir (pasar a otra cuenta) · Roman y Joa cambian de vista 📦 Reparto ⇄ 🛒 Compras · Vivi (link Solo anotar): pantalla simple
          (anotar, buscar precio con costo y venta, mandar a pedir) · ?embed: adentro del panel, con la clave del panel. Necesita script v3.44.
@@ -54,7 +57,30 @@ body.v-compras .nota:nth-child(even)::before{transform:translateX(-50%) rotate(2
   header.top{gap:5px;padding:8px 10px} header.top .ico{width:30px} #vista button{padding:4px 6px;font-size:12px} .j-hoy{padding:3px 7px!important}}
 .clip-vacio{display:flex;gap:12px;align-items:center;padding:6px 8px 10px;color:var(--muted);font-size:14px}
 .clip-vacio svg{width:46px;height:62px;flex:none}
-body.v-reparto header.top{background:var(--k-amarillo);border-bottom-color:transparent}
+/* v3.0 · estado en palabras, con color */
+.st{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;margin-right:5px;vertical-align:1px;background:rgb(0 0 0 / .07);color:var(--muted)}
+.st.compras{background:#fbe7c6;color:#8a5a00} .st.camino{background:#d9efe2;color:#22663f} .st.nsc{background:#fbdcdc;color:#a33}
+.camino{margin:8px 4px 4px;padding:4px 0 2px;border-radius:8px;background:rgb(255 255 255 / .55);border:1px dashed rgb(0 0 0 / .14)}
+.camino .t{font-size:12.5px;font-weight:700;color:#22663f;padding:4px 8px 2px}
+@media (prefers-color-scheme:dark){.st.compras{background:#4a3a15;color:#f3c96b}.st.camino{background:#1f3a2a;color:#8fd4a8}.st.nsc{background:#4a2222;color:#f19b9b}.camino{background:rgb(0 0 0 / .18)}.camino .t{color:#8fd4a8}}
+/* v3.0 · pantalla simple: Vivi siempre; Joa solo el buscador; Roman en el celular (tablero a un toque) */
+body.v-compras .v-anotar{display:none}
+body.v-reparto #vivi{display:none}
+#bTablero{display:none}
+@media (max-width:700px){
+  body.v-reparto:not(.tablero) #vivi{display:grid}
+  body.v-reparto:not(.tablero) #notas,body.v-reparto:not(.tablero) #tips{display:none}
+  body.v-reparto #bTablero{display:block;width:100%;margin:0 0 14px}
+}
+body.embed.v-reparto #vivi{display:none!important} body.embed #bTablero{display:none!important} body.embed.v-reparto #notas{display:block!important}
+/* 🤠 v3.0 · el oeste de Roman (Reparto): madera, estrella y frases. Solo adorno */
+:root{--oeste:#ecd6a8;--oeste-ink:#5a3b16}@media (prefers-color-scheme:dark){:root{--oeste:#4a3a20;--oeste-ink:#f0d9a8}}
+body.v-reparto header.top{background:var(--oeste)!important;border-bottom:2px dashed color-mix(in srgb,var(--oeste-ink) 35%,transparent)!important}
+body.v-reparto header.top .logo div{font-family:Rockwell,"Roboto Slab","Courier New",Georgia,serif;letter-spacing:.04em;color:var(--oeste-ink)}
+body.v-reparto header.top .logo small{font-family:var(--sans);letter-spacing:0}
+.estrella{display:none;width:30px;height:30px;flex:none}
+body.v-reparto .estrella{display:block}
+@media (max-width:560px){body.v-reparto .estrella{display:none} body.v-reparto header.top .logo div{display:none}}
 body.embed header.top .logo{display:none}
 /* ---------- Vivi: anotar · buscar precio · pedir ---------- */
 .vivi{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));margin-bottom:16px}
@@ -135,6 +161,7 @@ body.v-anotar .solo-equipo{display:none}
   <div class="logo"><i class="emo" id="lEmo">📝</i><div>Faltantes<small id="lSub">Lita &amp; Añaños</small></div></div>
   <svg class="deco" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="6" width="20" height="20" rx="1.5" fill="#fff3a8" transform="rotate(6 17 16)"/><path d="M12 13h10M12 17h10M12 21h6" stroke="#b9a640" stroke-width="1.6" stroke-linecap="round" transform="rotate(6 17 16)"/><path d="M10 3v14a3.5 3.5 0 0 0 7 0V5a2.3 2.3 0 0 0-4.6 0v11" fill="none" stroke="#6f7c84" stroke-width="1.8" stroke-linecap="round"/></svg>
   <span class="j-hoy" id="jHoy" title="Renglones agregados al pedido hoy"></span>
+  <svg class="estrella" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3l3.6 7.6 8.3 1-6.1 5.7 1.6 8.2L16 21.4l-7.4 4.1 1.6-8.2-6.1-5.7 8.3-1z" fill="#d9a53a" stroke="#6b4a14" stroke-width="1.4" stroke-linejoin="round"/><circle cx="16" cy="15.5" r="3.2" fill="#f3d58a" stroke="#6b4a14" stroke-width="1.1"/></svg>
   <div class="seg" id="vista" hidden><button type="button" data-v="reparto">📦 Reparto</button><button type="button" data-v="compras">🛒 Compras</button></div>
   <span class="rol" id="rol"></span>
   <a class="ico solo-suelto solo-equipo" href="proveedores.html" target="_blank" rel="noopener" title="Precios de proveedores" style="text-decoration:none">💲</a>
@@ -144,10 +171,11 @@ body.v-anotar .solo-equipo{display:none}
 <div class="wrap">
   <div class="quien" id="quien" hidden>👋 ¿Quién sos? <input class="campo" id="qNom" maxlength="30" placeholder="Ej: Vivi"><button class="btn sm primary" id="qOk" type="button">Listo</button></div>
   <section class="vivi" id="vivi" hidden>
-    <div class="v-card"><h2>📝 Anotar lo que falta</h2><div class="chips" id="vSucs"></div>
-      <div class="v-fila"><input class="campo" id="vTxt" maxlength="120" placeholder="Ej: 3 lupas (o pegá una lista)" enterkeyhint="send" autocomplete="off"><button class="btn primary" id="vOk" type="button">Anotar</button></div></div>
+    <div class="v-card v-anotar"><h2>📝 Anotar lo que falta</h2><div class="chips" id="vSucs"></div>
+      <div class="v-fila"><input class="campo" id="vTxt" maxlength="120" placeholder="Ej: lupas, 3 azules (o pegá una lista)" enterkeyhint="send" autocomplete="off"><button class="btn primary" id="vOk" type="button">Anotar</button></div></div>
     <div class="v-card"><h2>🔎 Buscar precio</h2><input class="campo" id="vQ" type="search" placeholder="Ej: lupa, resma ledesma" autocomplete="off" style="margin-top:10px;font-size:16px"><div class="v-res" id="vRes"></div></div>
   </section>
+  <button class="btn" id="bTablero" type="button">📋 Ver el tablero completo</button>
   <div class="tips" id="tips"></div>
   <div class="notas" id="notas"></div>
   <p class="info" id="info"></p>
@@ -157,7 +185,7 @@ body.v-anotar .solo-equipo{display:none}
 <div class="menu" id="mEdit" hidden><form class="caja" id="fEdit" autocomplete="off">
   <h3>✏️ Editar renglón</h3>
   <label class="campo-l">Producto<input class="campo" id="eProd" maxlength="120"></label>
-  <div class="fila-e"><label class="campo-l">Cantidad<input class="campo" id="eCant" inputmode="numeric"></label><label class="check" style="margin-top:22px"><input type="checkbox" id="eNada"> 🚫 No queda nada</label></div>
+  <div class="fila-e" style="grid-template-columns:1fr"><label class="check" style="margin-top:12px"><input type="checkbox" id="eNada"> 🚫 No queda nada</label></div>
   <label class="campo-l">Sucursal<select class="campo" id="eSuc"></select></label>
   <label class="campo-l">Nota (opcional)<input class="campo" id="eObs" maxlength="200"></label>
   <div class="ops" style="grid-template-columns:1fr 1fr;margin-top:14px"><button type="button" id="eCancel">Cancelar</button><button type="submit" style="background:var(--accent);color:var(--accent-ink)">Guardar</button></div>
@@ -172,13 +200,14 @@ body.v-anotar .solo-equipo{display:none}
     <p class="note">Lo más fácil: abrí el <b>link de faltantes</b> que te pasó Roman (queda guardado en este celular). Si no, entrá con la clave del panel (encargado) o la de compras.</p>
     <label id="lUrl">Dirección de la planilla (Apps Script)<input class="campo" id="iUrl" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec"></label>
     <label>Clave <input class="campo secreto" id="iClave" type="text" spellcheck="false" autocomplete="off"></label>
+    <label class="check" style="margin-top:10px"><input type="checkbox" id="iRec"> Recordar en este dispositivo (30 días): abre también el panel y proveedores</label>
     <div class="err" id="lErr" hidden></div>
     <button class="btn primary" type="submit" style="width:100%;margin-top:18px;padding:12px">Entrar</button>
     <button class="link" id="bDemo" type="button">Ver con datos de prueba</button>
   </form>
 </div>
 
-<script src="comun/base.js?v=5"></script>
+<script src="comun/base.js?v=6"></script>
 <script>
 (()=>{
 "use strict";
@@ -190,7 +219,7 @@ const {$, esc, norm, fechaAR, hace, leerLS, guardarLS, toast, SUCS, sucNom, LAPI
 const EMBED = new URLSearchParams(location.search).has("embed");          // adentro del panel: usa la clave del panel (misma pestaña)
 if(EMBED) document.body.classList.add("embed");
 const ss = k => { try{ return sessionStorage.getItem(k) || ""; }catch(e){ return ""; } };
-let url = leerLS("url", ""), tok = EMBED ? "" : leerLS("ftok", ""), clave = EMBED ? ss("dabox.clave") : ss("dabox.fclave"), vista = leerLS("fvista", "");
+let url = leerLS("url", ""), tok = EMBED ? "" : leerLS("ftok", ""), clave = EMBED ? LA.clave : ss("dabox.fclave") || (tok ? "" : LA.clave), vista = leerLS("fvista", "");
 let D = null, rol = "", demo = false, quien = leerLS("fquien", ""), tipsAbiertos = false;
 async function api(accion, params = {}){
   if(demo) return demoApi(accion, params);
@@ -217,14 +246,15 @@ $("#vista").onclick = async e => { const b = e.target.closest("[data-v]"); if(!b
 /* 🚪 salir: borra el link y la clave de este celular, para entrar con otra cuenta */
 $("#bSalir").onclick = () => abrirMenu("🚪 Salir de esta cuenta", "Para volver a entrar vas a necesitar el link o la clave.", [{t:"🚪 Salir", mal:true, f: () => {
   tok = ""; clave = ""; quien = ""; vista = ""; demo = false; D = null; ["ftok", "fquien", "fvista"].forEach(k => guardarLS(k, ""));
-  try{ sessionStorage.removeItem("dabox.fclave"); }catch(e){} $("#iClave").value = ""; mostrarLogin("Saliste. Abrí otro link de faltantes o entrá con una clave."); }}]);
+  guardarLS("claveR", ""); try{ sessionStorage.removeItem("dabox.fclave"); sessionStorage.removeItem("dabox.clave"); }catch(e){} $("#iClave").value = ""; mostrarLogin("Saliste. Abrí otro link de faltantes o entrá con una clave."); }}]);
 function entrar(){ $("#login").hidden = true; $("#app").hidden = false; render(); }
 $("#fLogin").onsubmit = async e => {
   e.preventDefault();
   const u = $("#iUrl").value.trim(), c = $("#iClave").value.trim();
   if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(u)){ $("#lErr").textContent = "La dirección tiene que ser la de Apps Script (termina en /exec)."; $("#lErr").hidden = false; return; }
   url = u; clave = c; tok = ""; demo = false;
-  try{ await cargar(); guardarLS("url", url); try{ sessionStorage.setItem("dabox.fclave", clave); }catch(x){} entrar(); }
+  try{ await cargar(); guardarLS("url", url); try{ sessionStorage.setItem("dabox.fclave", clave); sessionStorage.setItem("dabox.clave", clave); }catch(x){}
+    if($("#iRec").checked) guardarLS("claveR", JSON.stringify({c: clave, hasta: Date.now() + 30 * 864e5})); entrar(); }
   catch(err){ $("#lErr").textContent = errTxt(err); $("#lErr").hidden = false; if(err !== "clave") $("#lUrl").hidden = false; }
 };
 $("#bDemo").onclick = () => { demo = true; vista = ""; D = demoApi("falt-ver"); rol = D.rol; entrar(); };
@@ -243,6 +273,7 @@ async function refrescar(avisar){
 const ocupado = () => !$("#menu").hidden || !$("#mEdit").hidden || document.activeElement.matches("input,textarea");
 setInterval(() => { if(!document.hidden && !$("#app").hidden && !ocupado()) refrescar(false); }, 90000);
 document.addEventListener("visibilitychange", () => { if(!document.hidden && D && Date.now() - D.generado > 60000 && !ocupado()) refrescar(false); });
+$("#bTablero").onclick = () => { const t = document.body.classList.toggle("tablero"); $("#bTablero").textContent = t ? "📝 Volver a la pantalla simple" : "📋 Ver el tablero completo"; scrollTo(0, 0); };
 $("#qOk").onclick = () => { const n = $("#qNom").value.trim(); if(n.length < 2) return; quien = n; guardarLS("fquien", n); $("#quien").hidden = true; toast("👋 Hola, " + n); };
 
 /* =====================================================================
@@ -259,9 +290,12 @@ const CONSEJO = {"": "Hace %d días sin repartir", "Depósito": "Salió del dep�
                  "Pedido": "Pedido hace %d días: ¿llegó?", "No se consigue": "No se consigue: ¿reemplazo o ✖ no se trae?"};
 const atrasado = c => !CERR(c.estado) && LIMITE[c.estado] != null && edad(c) >= LIMITE[c.estado];
 const VER_HECHOS = 3;                                                     // días que quedan tachados en la nota
-const cantTxt = c => c.nada ? `<span class="c nada" title="No queda nada">🚫</span>` : `<span class="c">${c.cant || "?"}</span>`;
+const cantTxt = c => c.nada ? `<span class="c nada" title="No queda nada">🚫</span>` : `<span class="c">${c.cant > 0 ? c.cant : ""}</span>`;   // v3.0: la cantidad va en el texto
+const ST = {"A pedir":["compras","En compras"], "No se consigue":["nsc","No se consigue"], "Depósito":["camino","Sale del depósito"], "Pedido":["camino","Pedido"], "Entregado":["","Entregado"], "No se trae":["","No se trae"]};
+const stTxt = c => ST[c.estado] ? `<span class="st ${ST[c.estado][0]}">${ST[c.estado][1]}</span>` : "";
+const OESTE = ["Nada pendiente. Tranquilo el pueblo 🌵", "Ni un faltante a la vista, sheriff.", "Calma en el saloon. Nada que repartir.", "Todo en orden por acá. 🤠"];
+const oeste = () => OESTE[Math.floor(Math.random() * OESTE.length)];
 const clave2 = s => norm(s).replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(w => w && !["de","x","para","el","la","los","las","con","y","u","unidades"].includes(w)).map(w => w.replace(/(es|s)$/, "")).sort().join(" ");
-const parseCant = t => { const m = t.match(/^\s*(\d+)\s*[*xX×]?\s+(.+)$/) || t.match(/^\s*(\d+)\s*[*xX×]\s*(.+)$/); return m ? {cant:+m[1], nada:+m[1] === 0, txt:m[2].trim()} : {cant:0, nada:false, txt:t.trim()}; };
 
 /* =====================================================================
    3. DIBUJAR
@@ -271,7 +305,8 @@ function render(){
   $("#rol").textContent = rol === "anotar" ? "📝 Anotar" : "";
   $("#rol").hidden = rol !== "anotar"; $("#vista").hidden = rol === "anotar";
   $("#vista").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === rol));
-  $("#vivi").hidden = rol !== "anotar"; if(rol === "anotar") renderVivi();
+  $("#vivi").hidden = false; renderVivi();
+  if(rol === "reparto" && !document.body.classList.contains("tablero")) $("#bTablero").textContent = `📋 Ver el tablero completo (${(D.cards || []).filter(c => !CERR(c.estado)).length} abiertos)`;                                    // v3.0: lo que se ve lo decide el CSS según la vista
   document.body.classList.toggle("v-compras", rol === "compras"); document.body.classList.toggle("v-reparto", rol === "reparto"); document.body.classList.toggle("v-anotar", rol === "anotar");
   $("#lEmo").textContent = rol === "compras" ? "🛒" : rol === "reparto" ? "📦" : "📝";
   $("#lSub").textContent = rol === "compras" ? "Compras · para pedir" : rol === "reparto" ? "Reparto · por sucursal" : "Lita & Añaños";
@@ -289,10 +324,12 @@ function renderReparto(){
     const hechos = mias.filter(c => CERR(c.estado) && dias(c.act) < VER_HECHOS);
     if(filtro && !ab.length) return "";
     const orden = (a,b) => (a.estado === "" ? 0 : 1) - (b.estado === "" ? 0 : 1) || (b.nada - a.nada) || (edad(b) - edad(a));
+    const enCamino = ab.filter(c => c.estado === "Depósito" || c.estado === "Pedido"), pend = ab.filter(c => !enCamino.includes(c));   // v3.0
     const nuevos = ab.filter(c => c.estado === "").length;
     return `<section class="nota" data-c="${s}" data-suc="${s}"><h2>${esc(sucNom(s))} <span class="n">${ab.length || ""}</span>${nuevos > 1 && rol !== "anotar" ? `<button class="ico" type="button" data-todo="${s}" title="Pasar todo lo nuevo a compras">⋯</button>` : ""}</h2>
-      ${ab.sort(orden).map(renglon).join("") || (filtro ? "" : `<div class="vacia">Nada pendiente 🎉</div>`)}
-      ${filtro || rol === "anotar" ? "" : `<label class="agregar">＋<input data-agregar="${s}" maxlength="120" placeholder="Agregar… (ej: 3 lupas)" enterkeyhint="done"></label>`}
+      ${pend.sort(orden).map(renglon).join("") || (filtro ? "" : `<div class="vacia">${enCamino.length ? "Nada más pendiente" : rol === "reparto" ? oeste() : "Nada pendiente 🎉"}</div>`)}
+      ${enCamino.length ? `<div class="camino"><div class="t">🚚 En camino (${enCamino.length})</div>${enCamino.sort(orden).map(renglon).join("")}</div>` : ""}
+      ${filtro || rol === "anotar" ? "" : `<label class="agregar">＋<input data-agregar="${s}" maxlength="120" placeholder="Agregar… (ej: lupas, 3 azules)" enterkeyhint="done"></label>`}
       ${hechos.length && !filtro ? `<details class="hechos"><summary>✓ ${hechos.length} cerrado${hechos.length > 1 ? "s" : ""}</summary>${hechos.map(renglon).join("")}</details>` : ""}</section>`;
   }).join("");
   $("#notas").innerHTML = notas || `<div class="empty">Nada con ese filtro.</div>`;
@@ -301,7 +338,7 @@ function renglon(c){
   const e = EST[c.estado] || EST[""], at = atrasado(c);
   return `<button class="ln${CERR(c.estado) ? " hecho" : ""}" type="button" data-id="${esc(c.id)}">
     ${c.estado === "" ? `<span class="e libre" title="Sin repartir"></span>` : `<span class="e" title="${e[1]}">${e[0]}</span>`}${cantTxt(c)}
-    <span class="p">${esc(c.prod)}${c.obs ? `<small>“${esc(c.obs)}”</small>` : ""}</span>${at ? `<span class="a" title="${esc(CONSEJO[c.estado].replace("%d", edad(c)))}">⏰ ${edad(c)}d</span>` : `<span></span>`}</button>`;
+    <span class="p">${esc(c.prod)}${c.obs || ST[c.estado] ? `<small>${stTxt(c)}${c.obs ? `“${esc(c.obs)}”` : ""}</small>` : ""}</span>${at ? `<span class="a" title="${esc(CONSEJO[c.estado].replace("%d", edad(c)))}">⏰ ${edad(c)}d</span>` : `<span></span>`}</button>`;
 }
 /* 💡 lo trabado, en una línea: tocar = filtrar */
 function tipsReparto(ab){
@@ -336,7 +373,7 @@ function renderCompras(){
   $("#tips").innerHTML = tipsCompras(pedir);
   const ln = (g, hecho) => `<div class="ln${hecho ? " hecho" : ""}" data-k="${esc(g.k)}" role="button" tabindex="0">
     <input type="checkbox" ${hecho ? "checked" : ""} data-tilde="${esc(g.k)}" aria-label="${hecho ? "Volver a la lista" : "Agregado al pedido"}">
-    ${g.nada && !g.cant ? `<span class="c nada">🚫</span>` : `<span class="c">${g.cant || "?"}</span>`}
+    ${g.nada && !g.cant ? `<span class="c nada">🚫</span>` : `<span class="c">${g.cant > 0 ? g.cant : ""}</span>`}
     <span class="p">${esc(g.nombre)}<small>${[hecho && g.lista ? "📁 " + esc(g.lista) : "", g.n > 1 ? `${g.n} pedidos` : "", g.nada ? `🚫 sin stock en ${g.nada}` : "", g.vuelve ? "🔁 volvió" : "", hecho && g.nsc ? "🔍 no se consigue" : ""].filter(Boolean).join(" · ")}</small></span>
     ${!hecho && dias(g.desde) >= 7 ? `<span class="a">⏰ ${dias(g.desde)}d</span>` : "<span></span>"}</div>`;
   const nota = (nombre, color, items) => `<section class="nota" data-c="${nombre ? "L-" + esc(color || "gris") : "COMPRAS"}">
@@ -369,7 +406,8 @@ function renderVivi(){
 }
 $("#vSucs").onclick = e => { const b = e.target.closest("[data-vs]"); if(!b) return; vSuc = b.dataset.vs; guardarLS("vsuc", vSuc); renderVivi(); $("#vTxt").focus(); };
 $("#vTxt").addEventListener("keydown", e => { if(e.key === "Enter" && !vSuc){ e.preventDefault(); toast("Elegí la sucursal"); } });
-$("#vOk").onclick = () => { if(!vSuc){ toast("Elegí la sucursal"); return; } agregar(vSuc, $("#vTxt")); };
+const sinNombre = () => { if(rol !== "anotar" || quien || demo) return false; $("#quien").hidden = false; $("#qNom").focus(); toast("Primero poné tu nombre (así se sabe quién anotó)", 3500); return true; };
+$("#vOk").onclick = () => { if(sinNombre()) return; if(!vSuc){ toast("Elegí la sucursal"); return; } agregar(vSuc, $("#vTxt")); };
 function cargarPrecios(){
   return vCargando || (vCargando = (async () => {
     $("#vRes").innerHTML = `<div class="vacia">Cargando precios…</div>`;
@@ -379,7 +417,7 @@ function cargarPrecios(){
   })());
 }
 /* Listas de proveedores (prov-datos, el mismo link). Se guardan en este celular (IndexedDB, igual que proveedores.html): solo se bajan si hay una lista nueva.
-   Costo = base (escalón u oferta) × (1 − desc) × (1 + recargo), por unidad · venta = costo × multiplicador, redondeado. */
+   Costo = base (escalón u oferta) × (1 − desc) × (1 + recargo), del producto entero · venta = costo × multiplicador, redondeado. */
 const vIDB = (modo, val) => new Promise(ok => { try{ const r = indexedDB.open("dabox-prov", 1); r.onupgradeneeded = () => r.result.createObjectStore("kv");
   r.onsuccess = () => { try{ const tx = r.result.transaction("kv", modo), st = tx.objectStore("kv"), q = modo === "readonly" ? st.get("datos") : st.put(val, "datos");
     tx.oncomplete = () => ok(q.result); tx.onerror = () => ok(null); }catch(e){ ok(null); } }; r.onerror = () => ok(null); }catch(e){ ok(null); } });
@@ -392,8 +430,8 @@ async function listasProv(){
   return d.items.map(it => { const c = d.provs[it[0]] || {nombre:"?", desc:0, rec:0, esc:0, mult:2.13, red:50}, t = []; let b = it[3], of = 0;
     String(it[6] || "").split(/\s+/).forEach(x => { let m = x.match(/^x(\d+)=([\d.]+)$/); if(m) t.push([+m[1], +m[2]]); m = x.match(/^of=([\d.]+)$/); if(m) of = +m[1]; });
     t.sort((a, z) => a[0] - z[0]); if(c.esc > 0 && t.length) b = t[Math.min(c.esc, t.length) - 1][1]; if(of && of < b) b = of;
-    const n = unid(it[2]), cu = b * (1 - c.desc / 100) * (1 + c.rec / 100) / n;
-    return {nom: it[2], cod: it[1], prov: c.nombre, n, cu, venta: Math.round(cu * c.mult / c.red) * c.red, k: norm(`${it[2]} ${it[1]} ${it[4]} ${c.nombre}`)}; });
+    const n = unid(it[2]), v = b * (1 - c.desc / 100) * (1 + c.rec / 100);           // precio del producto ENTERO (c/u solo si se fracciona)
+    return {nom: it[2], cod: it[1], prov: c.nombre, n, cu: v, venta: Math.round(v * c.mult / c.red) * c.red, ventaU: Math.round(v / n * c.mult / c.red) * c.red, k: norm(`${it[2]} ${it[1]} ${it[4]} ${c.nombre}`)}; });
 }
 function buscarVivi(){
   if(!vItems){ cargarPrecios(); return; }
@@ -401,16 +439,18 @@ function buscarVivi(){
   if(!t.length){ $("#vRes").innerHTML = ""; return; }
   const r = vItems.filter(x => t.every(w => x.k.includes(w))).sort((a, b) => a.nom.length - b.nom.length).slice(0, 25);
   $("#vRes").innerHTML = r.map((x, i) => `<div class="v-it"><span>${esc(x.nom)}<small>${esc(x.prov)} · ${esc(x.cod)}</small></span>
-    <b>${LA.money(x.venta)}${x.n > 1 ? " c/u" : ""}<small>costo ${LA.money(Math.round(x.cu))}</small></b><button class="btn" type="button" data-vp="${i}" title="Mandar a compras">🛒 Pedir</button></div>`).join("")
+    <b>${LA.money(x.venta)}<small>costo ${LA.money(Math.round(x.cu))}${x.n > 1 ? ` · suelto ${LA.money(x.ventaU)} c/u` : ""}</small></b><button class="btn" type="button" data-vp="${i}" title="Mandar a compras">🛒 Pedir</button></div>`).join("")
     || `<div class="vacia">No lo encontré. Probá con menos palabras o con la marca.</div>`;
   buscarVivi.r = r;
 }
 let vT; $("#vQ").addEventListener("input", () => { clearTimeout(vT); vT = setTimeout(buscarVivi, 120); });
 $("#vQ").addEventListener("focus", () => { if(!vItems) cargarPrecios(); });
 $("#vRes").onclick = async e => { const b = e.target.closest("[data-vp]"); if(!b) return; const x = buscarVivi.r[+b.dataset.vp]; if(!x) return;
-  const n = prompt(`¿Cuántos pedir? (${x.nom} · ${x.prov})`, ""); if(n === null) return;
+  if(sinNombre()) return;
+  const n = prompt(`Nota para compras, opcional (cuántos, color…): ${x.nom} · ${x.prov}`, ""); if(n === null) return;
   b.disabled = true;
-  try{ await api("prov-pedir", {texto: `${x.nom} (${x.prov} ${x.cod})`, cant: String(Math.round(+String(n).replace(/\D/g, "")) || ""), prov: x.prov}); toast("🛒 Mandado a compras"); b.textContent = "✓ Pedido"; }
+  try{ const r = await api("prov-pedir", {texto: `${x.nom} (${x.prov} ${x.cod})${n.trim() ? " · " + n.trim() : ""}`, cant: "", prov: x.prov});
+    toast(r && r.lista ? `🛒 A la nota ${r.lista}` : "🛒 Mandado a compras"); b.textContent = "✓ Pedido"; if(rol === "compras") refrescar(false); }
   catch(err){ toast(errTxt(err), 4000); b.disabled = false; } };
 
 /* =====================================================================
@@ -424,7 +464,9 @@ function abrirMenu(tit, det, ops){
 }
 const cerrarMenu = () => { $("#menu").hidden = true; };
 /* 🔎 abre proveedores.html con el producto ya buscado (sin la cantidad: "3 lupas" → "lupas") */
-const buscarPrecio = txt => ({t:"🔎 Buscar precio en proveedores", f: () => window.open("proveedores.html#q=" + encodeURIComponent(String(txt).replace(/^\s*\d+\s*[x×*]?\s+/i, "").trim()), "proveedores")});
+const buscarPrecio = txt => ({t:"🔎 Buscar precio en proveedores", f: () => { const q = String(txt).replace(/^\s*\d+\s*[x×*]?\s+/i, "").trim();
+  if(EMBED) parent.postMessage({dabox: "prov", q}, location.origin);                 // adentro del panel: pasa a la sección 💲 con la búsqueda hecha
+  else window.open("proveedores.html#q=" + encodeURIComponent(q), "proveedores"); }});
 function menuReparto(c){
   const op = (estado, t, mal) => ({t, mal, f: () => cambiarReparto([c.id], estado)});
   const rep = (mover, t) => ({t, f: () => reponer(c, mover)});
@@ -486,8 +528,8 @@ function menuNota(nombre){
 }
 async function agregarLibre(lista, inp){
   const v = inp.value.trim(); if(v.length < 2) return;
-  const {cant, nada, txt} = parseCant(v); inp.disabled = true;
-  try{ await api("falt-libre", {lista, texto:txt, ...(nada ? {nada:"1"} : {cant:String(cant || "")})}); inp.value = ""; await refrescar(false);
+  inp.disabled = true;
+  try{ await api("falt-libre", {lista, texto:v, cant:""}); inp.value = ""; await refrescar(false);
     const nuevo = $(`input[data-libre="${CSS.escape(lista)}"]`); if(nuevo) nuevo.focus(); }
   catch(e){ toast(errTxt(e), 4000); }
   finally{ inp.disabled = false; }
@@ -534,15 +576,15 @@ const TITULOS = /^(enero|febrero|marzo|abril|mayo|junio|julio|agosto|sep?tiembre
 const lineasDe = txt => String(txt).split(/\r?\n/).map(limpiarLinea).filter(t => t.length > 1 && !/^\d{1,2}\/\d{1,2}(\/\d{2,4})?$/.test(t) && !TITULOS.test(t));
 async function agregar(suc, inp, pegado){
   const ls = pegado ? lineasDe(pegado) : lineasDe(inp.value); if(!ls.length) return;
-  const grupos = {}; ls.forEach(t => { const {cant, nada, txt} = parseCant(t); const k = nada ? "nada" : String(cant || ""); (grupos[k] = grupos[k] || []).push(txt); });
+  if(sinNombre()) return;
+  const grupos = {"": ls};                                                    // v3.0: el texto queda tal cual ("3 lupas")
   inp.disabled = true;
   try{
     for(const [k, l] of Object.entries(grupos)) for(let i = 0; i < l.length; i += 30)
       await api("falt-nuevo", {sucursal:suc, texto:l.slice(i, i + 30).join("\n"), ...(k === "nada" ? {nada:"1"} : {cant:k})});
     inp.value = ""; await refrescar(false);
     const nuevo = $(`input[data-agregar="${suc}"]`); if(nuevo) nuevo.focus();
-    const sinCant = (grupos[""] || []).length;
-    toast(ls.length > 1 ? `📝 ${ls.length} renglones agregados a ${sucNom(suc)}${sinCant ? ` (${sinCant} sin cantidad: tocalos para completarla)` : ""}` : sinCant ? "Anotado sin cantidad: la próxima, poné el número adelante (3 lupas)" : "📝 Anotado", 4000);
+    toast(ls.length > 1 ? `📝 ${ls.length} renglones agregados a ${sucNom(suc)}` : "📝 Anotado", 3000);
   }catch(e){ toast(errTxt(e), 4000); }
   finally{ inp.disabled = false; }
 }
@@ -550,30 +592,28 @@ document.addEventListener("paste", e => {
   const inp = e.target.closest && e.target.closest("[data-agregar]"); if(!inp) return;
   const t = (e.clipboardData || window.clipboardData).getData("text"); if(!/\n/.test(t.trim())) return;   // una sola línea: se pega normal
   e.preventDefault(); const n = lineasDe(t).length;
-  abrirMenu(`📋 Pegar ${n} renglones`, `En la nota de <b>${esc(sucNom(inp.dataset.agregar))}</b>. Cada línea queda como un renglón; si empieza con un número, es la cantidad.<i>${lineasDe(t).slice(0, 6).map(esc).join("<br>")}${n > 6 ? "<br>…" : ""}</i>`,
+  abrirMenu(`📋 Pegar ${n} renglones`, `En la nota de <b>${esc(sucNom(inp.dataset.agregar))}</b>. Cada línea queda como un renglón.<i>${lineasDe(t).slice(0, 6).map(esc).join("<br>")}${n > 6 ? "<br>…" : ""}</i>`,
     [{t:`✓ Agregar los ${n}`, f: () => agregar(inp.dataset.agregar, inp, t)}]);
 });
 /* 📦+🛒 sale del depósito y se repone: la sucursal ve 📦 y a Joa le llega un renglón del Depósito */
 async function reponer(c, mover){
-  const n = prompt(`¿Cuántos reponer en el depósito? (${c.prod})`, c.nada ? "" : (c.cant || "")); if(n === null) return;
-  const cant = Math.max(0, Math.round(+String(n).replace(/\D/g, "") || 0));
   const antes = c.estado; if(mover){ c.estado = "Depósito"; c.act = Date.now(); render(); }
-  try{ await api("falt-reponer", {id:c.id, mover: mover ? "1" : "0", cant:String(cant || "")}); toast(mover ? "📦 Sale del depósito · 🛒 reponer pasó a compras" : "🛒 Reponer pasó a compras"); await refrescar(false); }
+  try{ await api("falt-reponer", {id:c.id, mover: mover ? "1" : "0"}); toast(mover ? "📦 Sale del depósito · 🛒 reponer pasó a compras" : "🛒 Reponer pasó a compras"); await refrescar(false); }
   catch(e){ c.estado = antes; render(); toast(errTxt(e), 4000); }
 }
 /* ✏️ editar un renglón (solo Reparto) */
 let edC = null;
 function abrirEditar(c){
-  edC = c; $("#eProd").value = c.prod; $("#eCant").value = c.nada ? "" : (c.cant || ""); $("#eNada").checked = !!c.nada; $("#eObs").value = c.obs || "";
+  edC = c; $("#eProd").value = (c.cant > 0 ? c.cant + " " : "") + c.prod; $("#eNada").checked = !!c.nada; $("#eObs").value = c.obs || "";
   $("#eSuc").innerHTML = SUCS.map(s => `<option value="${s}" ${s === c.suc ? "selected" : ""}>${esc(sucNom(s))}</option>`).join("");
   $("#mEdit").hidden = false; setTimeout(() => $("#eProd").focus(), 30);
 }
 $("#fEdit").onsubmit = async e => {
   e.preventDefault(); if(!edC) return;
   const prod = $("#eProd").value.trim(); if(prod.length < 2){ $("#eProd").focus(); return; }
-  const nada = $("#eNada").checked, cant = Math.max(0, Math.round(+$("#eCant").value || 0)), obs = $("#eObs").value.trim(), suc = $("#eSuc").value;
+  const nada = $("#eNada").checked, cant = 0, obs = $("#eObs").value.trim(), suc = $("#eSuc").value;
   const c = edC, antes = {...c}; Object.assign(c, {prod, cant: nada ? 0 : cant, nada, obs, suc}); $("#mEdit").hidden = true; render();
-  try{ await api("falt-editar", {id:c.id, prod, obs, sucursal:suc, ...(nada ? {nada:"1"} : {cant:String(cant || "")})}); toast(suc !== antes.suc ? `✏️ Pasado a ${sucNom(suc)}` : "✏️ Guardado"); }
+  try{ await api("falt-editar", {id:c.id, prod, obs, sucursal:suc, ...(nada ? {nada:"1"} : {cant:""})}); toast(suc !== antes.suc ? `✏️ Pasado a ${sucNom(suc)}` : "✏️ Guardado"); }
   catch(err){ Object.assign(c, antes); render(); toast(errTxt(err), 4000); }
 };
 $("#eCancel").onclick = () => { $("#mEdit").hidden = true; };
