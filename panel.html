@@ -10,9 +10,11 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v2.7
+   PANEL · DA BOX                                                 v2.8
    Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.8: 💳 Cobros: soltás los archivos (QR, Movimientos, Liquidaciones y Banco Provincia, de uno o varios días) y se cargan solos · cuándo se
+         cargó cada uno · 🏦 Transferencias: caja vs. banco (las que no llegaron, una por una). Script v3.48.
    v2.7: 🏷️ Precios · rentabilidad (hito H2): costo y margen de cada producto, "💾 costo" desde las listas de proveedores (también al dar de alta),
          categoría de una lista cerrada (al cambiar y al dar de alta), 🚫 desactivar · el lector de códigos ya no guarda solo (Enter = otro código). Script v3.47.
    v2.6: 🏷️ Precios = el Catálogo desde el panel: cambiar códigos de barras, ＋ dar de alta productos y, al buscar, ver lo mismo en las listas
@@ -103,6 +105,10 @@ tr.sb-abierto td{background:var(--surface-2)}
 .sp:empty{display:none}
 .sp-b{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 9px;font-size:12px;cursor:pointer;text-align:left;color:var(--ink);max-width:340px}
 .sp-b:hover{background:var(--sel)} .sp-b b{font-size:13px} .sp-b .m{display:block}
+.carga{border:2px dashed var(--line);border-radius:var(--r);padding:18px;text-align:center;color:var(--muted);cursor:pointer;margin-top:10px}
+.carga.on,.carga:hover{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+.fuentes{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.fuentes .pill{font-size:12.5px;padding:4px 10px}
 .sp-c{border:1px dashed var(--line);background:none;border-radius:8px;padding:5px 8px;font-size:12px;cursor:pointer;color:var(--muted);align-self:stretch}
 .sp-c:hover{color:var(--ink);border-style:solid}
 .pr-t .costo{color:var(--muted);font-size:12px} .pr-t .costo b{color:var(--ink);font-weight:600}
@@ -418,7 +424,114 @@ function rCierres(){
    6b. COBROS — posnet + QR (Payway). Semanal por sucursal:
        diferencia = Postnet/QR de la caja − (lotes anotados en los cierres + QR pagado con transferencia del archivo del banco)
    ===================================================================== */
-const DIF_SEMANA = 2000;                                     // desde cuánto una diferencia semanal se marca
+const DIF_SEMANA = 2000;
+/* ---------- 📥 v2.8 · CARGAR ARCHIVOS: se leen en esta PC y viajan a la planilla por POST con la clave del encargado (nunca en la dirección) ----------
+   QR (Transacciones QR) · Movimientos presentados · Liquidaciones (CSV de Payway) · Banco Provincia (Exportar movimientos → formato CAC) */
+const FUENTES = {qr:["QR (Payway)", 8], tq:["Transferencias QR (Payway)", 35], mov:["Movimientos (Payway)", 8], liq:["Liquidaciones (Payway)", 35], banco:["Banco Provincia", 8]};   // nombre, días hasta que avisa
+let porCargar = [];
+function cargaCard(C){
+  const ult = {qr: C.ultimoQR, tq: C.ultimoTQ, mov: C.ultimoMov, liq: C.ultimoLiq, banco: C.transferencias && C.transferencias.ultimo};
+  const pill = k => { const f = ult[k], d = f ? Math.floor((Date.now() - new Date(f + "T12:00").getTime()) / 864e5) : null;
+    return `<span class="pill ${d == null ? "" : d > FUENTES[k][1] ? "warn" : "ok"}">${FUENTES[k][0]}: ${f ? `hasta ${fechaAR(f).slice(0, 5)}${d > FUENTES[k][1] ? ` · hace ${d} días` : ""}` : "sin cargar"}</span>`; };
+  const tocaYa = Object.keys(FUENTES).filter(k => k !== "liq" && k !== "tq").some(k => !ult[k] || (Date.now() - new Date(ult[k] + "T12:00").getTime()) / 864e5 > FUENTES[k][1]);
+  return `<div class="card" style="grid-column:1/-1"><h3><span>📥 Cargar archivos${tocaYa ? ` <span class="pill warn">toca cargar</span>` : ""}</span></h3>
+    <div class="fuentes">${Object.keys(FUENTES).map(pill).join("")}</div>
+    <div class="carga" id="carga" tabindex="0">Soltá acá los archivos de la semana, todos juntos (o <u>tocá para elegirlos</u>): QR, Movimientos y Liquidaciones de Payway y los del banco (formato CAC, uno por día).<input type="file" id="cargaIn" multiple accept=".csv,.txt,.cac" hidden></div>
+    <div id="cargaPrev"></div></div>`;
+}
+const csvFilas = t => { const out = []; let f = [], c = "", q = false;
+  for(let i = 0; i < t.length; i++){ const ch = t[i];
+    if(q){ if(ch === '"'){ if(t[i+1] === '"'){ c += '"'; i++; } else q = false; } else c += ch; }
+    else if(ch === '"') q = true; else if(ch === ","){ f.push(c); c = ""; } else if(ch === "\n" || ch === "\r"){ if(ch === "\r" && t[i+1] === "\n") i++; f.push(c); out.push(f); f = []; c = ""; } else c += ch; }
+  if(c || f.length){ f.push(c); out.push(f); } return out.filter(r => r.some(x => String(x).trim())); };
+/* Banco Provincia, formato CAC: cuenta;suc;…;fecha;importe(- al final = débito);fecha valor;saldo;código;concepto;detalle (nombre, CUIT, ref., fecha y hora reales) */
+function leerBanco(t){
+  const out = [];
+  t.split(/\r?\n/).forEach(l => { const r = l.split(";"); if(r.length < 11 || !/^\d{4}-\d{2}-\d{2}$/.test(r[4])) return;
+    const s = r[5].trim(), imp = (s.endsWith("-") ? -1 : 1) * Number(s.replace(/-$/, "").replace(",", ".")), cod = r[8].trim(), con = r[9].trim(), det = r[10].replace(/\s+$/, "");
+    const pct = /PCT/.test(det.slice(31, 40));
+    const tipo = imp > 0 && (cod === "480" || cod === "071" || (cod === "413" && !pct)) ? "Transferencia" : cod === "413" && pct ? "QR" : cod === "561" ? "Tarjetas"
+      : ["056","058","473"].includes(cod) ? "Impuesto" : cod === "946" ? "Comisión" : imp < 0 ? "Salida" : "Otro";
+    let real = ""; if(tipo === "Transferencia"){ const m = det.match(/(\d{2})(\d{2})(20\d{2})(\d{2})(\d{2})(\d{2})/); if(m && +m[1] <= 31 && +m[2] <= 12 && +m[4] < 24 && +m[5] < 60) real = `${m[3]}-${m[2]}-${m[1]} ${m[4]}:${m[5]}:${m[6]}`; 
+      if(cod === "071"){ const d = det.match(/^(\d{2})(\d{2})/); if(d && +d[1] >= 1 && +d[1] <= 31 && +d[2] >= 1 && +d[2] <= 12){ const y = +r[4].slice(0, 4) - (+d[2] > +r[4].slice(5, 7) ? 1 : 0); real = `${y}-${d[2]}-${d[1]}`; } } }   // DEBIN: solo trae el día (ddmm…)
+    const nom = cod === "071" ? "DEBIN" : det.slice(0, 20).trim(), cuit = (det.slice(20, 31).match(/\d{8,11}/) || (cod === "071" ? det.match(/\s(\d{11})\b/) : null) || ["", ""])[cod === "071" ? 1 : 0] || "";
+    out.push([r[4], Math.round(imp * 100) / 100, cod, con, det.slice(0, 120), real, nom, cuit, tipo, [r[4], s, cod, r[7].trim(), det.slice(0, 60).trim()].join("|")]); });
+  return out;
+}
+function tipoArchivo(nombre, t){
+  if(/^\d+;\d{4};\d{3};\d+;\d{4}-\d{2}-\d{2};/m.test(t.slice(0, 400))) return "banco";
+  const h = t.slice(0, 2000).toUpperCase();
+  if(h.includes("QR ID") && h.includes("MONTO NETO") && h.includes("NRO CUPON")) return "tq";
+  if(h.includes("QR ID") && h.includes("MEDIO DE PAGO")) return "qr";
+  if(h.includes("TOTAL_BRUTO") && h.includes("TOTAL_NETO")) return "liq";
+  if(h.includes("LOTE") && /MONTO/.test(h)) return "mov";
+  return "";
+}
+async function leerCarga(files){
+  for(const f of files){
+    if(f.size > 12e6){ LA.toast(`${f.name}: demasiado grande`); continue; }
+    let t = await f.text(); if(t.includes("\uFFFD")) t = new TextDecoder("latin1").decode(await f.arrayBuffer());   // el banco viene en latin-1
+    const tipo = tipoArchivo(f.name, t);
+    if(!tipo){ porCargar.push({nombre: f.name, tipo: "", filas: []}); continue; }
+    const filas = tipo === "banco" ? leerBanco(t) : csvFilas(t);
+    const fechas = tipo === "banco" ? filas.map(x => x[0]) : [];
+    porCargar.push({nombre: f.name, tipo, filas, desde: fechas.length ? fechas.reduce((a, b) => a < b ? a : b) : "", hasta: fechas.length ? fechas.reduce((a, b) => a > b ? a : b) : "",
+      transf: tipo === "banco" ? filas.filter(x => x[8] === "Transferencia").length : 0});
+  }
+  prevCarga();
+}
+function prevCarga(){
+  const ok = porCargar.filter(x => x.tipo);
+  $("#cargaPrev").innerHTML = porCargar.length ? `<div class="tw" style="margin-top:12px"><table><tr><th>Archivo</th><th>Es</th><th class="r">Filas</th><th></th></tr>
+    ${porCargar.map((x, i) => `<tr><td class="m">${esc(x.nombre)}</td><td>${x.tipo ? FUENTES[x.tipo][0] + (x.desde ? ` · ${fechaAR(x.desde).slice(0, 5)}${x.hasta !== x.desde ? "–" + fechaAR(x.hasta).slice(0, 5) : ""}` : "") + (x.transf ? ` · ${x.transf} transferencias` : "") : '<span class="dif-mal">no lo reconozco</span>'}</td>
+      <td class="r">${x.filas.length.toLocaleString("es-AR")}</td><td><button class="btn sm" data-qc="${i}" type="button">✕</button></td></tr>`).join("")}</table></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button class="btn" id="cargaNo" type="button">Cancelar</button><button class="btn primary" id="cargaOk" type="button" ${ok.length ? "" : "disabled"}>Cargar ${ok.length} archivo${ok.length === 1 ? "" : "s"}</button></div>` : "";
+}
+async function subirCarga(){
+  const b = $("#cargaOk"), url = leerLS("url", ""), hechos = []; b.disabled = true;
+  try{
+    for(const x of porCargar.filter(x => x.tipo)){
+      b.textContent = `Cargando ${x.nombre}…`;
+      if(LA.demo){ hechos.push(`${FUENTES[x.tipo][0]}: ${x.filas.length}`); continue; }
+      for(let i = 0; i < x.filas.length; i += 8000){                                     // en partes, para no pasar el límite del script
+        LA.LAPIZ(true);
+        try{ const r = await fetch(url, {method: "POST", body: JSON.stringify({tipo: "cobros-subir", hoja: x.tipo, filas: x.filas.slice(i, i + 8000), clave: LA.clave})});
+          const j = await r.json(); if(j.error) throw new Error(j.error);
+          if(i === 0) hechos.push(`${FUENTES[x.tipo][0]}: ${j.filas}${j.repetidas ? ` (+${j.repetidas} ya estaban)` : ""}`); }
+        finally{ LA.LAPIZ(false); }
+      }
+    }
+    porCargar = []; LA.toast("✓ Cargado · " + hechos.join(" · "), 6000); await actualizar();
+  }catch(e){ LA.toast("❌ " + (e.message === "Failed to fetch" ? "Sin conexión o el script no tiene la versión 3.48" : e.message) + (hechos.length ? " · ya se cargó: " + hechos.join(" · ") : ""), 8000); b.disabled = false; b.textContent = "Reintentar"; }
+}
+document.addEventListener("click", e => {
+  if(e.target.closest("#carga")){ $("#cargaIn").click(); return; }
+  if(e.target.id === "cargaNo"){ porCargar = []; prevCarga(); return; }
+  if(e.target.id === "cargaOk"){ subirCarga(); return; }
+  const q = e.target.closest("[data-qc]"); if(q){ porCargar.splice(+q.dataset.qc, 1); prevCarga(); }
+});
+document.addEventListener("change", e => { if(e.target.id === "cargaIn"){ leerCarga([...e.target.files]); e.target.value = ""; } });
+["dragenter","dragover"].forEach(ev => document.addEventListener(ev, e => { const z = e.target.closest && e.target.closest("#carga"); if(z){ e.preventDefault(); z.classList.add("on"); } }));
+["dragleave","drop"].forEach(ev => document.addEventListener(ev, e => { const z = e.target.closest && e.target.closest("#carga"); if(z){ e.preventDefault(); z.classList.remove("on"); if(ev === "drop") leerCarga([...e.dataTransfer.files]); } }));
+/* ---------- 🏦 v2.8 · TRANSFERENCIAS: lo que la caja cobró con Transferencia vs. lo que entró al banco ---------- */
+const hm = ts => { const d = new Date(ts); return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function transfCard(T){
+  if(!T || !T.hay) return `<div class="card" style="grid-column:1/-1"><h3>🏦 Transferencias: caja vs. banco</h3><div class="empty">Cargá arriba el archivo del Banco Provincia (Exportar movimientos → formato CAC) y acá se cruzan, una por una, con las ventas y cobros por transferencia de la caja.</div></div>`;
+  const sem = (T.semanas || []).filter(x => deSuc(x[1])).sort((a, b) => b[0].localeCompare(a[0]) || SUCS.indexOf(a[1]) - SUCS.indexOf(b[1]));
+  const sb = (T.sinBanco || []).filter(x => deSuc(x[1])), sv = T.sinVenta || [];
+  return `<div class="card" style="grid-column:1/-1"><h3>🏦 Transferencias: caja vs. banco <span class="m" style="font-weight:500">banco cargado hasta ${fechaAR(T.ultimo)}</span></h3>
+    <p class="note">Cada venta o cobro de cta. cte. con <b>Transferencia</b> se busca en el banco: mismo importe y hasta ${T.horas} h de diferencia. ✓ ${T.cruzadas} cruzadas.</p>
+    ${sb.length ? `<h4 style="margin:10px 0 4px">⚠️ En la caja pero no en el banco (${sb.length} · ${money(sb.reduce((a, x) => a + x[4], 0))})</h4>
+      <p class="note">Revisá el comprobante: puede ser una transferencia a otra cuenta, un monto mal cargado, o que el cliente pagó con QR o efectivo y se cargó como transferencia.</p>
+      <div class="tw"><table><tr><th>Cuándo</th><th>Sucursal</th><th>Cajero</th><th>Qué</th><th class="r">Importe</th></tr>
+      ${sb.map(x => `<tr><td class="num">${hm(x[0])}</td><td>${sucTag(x[1])}</td><td>${esc(x[2])}</td><td class="m">${esc(x[3])}</td><td class="r"><b>${money(x[4])}</b></td></tr>`).join("")}</table></div>`
+      : `<div class="empty" style="padding:10px">✓ Todas las transferencias de la caja están en el banco.</div>`}
+    ${sem.length ? `<details style="margin-top:12px"><summary class="m" style="cursor:pointer">Semana por semana</summary><div class="tw"><table><tr><th>Semana</th><th>Sucursal</th><th class="r">Caja</th><th class="r">En el banco</th><th class="r">Sin acreditar</th></tr>
+      ${sem.map(x => `<tr><td class="num">${semTxt(x[0])}</td><td>${sucTag(x[1])}</td><td class="r">${money(x[2])}</td><td class="r">${money(x[3])}</td><td class="r">${x[4] ? `<span class="dif-mal">${x[4]} · ${money(x[5])}</span>` : '<span class="dif-ok">OK</span>'}</td></tr>`).join("")}</table></div></details>` : ""}
+    ${sv.length ? `<details style="margin-top:8px"><summary class="m" style="cursor:pointer">❔ En el banco sin venta en la caja (${sv.length} · ${money(sv.reduce((a, x) => a + x[1], 0))}): señas, pagos sin registrar, transferencias entre cuentas…</summary><div class="tw"><table><tr><th>Cuándo</th><th>De</th><th class="r">Importe</th></tr>
+      ${sv.map(x => `<tr><td class="num">${hm(x[0])}</td><td>${esc(x[2])}</td><td class="r">${money(x[1])}</td></tr>`).join("")}</table></div></details>` : ""}
+  </div>`;
+}                                     // desde cuánto una diferencia semanal se marca
 const semTxt = w => { const d = new Date(w + "T12:00"); const h = new Date(d); h.setDate(h.getDate() + 6); return `${pad(d.getDate())}/${pad(d.getMonth()+1)} al ${pad(h.getDate())}/${pad(h.getMonth()+1)}`; };
 function rCobros(){
   const C = D.cobros || {semanas:[], movimientos:[], liquidaciones:[], hojas:{}};
@@ -431,8 +544,9 @@ function rCobros(){
   const liq = (C.liquidaciones || []).sort((a,b) => b[0].localeCompare(a[0]) || b[2] - a[2]);
   const tot = liq.reduce((a,x) => [a[0]+x[2], a[1]+x[3]+x[4]], [0,0]);
   $("#s-cobros").innerHTML = `<div class="grid">
-    ${viejo ? `<div class="aviso">📥 ${C.ultimoQR ? `El archivo de QR llega hasta el ${fechaAR(C.ultimoQR)}.` : "Todavía no hay archivo de QR."} Pegá el de esta semana en la hoja <b>QR banco</b> (ver abajo cómo).</div>` : ""}
-    <div class="card"><h3>Semana por semana</h3>
+    ${cargaCard(C)}
+    ${transfCard(C.transferencias)}
+    <div class="card"><h3>💳 Postnet y QR: semana por semana</h3>
       <p class="note">Diferencia = Postnet/QR cobrado en la caja − (cierres de lote anotados + QR pagado con transferencia). Cerca de 0 = bien. <b>Falta</b>: se cobró por Payway algo que no se cargó como Postnet/QR. <b>Sobra</b>: se cargó como Postnet/QR algo que se cobró de otra forma.</p>
       ${filas.length ? `<div class="tw"><table><tr><th>Semana</th><th>Sucursal</th><th class="r">Caja Postnet/QR</th><th class="r">Lotes anotados</th>${hayPw ? `<th class="r">Payway presentó</th>` : ""}<th class="r">QR transferencia</th><th class="r">Diferencia</th><th class="r">Cierres sin lote</th></tr>
       ${filas.map(x => { const usa = x[2] > 0 || x[3] > 0, d = x[2] - x[3] - x[4]; return `<tr${usa ? "" : ' class="m"'}><td class="num">${semTxt(x[0])}</td><td>${sucTag(x[1])}</td><td class="r">${money(x[2])}</td><td class="r">${money(x[3])}</td>${hayPw ? `<td class="r">${x[7] == null ? "—" : `${money(x[7])}${Math.abs(x[7] - x[3]) >= DIF_SEMANA ? `<br><span class="dif-mal" title="Lotes anotados por los cajeros − lo que Payway presentó">${x[3] > x[7] ? "anotaron de más " : "anotaron de menos "}${money(Math.abs(x[7] - x[3]))}</span>` : ""}`}</td>` : ""}<td class="r">${money(x[4])}</td><td class="r">${dif(d, usa)}</td><td class="r">${x[6] ? `<span class="dif-mal">${x[6]} de ${x[5]}</span>` : x[5] ? "—" : ""}</td></tr>`; }).join("")}</table></div>` : `<div class="empty">Sin datos todavía.</div>`}
@@ -443,19 +557,11 @@ function rCobros(){
       ${mov.map(([w,m]) => { const a = sem[w] || 0, d = a - m; return `<tr><td class="num">${semTxt(w)}</td><td class="r">${money(a)}</td><td class="r">${money(m)}</td><td class="r">${a ? dif(d, true) : '<span class="dif-nc">sin lotes anotados</span>'}</td></tr>`; }).join("")}</table></div>` : `<div class="empty">Pegá el archivo de Movimientos en la hoja <b>Movimientos Payway</b> (opcional).</div>`}
     </div>
     <div class="card"><h3>Costo de cobrar con tarjeta</h3>
-      <p class="note">Comisiones e impuestos que descuenta Payway (archivo Liquidaciones). ${tot[0] ? `Total: <b>${money(tot[1])}</b> sobre ${money(tot[0])} cobrados (<b>${(tot[1]/tot[0]*100).toFixed(1)}%</b>).` : ""}</p>
+      <p class="note">Comisiones e impuestos que descuenta Payway: tarjetas (archivo Liquidaciones) y QR pagado con transferencia (archivo Transferencias). Las retenciones de IIBB son pago a cuenta: preguntale al contador si las computan. ${tot[0] ? `Total: <b>${money(tot[1])}</b> sobre ${money(tot[0])} cobrados (<b>${(tot[1]/tot[0]*100).toFixed(1)}%</b>).` : ""}</p>
       ${liq.length ? `<div class="tw"><table><tr><th>Mes</th><th>Marca</th><th class="r">Cobrado</th><th class="r">Comisión</th><th class="r">Impuestos</th><th class="r">Costo %</th></tr>
       ${liq.map(x => { const p = x[2] ? (x[3]+x[4])/x[2]*100 : 0; return `<tr><td>${mesTxt(x[0])}</td><td>${esc(x[1])}</td><td class="r">${money(x[2])}</td><td class="r">${money(x[3])}</td><td class="r">${money(x[4])}</td><td class="r ${p >= 8 ? "dif-mal" : ""}">${p.toFixed(1)}%</td></tr>`; }).join("")}</table></div>` : `<div class="empty">Pegá el archivo de Liquidaciones en la hoja <b>Liquidaciones Payway</b> (opcional, mensual).</div>`}
     </div>
-    <div class="card"><h3>Cómo cargar los archivos (una vez por semana)</h3>
-      <ol class="note" style="max-width:none;line-height:1.7">
-        <li>Bajá de Payway el CSV de <b>Transacciones QR</b> (y si querés, <b>Movimientos presentados</b> y <b>Liquidaciones</b>).</li>
-        <li>En la planilla, abrí la hoja <b>QR banco</b> (o <b>Movimientos Payway</b> / <b>Liquidaciones Payway</b>). Si no existe, creala con ese nombre exacto.</li>
-        <li><b>Archivo → Importar → Subir</b> el CSV → Ubicación: <b>Agregar a la hoja actual</b> → Separador: <b>coma</b> → <b>No</b> convertir texto en números ni fechas.</li>
-        <li>Listo: el panel descarta solo las filas repetidas, así que no importa si las fechas se superponen.</li>
-      </ol>
-      <p class="note">🔒 Estos archivos tienen CBU y finales de tarjeta: solo en la planilla, nunca en el repo.</p>
-    </div>
+    <p class="note" style="grid-column:1/-1">🔒 Estos archivos tienen CBU, nombres y finales de tarjeta: quedan solo en la planilla, nunca en el repo. Si preferís, se pueden seguir pegando a mano en sus hojas como antes.</p>
   </div>`;
 }
 
@@ -862,7 +968,9 @@ function datosDemo(){
   for(let d = 0; d < dias; d++) SUCS.forEach((s,i) => { const r = rnd(), dif = r < .15 ? -Math.round(rnd()*8000) : r < .22 ? Math.round(rnd()*3000) : 0;
     cierres.push([ahora - d*864e5 - i*3e5, s, cajeros[Math.floor(rnd()*cajeros.length)], Math.round(2e5 + rnd()*5e5), dif, rnd() < .1 ? -1500 : 0, Math.round(1e5 + rnd()*2e5), 0, ...(rnd() < .12 ? [2 + (rnd() < .3 ? 1 : 0), dif ? "error de vuelto" : "", "DA BOX", dif - 5000] : [1, dif ? "error de vuelto" : "", "DA BOX", null])]); });
   const sinCierre = [[ymd(new Date(ahora - 864e5)), "MORENO", 2, 7400, ahora - 864e5 + 3e5, ahora - 864e5 + 15e5, ["Mica"]]];
-  const cobros = {semanas:[], movimientos:[], liquidaciones:[], ultimoQR: ymd(new Date(ahora - 2*864e5)), hojas:{qr:true, mov:true, liq:true}};
+  const cobros = {semanas:[], movimientos:[], liquidaciones:[], ultimoQR: ymd(new Date(ahora - 2*864e5)), ultimoMov: ymd(new Date(ahora - 12*864e5)), ultimoLiq: ymd(new Date(ahora - 20*864e5)), hojas:{qr:true, mov:true, liq:true},
+    transferencias: {hay:true, ultimo: ymd(new Date(ahora - 864e5)), horas:6, cruzadas:142, semanas:[[ymd(new Date(ahora - 3*864e5)), "FALCON", 412000, 397000, 1, 15000], [ymd(new Date(ahora - 3*864e5)), "NACION", 205000, 205000, 0, 0]],
+      sinBanco:[[ahora - 2*864e5 - 5e6, "FALCON", "Mica", "Venta", 15000, "V-1"]], sinVenta:[[ahora - 2*864e5, 50000, "FARIAS, JUAN MANUEL"], [ahora - 3*864e5, 2200, "LACUADRA, REBECA"]]}};
   for(let k = 0; k < 6; k++){ const d = new Date(ahora - k*7*864e5); d.setDate(d.getDate() - (d.getDay()+6)%7); const w = ymd(d); let lotes = 0;
     SUCS.forEach(s => { const lote = Math.round((60000 + rnd()*120000)*peso[s]*3), qr = Math.round((200000 + rnd()*400000)*peso[s]*2), err = rnd() < .2 ? -Math.round(rnd()*15000) : Math.round(rnd()*900);
       cobros.semanas.push([w, s, lote + qr + err, lote, qr, 6, rnd() < .15 ? 1 : 0]); lotes += lote; });
