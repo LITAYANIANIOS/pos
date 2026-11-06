@@ -10,9 +10,11 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v2.6
+   PANEL · DA BOX                                                 v2.7
    Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.7: 🏷️ Precios · rentabilidad (hito H2): costo y margen de cada producto, "💾 costo" desde las listas de proveedores (también al dar de alta),
+         categoría de una lista cerrada (al cambiar y al dar de alta), 🚫 desactivar · el lector de códigos ya no guarda solo (Enter = otro código). Script v3.47.
    v2.6: 🏷️ Precios = el Catálogo desde el panel: cambiar códigos de barras, ＋ dar de alta productos y, al buscar, ver lo mismo en las listas
          de proveedores con "＋ Cargar" (nombre, código de barras y precio sugerido ya puestos). Necesita script v3.45.
    v2.5: 💡 sugerido de proveedores = precio del producto entero (el c/u suelto queda como dato).
@@ -101,6 +103,12 @@ tr.sb-abierto td{background:var(--surface-2)}
 .sp:empty{display:none}
 .sp-b{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 9px;font-size:12px;cursor:pointer;text-align:left;color:var(--ink);max-width:340px}
 .sp-b:hover{background:var(--sel)} .sp-b b{font-size:13px} .sp-b .m{display:block}
+.sp-c{border:1px dashed var(--line);background:none;border-radius:8px;padding:5px 8px;font-size:12px;cursor:pointer;color:var(--muted);align-self:stretch}
+.sp-c:hover{color:var(--ink);border-style:solid}
+.pr-t .costo{color:var(--muted);font-size:12px} .pr-t .costo b{color:var(--ink);font-weight:600}
+.pr-t .costo .bajo{color:var(--bad);font-weight:700}
+.pr-t .inp-cat{font-size:12px;padding:2px 4px;border:1px solid var(--line);border-radius:4px;background:var(--surface-2);color:var(--ink);max-width:160px;margin-top:3px}
+.pr-t .off{margin-left:4px}
 iframe.embebido{width:100%;height:calc(100vh - 120px);min-height:520px;border:0;border-radius:var(--r);background:var(--bg)}
 .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
 </style>
@@ -606,13 +614,19 @@ function rProductos(){
    ===================================================================== */
 const REDONDEO = 50;                 // las cuentas se redondean a esto (un número escrito tal cual, no)
 const PCT_OJO = 40;                  // un cambio mayor a esto (%) pide confirmar: protege de tipeos (1200 en vez de 12000)
-let prCat = null, prBusca = "", prCambios = null, prHechos = {}, prConfirmar = null;
+let prCat = null, prBusca = "", prCambios = null, prHechos = {}, prConfirmar = null, prCostos = {};
+const prCats = () => [...new Set((prCat || []).map(p => String(p.cat || "").toUpperCase()).filter(Boolean))].sort();   // lista cerrada de categorías
+const prK = p => p.cod + "|" + p.nombre;
+/* costo y margen: margen = precio ÷ costo (× 2,13 es el de siempre). Rojo si el precio no llega a × 1,5 */
+const prCostoTxt = p => { const c = prCostos[prK(p)]; if(!c) return `<span class="costo">sin costo</span>`;
+  const x = p.precio > 0 ? p.precio / c[0] : 0;
+  return `<span class="costo">costo <b>${money(c[0])}</b>${x ? ` · <span class="${x < 1.5 ? "bajo" : ""}">×${x.toFixed(2).replace(".", ",")}</span>` : ""}${c[1] ? " · " + esc(fechaAR(c[1]).slice(0, 5)) : ""}</span>`; };
 async function prCargar(forzar){
-  if(LA.demo){ prCat = prCat || [{cod:"779101", nombre:"Birome BIC azul", cat:"ESCRITURA", precio:900, combo:"3x2400"}, {cod:"779202", nombre:"Cuaderno Rivadavia ABC tapa dura 50h", cat:"CUADERNOS", precio:6900, combo:""},
+  if(LA.demo){ if(!Object.keys(prCostos).length) prCostos = {"779101|Birome BIC azul": [420, "2026-10-20"], "779303|Resma A4 75g Boreal": [4700, "2026-11-01"]}; prCat = prCat || [{cod:"779101", nombre:"Birome BIC azul", cat:"ESCRITURA", precio:900, combo:"3x2400"}, {cod:"779202", nombre:"Cuaderno Rivadavia ABC tapa dura 50h", cat:"CUADERNOS", precio:6900, combo:""},
     {cod:"779303", nombre:"Resma A4 75g Boreal", cat:"RESMAS", precio:9800, combo:"10x92000"}, {cod:"779404", nombre:"Plasticola 40g", cat:"ADHESIVOS", precio:1300, combo:""}]; prCambios = prCambios || []; return; }
   if(prCat && !forzar) return;
-  const [a, b] = await Promise.all([LA.api("precios"), LA.api("precio-cambios")]);
-  prCat = a.items || []; prCambios = b.cambios || [];
+  const [a, b, c] = await Promise.all([LA.api("precios"), LA.api("precio-cambios"), LA.api("precio-costos", {_silencio:true}).catch(() => ({costos:{}}))]);   // costos: script v3.47
+  prCat = a.items || []; prCambios = b.cambios || []; prCostos = c.costos || {};
 }
 /* "4500*2,13" "4500x2.13" "+10%" "-5%" "12.500" → número (o null si no se entiende). Solo números y * x + - % : no se ejecuta nada como código */
 function prEval(t, actual){
@@ -645,12 +659,13 @@ function prTabla(){
   const l = prLista();
   $("#prN").textContent = !prBusca.trim() ? `${prCat.length.toLocaleString("es-AR")} productos en el Catálogo` : l.length >= 40 ? "Mostrando 40: escribí otra palabra para achicar" : `${l.length} resultado${l.length === 1 ? "" : "s"}`;
   $("#prT").innerHTML = l.length ? `<tr><th>Producto</th><th class="r">Precio actual</th><th>Precio nuevo</th><th>Combo</th><th>Códigos de barras</th><th></th></tr>` + l.map((p, i) => { const h = prHechos[p.cod + "|" + p.nombre];
-    return `<tr data-i="${i}" class="${h ? "ok" : ""}"><td class="nom"><b>${esc(p.nombre)}</b><small>${esc(p.cod)}${p.cat ? " · " + esc(p.cat) : ""}${h ? ` · ✓ antes ${money(h)}` : ""}</small><div class="sp" data-sp="${i}"></div></td>
+    return `<tr data-i="${i}" class="${h ? "ok" : ""}"><td class="nom"><b>${esc(p.nombre)}</b><small>${esc(p.cod)} · ${prCostoTxt(p)}${h ? ` · ✓ antes ${money(h)}` : ""}</small>
+      <select class="inp-cat" data-k="${i}" title="Categoría">${(p.cat ? [] : [""]).concat(prCats()).map(c => `<option value="${esc(c)}" ${c === String(p.cat || "").toUpperCase() ? "selected" : ""}>${c ? esc(c) : "— sin categoría —"}</option>`).join("")}</select><div class="sp" data-sp="${i}"></div></td>
       <td class="r"><b>${p.precio > 0 ? money(p.precio) : '<span class="m">abierto</span>'}</b></td>
       <td><input class="campo num inp-p" data-i="${i}" inputmode="decimal" autocomplete="off" placeholder="${p.precio || ""}"><div class="prev" data-prev="${i}"></div></td>
       <td><input class="campo inp-c" data-c="${i}" autocomplete="off" value="${esc(p.combo || "")}" placeholder="ej: 3x2500"></td>
       <td><input class="campo inp-a" data-a="${i}" autocomplete="off" spellcheck="false" value="${esc(p.alt || "")}" placeholder="779…, 779…"></td>
-      <td><button class="btn sm primary" data-g="${i}" type="button">Guardar</button></td></tr>`; }).join("")
+      <td style="white-space:nowrap"><button class="btn sm primary" data-g="${i}" type="button">Guardar</button><button class="btn sm off" data-off="${i}" type="button" title="Desactivar: deja de aparecer en las cajas (no se borra)">🚫</button></td></tr>`; }).join("")
     : prBusca.trim() ? `<tr><td class="empty">🔍 No está en el Catálogo. Cargalo desde una lista de abajo o con <b>＋ Producto nuevo</b>.</td></tr>` : "";
   prTabla.l = l; prProv();
 }
@@ -666,19 +681,20 @@ function prPrev(i){
 async function prGuardar(i){
   const p = prTabla.l[i]; if(!p) return;
   const inp = $(`input[data-i="${i}"].inp-p`), combo = $(`input[data-c="${i}"]`).value.trim(), r = prEval(inp.value, p.precio);
-  const alt = $(`input[data-a="${i}"]`).value.trim(), cambiaAlt = alt !== (p.alt || "");
+  const alt = $(`input[data-a="${i}"]`).value.trim().replace(/[,\s]+$/, ""), cambiaAlt = alt !== (p.alt || "");
+  const cat = $(`select[data-k="${i}"]`).value, cambiaCat = cat !== String(p.cat || "").toUpperCase();
   const precio = inp.value.trim() ? (r && r.v) : p.precio;
   if(!(precio > 0)){ inp.focus(); return LA.toast("Poné el precio nuevo (número o cuenta)"); }
-  if(precio === p.precio && combo === (p.combo || "") && !cambiaAlt) return LA.toast("No cambió nada");
+  if(precio === p.precio && combo === (p.combo || "") && !cambiaAlt && !cambiaCat) return LA.toast("No cambió nada");
   const d = p.precio > 0 ? Math.abs(precio / p.precio - 1) * 100 : 0;
   if(d >= PCT_OJO && prConfirmar !== i){ prConfirmar = i; return LA.toast(`Cambia ${d.toFixed(0)} %: Enter de nuevo para confirmar`, 3500); }
   prConfirmar = null; const btn = $(`[data-g="${i}"]`); btn.disabled = true; btn.textContent = "…";
   try{
     const antes = p.precio;
-    if(LA.demo){ p.precio = precio; p.combo = combo; p.alt = alt; prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), "Encargado", p.cod, p.nombre, antes, precio, combo]); }
-    else { const res = await LA.api("precio-editar", {cod:p.cod, nombreOrig:p.nombre, precio, combo, ...(cambiaAlt ? {alt} : {}), _sinReintento:1}); Object.assign(p, res.item); prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), ROLES[D.rol] || "", p.cod, p.nombre, antes, p.precio, p.combo || ""]); }
+    if(LA.demo){ p.precio = precio; p.combo = combo; p.alt = alt; p.cat = cat; prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), "Encargado", p.cod, p.nombre, antes, precio, combo]); }
+    else { const res = await LA.api("precio-editar", {cod:p.cod, nombreOrig:p.nombre, precio, combo, ...(cambiaAlt ? {alt} : {}), ...(cambiaCat ? {cat} : {}), _sinReintento:1}); Object.assign(p, res.item); prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), ROLES[D.rol] || "", p.cod, p.nombre, antes, p.precio, p.combo || ""]); }
     prHechos[p.cod + "|" + p.nombre] = antes;
-    LA.toast(`✓ ${p.nombre}: ${antes !== p.precio ? `${money(antes)} → ${money(p.precio)}` : "guardado"}${cambiaAlt ? " · códigos de barras" : ""}`, 3500);
+    LA.toast(`✓ ${p.nombre}: ${antes !== p.precio ? `${money(antes)} → ${money(p.precio)}` : "guardado"}${cambiaAlt ? " · códigos de barras" : ""}${cambiaCat ? " · categoría " + cat : ""}`, 3500);
     prTabla(); prHist(); const q = $("#prQ"); q.focus(); q.select();      // listo para el próximo producto
   }catch(e){ if(e === "clave"){ LA.salir(LA.ERR.clave); return; } LA.toast("❌ " + ((e && e.msg) || LA.ERR[e] || "No se guardó"), 6000); btn.disabled = false; btn.textContent = "Guardar"; }
 }
@@ -728,19 +744,19 @@ async function prSug(i){
   w.forEach(x => (pvIdx.get(x) || []).forEach(j => k.set(j, (k.get(j) || 0) + 1)));
   const top = [...k].map(([j, n]) => [j, n / (w.length + pvD.n[j] - n)]).filter(x => x[1] >= 0.25).sort((a, b) => b[1] - a[1]).slice(0, 3);
   el.innerHTML = top.map(([j]) => { const it = pvD.items[j], c = pvCosto(it);
-    return `<button class="sp-b" type="button" data-usa="${i}" data-v="${c.sug}" title="Usar ${money(c.sug)}">💡 ${esc(c.prov)} · venta <b>${money(c.sug)}</b><span class="m">${esc(it[2].slice(0, 48))} · costo ${money(Math.round(c.v))}${c.n > 1 ? ` · suelto ${money(c.sugU)} c/u` : ""}</span></button>`; }).join("");
+    return `<button class="sp-b" type="button" data-usa="${i}" data-v="${c.sug}" title="Usar ${money(c.sug)}">💡 ${esc(c.prov)} · venta <b>${money(c.sug)}</b><span class="m">${esc(it[2].slice(0, 48))} · costo ${money(Math.round(c.v))}${c.n > 1 ? ` · suelto ${money(c.sugU)} c/u` : ""}</span></button>`
+      + `<button class="sp-c" type="button" data-costo="${i}" data-cv="${Math.round(c.v * 100) / 100}" title="Guardar ${money(c.v)} como costo de este producto (${esc(c.prov)})">💾 costo</button>`; }).join("");
 }
 /* ＋ ALTA: un producto nuevo en el Catálogo (accion=producto-nuevo, script v3.45). Código vacío = el 1er código de barras (o P00001…) */
 function prAltaAbrir(x){
-  const cats = [...new Set((prCat || []).map(p => p.cat).filter(Boolean))].sort();
+  const cats = prCats(); prAltaAbrir.costo = x.costo || 0;
   $("#prAlta").innerHTML = `<b>＋ Producto nuevo</b>${x.nota ? ` <span class="m">· de la lista de ${esc(x.nota)}</span>` : ""}
     <div class="g" style="margin-top:8px"><label>Nombre (como lo buscan en la caja)<input class="campo" id="aNom" maxlength="120" value="${esc(x.nombre || "")}"></label>
-      <label>Categoría<input class="campo" id="aCat" list="prCats" maxlength="40" autocomplete="off"></label>
+      <label>Categoría<select class="campo" id="aCat"><option value="">Elegí…</option>${cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}</select></label>
       <label>Precio (o cuenta: 4500*2,13)<input class="campo num" id="aPre" inputmode="decimal" autocomplete="off" value="${x.precio || ""}"><span class="m" id="aPrev"></span></label></div>
     <div class="g2"><label>Códigos de barras (separados por coma)<input class="campo" id="aAlt" spellcheck="false" autocomplete="off" value="${esc(x.alt || "")}"></label>
       <label>Combo (opcional)<input class="campo" id="aCom" autocomplete="off" placeholder="ej: 3x2500"></label>
       <label>Código interno (opcional)<input class="campo" id="aCod" spellcheck="false" autocomplete="off" placeholder="vacío = el código de barras"></label></div>
-    <datalist id="prCats">${cats.map(c => `<option value="${esc(c)}">`).join("")}</datalist>
     <div class="acc"><span class="m">Enter guarda · Esc cancela · las cajas lo ven en hasta 30 min</span><button class="btn" id="prAltaNo" type="button">Cancelar</button><button class="btn primary" id="prAltaOk" type="button">Guardar en el Catálogo</button></div>`;
   $("#prAlta").hidden = false; $("#aNom").focus(); $("#aNom").select();
 }
@@ -749,12 +765,13 @@ async function prAltaGuardar(){
   const v = id => $(id).value.trim(), r = prEval(v("#aPre"), 0), b = $("#prAltaOk");
   if(v("#aNom").length < 3){ $("#aNom").focus(); return LA.toast("Escribí el nombre"); }
   if(!r || !(r.v > 0)){ $("#aPre").focus(); return LA.toast("Poné el precio (número o cuenta)"); }
-  const d = {nombre: v("#aNom"), cat: v("#aCat"), precio: r.v, alt: v("#aAlt"), combo: v("#aCom"), cod: v("#aCod")};
+  if(!v("#aCat")){ $("#aCat").focus(); return LA.toast("Elegí la categoría"); }
+  const d = {nombre: v("#aNom"), cat: v("#aCat"), precio: r.v, alt: v("#aAlt").replace(/[,\s]+$/, ""), combo: v("#aCom"), cod: v("#aCod"), ...(prAltaAbrir.costo ? {costo: prAltaAbrir.costo} : {})};
   b.disabled = true; b.textContent = "Guardando…";
   try{
     const item = LA.demo ? {...d, cod: d.cod || d.alt.split(/[\s,]+/)[0] || "P00001", cat: d.cat.toUpperCase(), alt: d.alt.split(/[\s,]+/).slice(d.cod ? 0 : 1).join(", ")}
       : (await LA.api("producto-nuevo", {...d, _sinReintento:1})).item;
-    prCat.push(item); prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), (ROLES[D.rol] || "") + " · ALTA", item.cod, item.nombre, 0, item.precio, item.combo || ""]);
+    prCat.push(item); if(d.costo) prCostos[prK(item)] = [d.costo, ymd(new Date())]; prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), (ROLES[D.rol] || "") + " · ALTA", item.cod, item.nombre, 0, item.precio, item.combo || ""]);
     prHechos[item.cod + "|" + item.nombre] = 0; prAltaCerrar(); prBusca = item.nombre; $("#prQ").value = item.nombre; prTabla(); prHist();
     LA.toast(`✓ Alta: ${item.nombre} · ${money(item.precio)} · código ${item.cod}`, 4500);
   }catch(e){ if(e === "clave"){ LA.salir(LA.ERR.clave); return; } LA.toast("❌ " + ((e && e.msg) || LA.ERR[e] || "No se guardó"), 6000); b.disabled = false; b.textContent = "Guardar en el Catálogo"; }
@@ -785,19 +802,33 @@ $("#s-precios").addEventListener("input", e => {
 });
 $("#s-precios").addEventListener("keydown", e => {
   if(e.target.id === "prQ" && (e.key === "ArrowDown" || e.key === "Enter")){ const f = $(".inp-p"); if(f){ e.preventDefault(); f.focus(); } return; }
+  if((e.target.id === "aAlt" || e.target.classList.contains("inp-a")) && e.key === "Enter"){   // lector de códigos: su Enter = "otro código", no guardar
+    e.preventDefault(); const t = e.target; if(t.value.trim() && !/,\s*$/.test(t.value)) t.value = t.value.trim() + ", "; return; }
   if(e.target.closest("#prAlta")){ if(e.key === "Enter"){ e.preventDefault(); prAltaGuardar(); } if(e.key === "Escape"){ e.preventDefault(); prAltaCerrar(); } return; }
-  const i = e.target.dataset.i ?? e.target.dataset.c ?? e.target.dataset.a; if(i == null) return;
+  const i = e.target.dataset.i ?? e.target.dataset.c ?? e.target.dataset.k; if(i == null) return;
   if(e.key === "Enter"){ e.preventDefault(); prGuardar(+i); }
   if(e.key === "Escape"){ e.preventDefault(); const q = $("#prQ"); q.focus(); q.select(); }
   if(e.key === "ArrowDown" || e.key === "ArrowUp"){ const n = $(`input[data-i="${+i + (e.key === "ArrowDown" ? 1 : -1)}"].inp-p`); if(n){ e.preventDefault(); n.focus(); } }
 });
 $("#s-precios").addEventListener("click", async e => {
   const g = e.target.closest("[data-g]"); if(g) return prGuardar(+g.dataset.g);
+  const sc = e.target.closest("[data-costo]"); if(sc){ const p = prTabla.l[+sc.dataset.costo], costo = +sc.dataset.cv; if(!p) return;
+    sc.disabled = true;
+    try{ if(!LA.demo) await LA.api("precio-costo", {cod:p.cod, nombreOrig:p.nombre, costo, _sinReintento:1});
+      prCostos[prK(p)] = [costo, ymd(new Date())]; LA.toast(`💾 Costo de ${p.nombre}: ${money(costo)}`); const i = +sc.dataset.costo, sm = $(`tr[data-i="${i}"] .nom small`); if(sm) sm.innerHTML = `${esc(p.cod)} · ${prCostoTxt(p)}`; sc.textContent = "✓ guardado"; }
+    catch(x){ sc.disabled = false; LA.toast("❌ " + ((x && x.msg) || LA.ERR[x] || "No se guardó (¿script v3.47?)"), 5000); } return; }
+  const off = e.target.closest("[data-off]"); if(off){ const p = prTabla.l[+off.dataset.off]; if(!p) return;
+    if(off.dataset.ok !== "1"){ off.dataset.ok = "1"; off.textContent = "¿Desactivar?"; return; }
+    off.disabled = true;
+    try{ if(!LA.demo) await LA.api("precio-editar", {cod:p.cod, nombreOrig:p.nombre, precio:p.precio || 1, activo:"NO", _sinReintento:1});
+      prCat.splice(prCat.indexOf(p), 1); prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), (ROLES[D.rol] || "") + " · DESACTIVÓ", p.cod, p.nombre, p.precio, p.precio, ""]);
+      prTabla(); prHist(); LA.toast(`🚫 ${p.nombre} desactivado: las cajas dejan de mostrarlo en hasta 30 min (se reactiva en la planilla, Activo = SI)`, 5000); }
+    catch(x){ off.disabled = false; LA.toast("❌ " + ((x && x.msg) || LA.ERR[x] || "No se pudo"), 5000); } return; }
   const us = e.target.closest("[data-usa]"); if(us){ const i = +us.dataset.usa, inp = $(`input[data-i="${i}"].inp-p`); inp.value = us.dataset.v; prPrev(i); inp.focus(); return; }
   if(e.target.id === "prNuevo") return prAltaAbrir({nombre: prBusca.trim()});
   if(e.target.id === "prAltaNo") return prAltaCerrar();
   if(e.target.id === "prAltaOk") return prAltaGuardar();
-  const ca = e.target.closest("[data-cargar]"); if(ca){ const x = prProv.l[+ca.dataset.cargar]; if(x) prAltaAbrir({nombre: x.nom, alt: x.ean, precio: x.sug, nota: `${x.prov} · costo ${money(Math.round(x.v))}`}); return; }
+  const ca = e.target.closest("[data-cargar]"); if(ca){ const x = prProv.l[+ca.dataset.cargar]; if(x) prAltaAbrir({nombre: x.nom, alt: x.ean, precio: x.sug, costo: Math.round(x.v * 100) / 100, nota: `${x.prov} · costo ${money(Math.round(x.v))} (se guarda)`}); return; }
   if(e.target.id === "prRec"){ try{ await prCargar(true); prTabla(); prHist(); LA.toast("Catálogo actualizado"); }catch(x){ LA.toast(LA.ERR[x] || "No se pudo leer el catálogo"); } return; }
   const u = e.target.closest("[data-un]"); if(!u) return;
   const c = prCambios[+u.dataset.un], p = prCat.find(x => x.cod === c[3] && x.nombre === c[4]) || prCat.find(x => x.cod === c[3]);
