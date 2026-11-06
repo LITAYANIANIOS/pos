@@ -339,40 +339,70 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .cc-tag .link{padding:0;margin-left:auto}
 .cc-tag.mod{background:var(--warn-soft,#fbf3db);outline:1px dashed var(--warn,#b5821f)}
 /* 📝 Faltantes: una nota tipo Keep con el color de la sucursal (v3.45) */
-.fl-nota{max-width:720px;background:var(--k-gris,#f1f1ef);border-radius:12px;padding:14px 12px 10px;color:var(--ink)}
-.fl-nota[data-c="FALCON"]{background:#e7f0fa} .fl-nota[data-c="MORENO"]{background:#fbecdd} .fl-nota[data-c="NACION"]{background:#edf3ec} .fl-nota[data-c="SOMISA"]{background:#fbf3db} .fl-nota[data-c="DEPOSITO"]{background:#f1eef8}
-:root[data-theme="dark"] .fl-nota{background:#2c2c2c!important}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fl-nota{background:#2c2c2c!important}}
-.fl-nota h3{display:flex;align-items:center;margin:0 6px 6px;font-size:18px;font-weight:600}
-.fl-ico{margin-left:auto;border:0;background:none;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:16px;color:var(--muted)}
-.fl-ico:hover{background:rgb(0 0 0 / .06)}
-.fl-add{display:flex;align-items:center;gap:8px;padding:2px 6px}
-.fl-mas{color:var(--muted);font-size:18px}
-.fl-add input{flex:1;min-width:0;border:0;border-bottom:1px solid rgb(0 0 0 / .15);background:transparent;padding:8px 2px;font-size:16px;color:var(--ink)}
+/* ---------- 📝 FALTANTES (v3.51): una hoja de libreta rayada, con la cinta de color de la sucursal; lo que viene, en un remito aparte ---------- */
+#tab-falt{--hoja:#fffef9;--regla:#dfe7f1;--margen:#eba8a8;--remito:#eef6f0;--remito-borde:#9fc8b0;--remito-ink:#2f6f4d;
+  --st-anot:#6c7480;--st-comp:#9a5b00;--st-comp-bg:#fcefd6;--st-cam:#2f6f4d;--st-cam-bg:#dff0e5;--st-mal:#b3362f}
+:root[data-theme="dark"] #tab-falt{--hoja:#24272c;--regla:rgb(255 255 255 / .07);--margen:rgb(235 130 130 / .4);--remito:#1c2a22;--remito-borde:#3d6b51;--remito-ink:#8fd0a9;--st-anot:#9aa3ae;--st-comp:#f0c46a;--st-comp-bg:#47391a;--st-cam:#8fd0a9;--st-cam-bg:#1f3a2a;--st-mal:#ef8b84}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #tab-falt{--hoja:#24272c;--regla:rgb(255 255 255 / .07);--margen:rgb(235 130 130 / .4);--remito:#1c2a22;--remito-borde:#3d6b51;--remito-ink:#8fd0a9;--st-anot:#9aa3ae;--st-comp:#f0c46a;--st-comp-bg:#47391a;--st-cam:#8fd0a9;--st-cam-bg:#1f3a2a;--st-mal:#ef8b84}}
+.fl-wrap{display:grid;grid-template-columns:minmax(0,760px) minmax(260px,340px);gap:24px;align-items:start;margin-top:14px}
+@media (max-width:1150px){.fl-wrap{grid-template-columns:minmax(0,760px)}}
+.fl-hoja{position:relative;background:var(--hoja);border-radius:3px 3px 10px 10px;padding:22px 18px 12px 64px;box-shadow:0 1px 0 var(--line),0 8px 24px -14px rgb(0 0 0 / .25);color:var(--ink)}
+.fl-hoja::before{content:"";position:absolute;top:0;bottom:0;left:46px;border-left:2px solid var(--margen)}
+.fl-cinta{position:absolute;top:-9px;left:22px;width:118px;height:22px;transform:rotate(-2.5deg);background:var(--muted);opacity:.8;border-radius:2px;
+  -webkit-mask:linear-gradient(90deg,transparent 0 2px,#000 2px calc(100% - 2px),transparent 0);mask:linear-gradient(90deg,transparent 0 2px,#000 2px calc(100% - 2px),transparent 0)}
+.fl-wrap[data-c="FALCON"] .fl-cinta{background:#4a8ad8} .fl-wrap[data-c="MORENO"] .fl-cinta{background:#ec8452} .fl-wrap[data-c="NACION"] .fl-cinta{background:#3fb489}
+.fl-wrap[data-c="SOMISA"] .fl-cinta{background:#eab12e} .fl-wrap[data-c="DEPOSITO"] .fl-cinta{background:#9479d6}
+.fl-hoja h3{display:flex;align-items:baseline;gap:10px;margin:0 0 6px;font-size:22px;font-weight:700;letter-spacing:-.01em}
+.fl-cuenta{font-size:13px;font-weight:600;color:var(--muted)}
+.fl-ico{margin-left:auto;align-self:center;border:0;background:none;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:16px;color:var(--muted)}
+.fl-ico:hover{background:var(--sel);color:var(--ink)}
+.fl-add{position:relative;display:flex;align-items:center;margin-left:-26px}
+.fl-mas{width:26px;color:var(--margen);font-size:22px;font-weight:300;line-height:1}
+.fl-add input{flex:1;min-width:0;border:0;border-bottom:2px solid var(--regla);background:transparent;padding:10px 2px 8px;font-size:19px;color:var(--ink)}
+.fl-add input::placeholder{color:var(--muted);opacity:.75}
 .fl-add input:focus{outline:none;border-bottom-color:var(--ink)}
-.fl-cants{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 6px 2px}
-.fl-q{font-size:12.5px;color:var(--muted);font-weight:600}
-.fl-cants button[data-c]{border:1px solid rgb(0 0 0 / .12);background:rgb(255 255 255 / .55);border-radius:99px;padding:4px 12px;font-weight:700;cursor:pointer;min-width:38px;color:var(--ink)}
-.fl-cants button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:transparent}
-.fl-cants .nada[aria-pressed="true"]{background:var(--bad,#d44c47);color:#fff}
-.fl-cants input{width:70px;border:1px solid rgb(0 0 0 / .12);background:rgb(255 255 255 / .55);border-radius:99px;padding:4px 10px;color:var(--ink)}
-.fl-cants #flObs{width:auto;flex:1 1 140px}
-.fl-cants .btn{margin-left:auto}
-.fl-nota .err{margin:6px}
-.fl-list{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid rgb(0 0 0 / .08)}
-.fl-list li{display:grid;grid-template-columns:22px auto minmax(0,1fr) auto;gap:8px;padding:7px 6px;align-items:start;border-radius:6px}
-.fl-list li:hover{background:rgb(0 0 0 / .04)}
-.fl-list .e{text-align:center;font-size:14px}
-.fl-list .e.libre{width:8px;height:8px;margin:7px auto 0;background:var(--muted);border-radius:50%;opacity:.55}
-.fl-list .c{font-weight:800;font-variant-numeric:tabular-nums}
-.fl-list .c.nada{color:var(--bad,#d44c47)}
-.fl-list .n{overflow-wrap:anywhere}
-.fl-list .n small{display:block;font-size:12px;color:var(--muted);font-weight:400}
-.fl-list .ac{display:flex;gap:4px;align-items:center}
-.fl-list li.cerr .n,.fl-list li.cerr .c{text-decoration:line-through;color:var(--muted)}
-.fl-list .empty{display:block;padding:14px 6px;text-align:left}
-.fl-h{display:block!important;font-size:12.5px;font-weight:600;color:var(--muted);padding:10px 6px 2px!important}
-.fl-pie{font-size:12px;color:var(--muted);margin:8px 6px 0}
+.fl-sug{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.fl-sug button{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:13.5px;color:var(--ink);text-align:left;max-width:100%}
+.fl-sug button:hover,.fl-sug button:focus-visible{background:var(--ink);color:var(--bg);border-color:var(--ink);outline:none}
+.fl-sug small{color:var(--muted);margin-left:8px;font-variant-numeric:tabular-nums}
+.fl-sug button:hover small,.fl-sug button:focus-visible small{color:inherit;opacity:.75}
+.fl-cants{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px}
+.fl-cants #flObs{flex:1 1 240px;min-width:0;border:0;border-bottom:1px solid var(--regla);background:transparent;padding:7px 2px;font-size:14.5px;color:var(--ink)}
+.fl-cants #flObs:focus{outline:none;border-bottom-color:var(--muted)}
+.fl-cants .nada{border:1px solid var(--line);background:none;border-radius:99px;padding:5px 12px;font-weight:600;cursor:pointer;color:var(--muted);font-size:13px}
+.fl-cants .nada[aria-pressed="true"]{background:var(--st-mal);border-color:var(--st-mal);color:#fff}
+.fl-hoja .err{margin:6px 0}
+.fl-list{list-style:none;margin:10px 0 0;padding:0}
+.fl-list li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 10px;align-items:center;padding:9px 2px 8px;border-bottom:1px solid var(--regla)}
+.fl-list .n{overflow-wrap:anywhere;font-size:15.5px;font-weight:500;line-height:1.3}
+.fl-list .n b{font-variant-numeric:tabular-nums;margin-right:4px}
+.fl-list .n .urge{color:var(--st-mal);font-weight:700;margin-right:4px}
+.fl-list .n small{display:block;margin-top:2px;font-size:12.5px;color:var(--muted);font-weight:400}
+.fl-list .n small q{quotes:"“" "”";color:var(--ink);opacity:.8}
+.fl-list .st{font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap;color:var(--st-anot);border:1px solid var(--line)}
+.fl-list .st.warn{color:var(--st-comp);background:var(--st-comp-bg);border-color:transparent}
+.fl-list .st.ok{color:var(--st-cam);background:var(--st-cam-bg);border-color:transparent}
+.fl-list .st.bad{color:var(--st-mal);border-color:transparent}
+.fl-list .ac{display:flex;gap:4px;align-items:center;justify-content:flex-end;min-width:30px}
+.fl-list .ac .x{border:0;background:none;color:var(--muted);cursor:pointer;width:28px;height:28px;border-radius:50%}
+.fl-list .ac .x:hover{background:var(--sel);color:var(--st-mal)}
+.fl-list li.cerr .n{text-decoration:line-through;text-decoration-color:var(--muted);color:var(--muted);font-weight:400}
+.fl-list .empty{display:block;padding:16px 2px;color:var(--muted);border-bottom:1px solid var(--regla)}
+.fl-pie{font-size:12px;color:var(--muted);margin:10px 0 0}
+/* remito: lo que ya sale o está pedido. Otro papel, para que se vea de un vistazo que no hay que hacer nada salvo recibirlo */
+.fl-remito{background:var(--remito);border:1px dashed var(--remito-borde);border-radius:8px;padding:16px 16px 10px}
+.fl-remito h4{margin:0;font-size:16px;color:var(--remito-ink);display:flex;gap:8px;align-items:baseline}
+.fl-remito .sub{margin:2px 0 4px;font-size:12.5px;color:var(--muted)}
+.fl-remito .fl-list li{border-bottom-color:color-mix(in srgb,var(--remito-borde) 45%,transparent);grid-template-columns:minmax(0,1fr) auto}
+.fl-remito .fl-list .st{display:none}
+.fl-remito .fl-list .n small .tipo{color:var(--remito-ink);font-weight:600}
+.fl-remito .btn{background:var(--surface);border:1px solid var(--remito-borde);color:var(--remito-ink);font-weight:700}
+.fl-remito .btn:hover{background:var(--remito-ink);color:var(--surface)}
+.fl-cerr{margin-top:10px}
+.fl-cerr summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;padding:4px 0;list-style:none}
+.fl-cerr summary::-webkit-details-marker{display:none}
+.fl-cerr .fl-list li{border-bottom-color:transparent;padding:5px 2px}
+@media (max-width:600px){.fl-hoja{padding-left:40px}.fl-hoja::before{left:26px}.fl-add{margin-left:-14px}.fl-mas{width:14px;font-size:18px}}
 .cc-grid{display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:18px;align-items:start}
 @media (max-width:1000px){.cc-grid{grid-template-columns:1fr}}
 .cc-top{display:flex;gap:8px;margin-bottom:10px}
@@ -566,7 +596,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
     <div class="sub" id="gHerrItems">
       <button role="tab" data-tab="presu" aria-selected="false"><i class="emo">📝</i>Presupuestos</button>
       <button role="tab" data-tab="copias" aria-selected="false"><i class="emo">🖨️</i>Copias</button>
-      <button role="tab" data-tab="catalogo" aria-selected="false"><i class="emo">📚</i>Catálogo</button>
+      <button role="tab" data-tab="catalogo" aria-selected="false"><i class="emo">🏷️</i>Etiquetas</button>
       <button role="tab" data-tab="kiosco" aria-selected="false"><i class="emo">💲</i>Calc de precios</button>
     </div>
     <button role="tab" data-tab="ajustes" aria-selected="false"><i class="emo">⚙️</i>Ajustes</button>
@@ -822,22 +852,27 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 
 <!-- ============================== FALTANTES ============================== -->
 <section id="tab-falt" hidden>
-  <div class="fl-nota" id="flNota">
-    <h3><span id="flTit">📝 Faltantes</span><button class="fl-ico" id="flAct" type="button" title="Actualizar">↻</button></h3>
-    <div class="fl-add">
-      <span class="fl-mas">＋</span><input id="flTxt" autocomplete="off" maxlength="120" placeholder="¿Qué falta? (ej: 3 lupas · resma Ledesma)">
+  <div class="fl-wrap" id="flNota">
+    <div class="fl-hoja">
+      <span class="fl-cinta" aria-hidden="true"></span>
+      <h3><span id="flTit">Faltantes</span><span class="fl-cuenta" id="flCuenta"></span><button class="fl-ico" id="flAct" type="button" title="Actualizar">↻</button></h3>
+      <div class="fl-add">
+        <span class="fl-mas" aria-hidden="true">+</span><input id="flTxt" autocomplete="off" maxlength="120" placeholder="¿Qué falta? Escribí y elegí del catálogo, o anotalo libre" aria-label="Qué falta">
+      </div>
+      <div class="fl-sug" id="flSug" hidden></div>
+      <div class="fl-cants" id="flCants">
+        <input id="flObs" autocomplete="off" maxlength="200" placeholder="Nota opcional: cuántos, color, para quién" aria-label="Nota">
+        <button type="button" class="nada" data-c="nada" title="Se terminó: no queda ninguno (urgente)">🚫 No queda</button>
+        <button class="btn sm primary" id="flOk" type="button">Anotar <kbd>Enter</kbd></button>
+      </div>
+      <div class="err" id="flErr" hidden></div>
+      <ul class="fl-list" id="flList"></ul>
+      <p class="fl-pie" id="flInfo"></p>
     </div>
-    <div class="fl-cants" id="flCants">
-      <span class="fl-q">¿Cuántos?</span>
-      <button type="button" data-c="1">1</button><button type="button" data-c="3">3</button><button type="button" data-c="5">5</button><button type="button" data-c="10">10</button>
-      <input id="flOtro" inputmode="numeric" autocomplete="off" placeholder="otro">
-      <button type="button" class="nada" data-c="nada" title="Se terminó: ya no queda ninguno">🚫 No queda</button>
-      <input id="flObs" autocomplete="off" maxlength="200" placeholder="nota (opcional)">
-      <button class="btn sm primary" id="flOk" type="button">Anotar <kbd>Enter</kbd></button>
-    </div>
-    <div class="err" id="flErr" hidden></div>
-    <ul class="fl-list" id="flList"></ul>
-    <p class="fl-pie"><span id="flInfo"></span> · Tocá <b>✓ Llegó</b> cuando lo recibas.</p>
+    <aside class="fl-remito" id="flRemito" hidden>
+      <div id="flCaminoBox"><h4>🚚 En camino <span class="fl-cuenta" id="flCaminoN"></span></h4><p class="sub">Tocá ✓ Llegó cuando lo recibas.</p><ul class="fl-list" id="flCamino"></ul></div>
+      <details class="fl-cerr" id="flCerrBox"><summary id="flCerrT"></summary><ul class="fl-list" id="flCerr"></ul></details>
+    </aside>
   </div>
 </section>
 
@@ -1164,7 +1199,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-05 v3.49";   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-06 v3.51";   // v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1349,7 +1384,12 @@ let bloqueada = false, espacioLleno = false;
 /* BETA: el mismo archivo subido como caja-beta.html (lo usa el Depósito). Datos reales, pero guarda aparte en la PC:
    así una versión nueva se prueba un día ahí antes de subirla como caja-rapida.html para las sucursales. */
 const BETA = !PRUEBA && /beta/i.test(location.pathname);
-const PFX = PRUEBA ? "prueba." : BETA ? "beta." : "caja.";   // la caja de prueba / beta guarda aparte: no toca ventas ni turno de la caja normal
+const PFX = PRUEBA ? "prueba." : BETA ? "beta." : "caja.";
+/* v3.50: la pestaña de la BETA (y de PRUEBA) se distingue: otro ícono y "🧪" en el título. Mismo archivo: lo decide la dirección */
+if(BETA || PRUEBA){ try{ const ic = document.querySelector('link[rel="icon"]'), c = BETA ? "#7b4fd6" : "#e8781e", l = BETA ? "β" : "P";
+  ic.type = "image/svg+xml"; ic.removeAttribute("sizes");
+  ic.href = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${c}"/><text x="32" y="46" font-size="42" font-weight="700" font-family="Arial,sans-serif" text-anchor="middle" fill="#fff">${l}</text></svg>`);
+  document.title = (BETA ? "🧪 BETA · " : "🧪 PRUEBA · ") + document.title; }catch(e){} }   // la caja de prueba / beta guarda aparte: no toca ventas ni turno de la caja normal
 function leer(k, d){ if(!LS) return d; try{ const v=LS.getItem(PFX+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } }
 function guardar(k, v){
   if(bloqueada || !LS) return;
@@ -1592,7 +1632,7 @@ $("#bSalir").onclick = () => { if(cart.length && !confirm("Hay una venta sin cob
 /* =====================================================================
    8. PESTAÑAS
    ===================================================================== */
-const TABS = {venta:["🛒","Venta"], presu:["📝","Presupuestos"], copias:["🖨️","Cotizar copias"], kiosco:["💲","Calc de precios"], ctacte:["📒","Cuenta corriente"], falt:["📝","Faltantes"], catalogo:["📚","Catálogo"], ventas:["🧾","Ventas de hoy"], cierre:["💵","Cierre de caja"], ajustes:["⚙️","Ajustes"]};
+const TABS = {venta:["🛒","Venta"], presu:["📝","Presupuestos"], copias:["🖨️","Cotizar copias"], kiosco:["💲","Calc de precios"], ctacte:["📒","Cuenta corriente"], falt:["📝","Faltantes"], catalogo:["🏷️","Etiquetas"], ventas:["🧾","Ventas de hoy"], cierre:["💵","Cierre de caja"], ajustes:["⚙️","Ajustes"]};
 document.querySelectorAll("nav button[data-tab]").forEach(b => b.onclick = () => showTab(b.dataset.tab));
 $("#bIrCierre").onclick = () => {
   if(cart.length){ toast("Hay una venta sin cobrar: cobrala o vaciala antes de cerrar la caja"); return; }
@@ -2642,14 +2682,14 @@ $("#mvCancel").onclick = cerrarModCC;
 $("#mvOverlay").addEventListener("keydown", e => { e.stopPropagation(); if(e.key === "Escape"){ e.preventDefault(); cerrarModCC(); } if(e.key === "Enter"){ e.preventDefault(); okModCC(); } });
 
 /* =====================================================================
-   📝 FALTANTES. La sucursal anota (con cantidad) → Roman/Vivi reparten en faltantes.html → compras (Joa) pide.
+   📝 FALTANTES. La sucursal anota (v3.50: sin cantidad obligatoria; buscador del catálogo) → Roman/Vivi reparten en faltantes.html → compras (Joa) pide.
    Acá se ve en qué está cada uno: 📥 anotado · 📦 sale del depósito · 🛒 en compras · 🚚 pedido · ✅ llegó · ✖ no se trae.
    ===================================================================== */
 const FL_EST = {"":["📥","Anotado",""], "Depósito":["📦","Sale del depósito","ok"], "A pedir":["🛒","En compras","warn"], "Pedido":["🚚","Pedido","ok"],
                 "Entregado":["✅","Llegó","ok"], "No se trae":["✖","No se trae","bad"]};
 const FL_ABIERTO = e => !["Entregado","No se trae"].includes(e);
 const FL_VER_CERRADOS = 3;   // días que quedan tachados en la nota
-let flSrv = leer("faltSrv", {t:0, l:[]}), flEst = leer("faltEst", {}), flCant = 0, flNada = false, flCod = "", flDup = "";
+let flSrv = leer("faltSrv", {t:0, l:[]}), flEst = leer("faltEst", {}), flNada = false, flCod = "", flDup = "";   // v3.50: sin cantidad (va en el texto o la nota)
 function flLista(){
   const lim = Date.now() - 10*864e5, srv = flSrv.l || [], ids = new Set(srv.map(x => x.id));
   const loc = faltantes.filter(f => f.sucursal === cfg.suc && f.ts > lim && !ids.has(f.id)).map(f => ({id:f.id, fecha:f.fecha, hora:f.hora, prod:f.nombre, cant:f.cant || 0, nada:!!f.nada, obs:f.obs, estado:"", act:f.ts, quien:f.cajero, local:true}));
@@ -2659,16 +2699,20 @@ function flLista(){
 function renderFalt(){
   const l = flLista(), ab = l.filter(x => FL_ABIERTO(x.estado)).sort((a,b) => (b.act || 0) - (a.act || 0)), ce = l.filter(x => !FL_ABIERTO(x.estado)).sort((a,b) => (b.act || 0) - (a.act || 0));
   const pend = new Set(queue.map(o => o.id)), fila = x => { const e = FL_EST[x.estado] || FL_EST[""];
-    return `<li class="${FL_ABIERTO(x.estado) ? "" : "cerr"}">${x.estado === "" ? `<span class="e libre" title="Anotado: falta repartir"></span>` : `<span class="e" title="${e[1]}">${e[0]}</span>`}
-      <span class="c${x.nada ? " nada" : ""}">${x.nada ? "🚫" : x.cant || "?"}</span>
-      <span class="n">${esc(x.prod)}<small>${e[1]} · ${fechaAR(x.fecha)}${x.quien ? " · " + esc(x.quien) : ""}${pend.has(x.id) ? " · ⏳ sin enviar" : ""}${x.obs ? " · “" + esc(x.obs) + "”" : ""}</small></span>
-      <span class="ac">${["Depósito","Pedido","A pedir"].includes(x.estado) ? `<button class="btn sm" data-fr="${esc(x.id)}" type="button" title="Ya llegó a la sucursal">✓ Llegó</button>` : ""}${x.estado === "" ? `<button class="x" data-fb="${esc(x.id)}" type="button" title="Borrar (me equivoqué)">✕</button>` : ""}</span></li>`; };
-  $("#flList").innerHTML = (ab.map(fila).join("") || `<li class="empty">Nada pendiente 🎉</li>`) + (ce.length ? `<li class="fl-h">✓ Cerrados</li>` + ce.map(fila).join("") : "");
-  $("#flNota").dataset.c = cfg.suc || ""; $("#flTit").textContent = `📝 Faltantes · ${cfg.suc ? SUC_LBL(cfg.suc) : ""}`;
+    const meta = [x.obs ? `<q>${esc(x.obs)}</q>` : "", fechaAR(x.fecha).slice(0, 5), x.quien ? esc(x.quien) : "", pend.has(x.id) ? "⏳ sin enviar" : ""].filter(Boolean).join(" · ");
+    return `<li class="${FL_ABIERTO(x.estado) ? "" : "cerr"}"><span class="n">${x.nada ? `<span class="urge" title="No queda nada">🚫</span>` : ""}${x.cant > 0 ? `<b>${x.cant}</b>` : ""}${esc(x.prod)}<small>${["Depósito","Pedido"].includes(x.estado) ? `<span class="tipo">${e[1]}</span> · ` : ""}${meta}</small></span>
+      <span class="st ${e[2]}">${e[1]}</span>
+      <span class="ac">${["Depósito","Pedido","A pedir"].includes(x.estado) ? `<button class="btn sm" data-fr="${esc(x.id)}" type="button" title="Ya llegó a la sucursal">✓ Llegó</button>` : ""}${x.estado === "" ? `<button class="x" data-fb="${esc(x.id)}" type="button" title="Borrar (me equivoqué)" aria-label="Borrar">✕</button>` : ""}</span></li>`; };
+  const camino = ab.filter(x => ["Depósito","Pedido"].includes(x.estado)), resto = ab.filter(x => !camino.includes(x));   // lo que ya viene va al remito
+  $("#flList").innerHTML = resto.map(fila).join("") || `<li class="empty">${camino.length ? "Nada más por pedir. Lo que viene está en el remito." : "No falta nada. Anotá arriba cuando se termine algo."}</li>`;
+  $("#flCamino").innerHTML = camino.map(fila).join(""); $("#flCaminoBox").hidden = !camino.length; $("#flCaminoN").textContent = camino.length || "";
+  $("#flCerr").innerHTML = ce.map(fila).join(""); $("#flCerrBox").hidden = !ce.length; $("#flCerrT").textContent = `✓ Cerrados en los últimos ${FL_VER_CERRADOS} días (${ce.length})`;
+  $("#flRemito").hidden = !camino.length && !ce.length;
+  $("#flNota").dataset.c = cfg.suc || ""; $("#flTit").textContent = cfg.suc ? SUC_LBL(cfg.suc) : "Faltantes"; $("#flCuenta").textContent = resto.length ? `${resto.length} pendiente${resto.length > 1 ? "s" : ""}` : "";
   $("#flInfo").textContent = flSrv.t ? `Actualizado ${hm(new Date(flSrv.t))}` : cfg.url ? "" : "Sin conexión: se ve solo lo anotado en esta PC.";
-  const llegan = ab.filter(x => ["Depósito","Pedido"].includes(x.estado)).length;
+  const llegan = camino.length;
   $("#flN").hidden = !llegan; $("#flN").textContent = llegan;
-  document.querySelectorAll("#flCants button").forEach(b => b.setAttribute("aria-pressed", b.dataset.c === "nada" ? flNada : !flNada && +b.dataset.c === flCant));
+  $("#flCants .nada").setAttribute("aria-pressed", flNada);
 }
 async function cargarFalt(){
   if(!cfg.url || DEMO || !cfg.suc) return;
@@ -2679,31 +2723,40 @@ function anotarFalt(){
   const err = m => { $("#flErr").textContent = m; $("#flErr").hidden = false; };
   $("#flErr").hidden = true;
   if(!cfg.suc) return err("Primero configurá la sucursal (Ajustes).");
-  let txt = $("#flTxt").value.trim().replace(/\s+/g, " "), cant = flCant, nada = flNada;
-  const m = txt.match(/^(\d+)\s*[*xX×]\s*(.+)$/) || txt.match(/^(\d+)\s+(\D.*)$/);   // "3* lupas" o "3 lupas"
-  if(m){ cant = +m[1]; nada = cant === 0; txt = m[2].trim(); }
-  const otro = Math.round(toNum($("#flOtro").value)); if(otro > 0 && !m){ cant = otro; nada = false; }
+  const txt = $("#flTxt").value.trim().replace(/\s+/g, " "), nada = flNada;              // v3.50: "3 lupas" queda tal cual (la cantidad va en el texto o la nota)
   if(txt.length < 2){ $("#flTxt").focus(); return err("Escribí qué falta."); }
-  if(!nada && !(cant > 0)){ $("#flCants button").focus(); return err("¿Cuántos hacen falta? Elegí una cantidad (o 🚫 No queda nada)."); }
   const ya = flLista().find(x => FL_ABIERTO(x.estado) && norm(x.prod) === norm(txt));
   if(ya && flDup !== norm(txt)){ flDup = norm(txt); return err(`Ya está anotado (${(FL_EST[ya.estado] || FL_EST[""])[1]}, ${fechaAR(ya.fecha)}). Tocá Anotar de nuevo si hace falta más.`); }
   const t = new Date(), f = {id:"F-"+cfg.suc.slice(0,3)+(cfg.pc||"")+"-"+t.getTime().toString(36), fecha:ymd(t), hora:hm(t), ts:t.getTime(),
-    sucursal:cfg.suc, cajero:cfg.turno ? cfg.turno.cajero : "", cod:flCod, nombre:txt, cant: nada ? 0 : cant, nada, obs:$("#flObs").value.trim()};
+    sucursal:cfg.suc, cajero:cfg.turno ? cfg.turno.cajero : "", cod:flCod, nombre:txt, cant:0, nada, obs:$("#flObs").value.trim()};
   faltantes.push(f); guardar("faltantes", faltantes); encolar("faltante", f.id);
-  $("#flTxt").value = ""; $("#flOtro").value = ""; $("#flObs").value = ""; flCant = 0; flNada = false; flCod = ""; flDup = "";
-  toast(`📝 Anotado: ${nada ? "🚫" : cant + " ×"} ${txt}`); renderFalt(); $("#flTxt").focus();
+  $("#flTxt").value = ""; $("#flObs").value = ""; flNada = false; flCod = ""; flDup = ""; $("#flSug").hidden = true;
+  toast(`📝 Anotado: ${nada ? "🚫 " : ""}${txt}`); renderFalt(); $("#flTxt").focus();
 }
 function estadoFalt(id, estado){
   flEst[id] = {estado, ts:Date.now()}; guardar("faltEst", flEst); encolar("faltanteEstado", id); renderFalt();
 }
 $("#flOk").onclick = anotarFalt;
 $("#flAct").onclick = cargarFalt;
-["#flTxt","#flObs","#flOtro"].forEach(s => $(s).addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); anotarFalt(); } }));
-$("#flOtro").addEventListener("input", () => { if(toNum($("#flOtro").value) > 0){ flCant = 0; flNada = false; renderFalt(); } });
-$("#flTxt").addEventListener("input", () => { flDup = ""; $("#flErr").hidden = true; });
+["#flTxt","#flObs"].forEach(s => $(s).addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); anotarFalt(); } }));
+/* 🔎 v3.50: mientras escribe, los productos del catálogo que coinciden (↓ para ir a la lista). Elegir uno = queda el nombre exacto y su código */
+let flSugL = [];
+function flSugerir(){
+  const t = $("#flTxt").value.trim(); flSugL = t.length >= 3 ? buscar(t, false).slice(0, 6) : [];
+  $("#flSug").innerHTML = flSugL.map((p, i) => `<button type="button" data-fs="${i}">${esc(p.nombre)}<small>${p.precio ? money(p.precio) : ""}</small></button>`).join("");
+  $("#flSug").hidden = !flSugL.length;
+}
+$("#flTxt").addEventListener("input", () => { flDup = ""; flCod = ""; $("#flErr").hidden = true; flSugerir(); });
+$("#flTxt").addEventListener("keydown", e => { if(e.key === "ArrowDown" && flSugL.length){ e.preventDefault(); $("#flSug button").focus(); } });
+$("#flSug").addEventListener("keydown", e => { const b = e.target.closest("button"); if(!b) return;
+  if(e.key === "ArrowRight" || e.key === "ArrowDown"){ e.preventDefault(); (b.nextElementSibling || b).focus(); }
+  if(e.key === "ArrowLeft" || e.key === "ArrowUp"){ e.preventDefault(); b.previousElementSibling ? b.previousElementSibling.focus() : $("#flTxt").focus(); }
+  if(e.key === "Escape"){ $("#flSug").hidden = true; $("#flTxt").focus(); } });
+$("#flSug").addEventListener("click", e => { const b = e.target.closest("[data-fs]"); if(!b) return; const p = flSugL[+b.dataset.fs]; if(!p) return;
+  $("#flTxt").value = p.nombre; flCod = p.cod || ""; flDup = ""; $("#flSug").hidden = true; $("#flObs").focus(); });
 $("#flCants").addEventListener("click", e => { const b = e.target.closest("button[data-c]"); if(!b) return;
-  if(b.dataset.c === "nada"){ flNada = !flNada; flCant = 0; } else { flCant = +b.dataset.c; flNada = false; } $("#flOtro").value = ""; renderFalt(); $("#flTxt").focus(); });
-$("#flList").addEventListener("click", e => {
+  flNada = !flNada; renderFalt(); $("#flTxt").focus(); });
+$("#flNota").addEventListener("click", e => {
   const r = e.target.closest("[data-fr]"); if(r){ estadoFalt(r.dataset.fr, "Entregado"); toast("✅ Marcado como llegado"); return; }
   const b = e.target.closest("[data-fb]"); if(b) dobleToque(b, "¿Borrar?", () => {
     const loc = faltantes.find(f => f.id === b.dataset.fb), sinEnviar = loc && queue.some(o => o.tipo === "faltante" && o.id === loc.id);
@@ -2718,7 +2771,7 @@ $("#flList").addEventListener("click", e => {
 const MAX_TABLA = 200;
 let etiquetas = [], faProd = null;
 /* faltantes: se anotan en la hoja Faltantes (sucursal, quién, producto, observación) */
-function abrirFaltante(p){ showTab("falt"); $("#flTxt").value = p.nombre; flCod = p.cod || ""; flDup = ""; $("#flErr").hidden = true; toast("¿Cuántos hacen falta? Elegí la cantidad y Enter"); $("#flCants button").focus(); }   // v3.43: antes era una ventanita
+function abrirFaltante(p){ showTab("falt"); $("#flTxt").value = p.nombre; flCod = p.cod || ""; flDup = ""; $("#flErr").hidden = true; $("#flSug").hidden = true; toast("Agregá una nota si hace falta (cuántos, color…) y Enter"); $("#flObs").focus(); }   // v3.43: antes era una ventanita
 function cerrarFaltante(){ $("#faOverlay").hidden = true; faProd = null; $("#cq").focus(); }
 $("#faCancel").onclick = cerrarFaltante;
 $("#faOk").onclick = () => {
