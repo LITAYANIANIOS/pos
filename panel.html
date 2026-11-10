@@ -10,9 +10,11 @@
 <link rel="stylesheet" href="comun/estilos.css?v=1">
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v2.8
+   PANEL · DA BOX                                                 v2.9
    Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.9: 💰 Sobres: el Contado se escribe con formato pesos mientras tipeás ($ 150.000 + $ 19.000 + $ 600) · los billetes del
+         cajero, en pesos y con ⚠️ si una cantidad no es entera (ej. 500 x 0,13).
    v2.8: 💳 Cobros: soltás los archivos (QR, Movimientos, Liquidaciones y Banco Provincia, de uno o varios días) y se cargan solos · cuándo se
          cargó cada uno · 🏦 Transferencias: caja vs. banco (las que no llegaron, una por una). Script v3.48.
    v2.7: 🏷️ Precios · rentabilidad (hito H2): costo y margen de cada producto, "💾 costo" desde las listas de proveedores (también al dar de alta),
@@ -582,6 +584,18 @@ function evalConteo(t){
   for(const p of partes){ const m = p.match(/^\$?\s*([\d.,]+)\s*(?:[x×*]\s*(\d+))?$/i); if(!m) return null; tot += toNum(m[1]) * (m[2] ? +m[2] : 1); }
   return tot;
 }
+/* v2.9: el Contado se ve en pesos mientras se escribe: "150000+19000" → "$ 150.000 + $ 19.000". Solo al agregar (borrar no reformatea) */
+function fmtConteo(t){
+  return String(t ?? "").split("+").map((p, i, a) => {
+    const m = p.match(/^\s*\$?\s*([\d.,]*)\s*(?:([x×*])\s*(\d*))?\s*$/i);
+    if(!m || !m[1]) return i && i === a.length - 1 && !p.trim() ? "" : p.trim();
+    return money(toNum(m[1])) + (m[2] ? " x " + m[3] : "");
+  }).join(" + ").replace(/\s+$/, "") + (/\+\s*$/.test(t) ? " " : "");
+}
+function billetesTxt(t){   // "20000x3 500x0.13" → "$ 20.000 × 3 · ⚠️ $ 500 × 0.13"
+  return String(t).split(/\s+/).filter(Boolean).map(b => { const m = b.match(/^(\d+)x(.+)$/); if(!m) return esc(b);
+    const raro = !/^\d+$/.test(m[2]); return `${raro ? '<span class="dif-mal" title="Cantidad de billetes no entera">⚠️ ' : ""}${money(+m[1])} × ${esc(m[2])}${raro ? "</span>" : ""}`; }).join(" · ");
+}
 const esCuenta = t => /[+x×*]/i.test(String(t || ""));
 const fechaHM = ts => { const d = new Date(ts); return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const difSobre = d => !d ? `<span class="dif-ok">OK</span>` : `<span class="${Math.abs(d) >= DIF_MINIMA ? "dif-mal" : "dif-nc"}">${d > 0 ? "falta " : "sobra "}${money(Math.abs(d))}</span>`;
@@ -632,7 +646,7 @@ function formSobre(s){
     <label>¿En qué se usó?<input class="campo" id="sbCon" maxlength="80" placeholder="ej. flete, bolsas"></label>
     <label>Motivo de la diferencia<select class="campo" id="sbMot"><option value="">—</option>${MOTIVOS.map(m => `<option>${m}</option>`).join("")}</select></label>
     <label>Observación<input class="campo" id="sbObs" maxlength="200" placeholder="opcional"></label>
-    ${s[6] ? `<p class="note" style="grid-column:1/-1;margin:0">🧾 Billetes que contó ${esc(s[3])} en el cierre: <b class="num">${esc(s[6])}</b></p>` : ""}
+    ${s[6] ? `<p class="note" style="grid-column:1/-1;margin:0">🧾 Billetes que contó ${esc(s[3])} en el cierre: <b class="num">${billetesTxt(s[6])}</b></p>` : ""}
     <div class="pie-f"><span id="sbRes"></span><span class="seg" id="sbFDest">${DESTINOS.map(d => `<button type="button" data-d="${d}" aria-pressed="${d===sbDest}">→ ${d}</button>`).join("")}</span>
       <button class="btn sm" id="sbCancel" type="button">Cancelar</button><button class="btn primary" id="sbGuardar" type="button">Guardar</button></div>
   </div>`;
@@ -676,7 +690,11 @@ $("#s-sobres").addEventListener("click", e => {
     return contarSobre(sbAbierto, {contado, extraccion:ext, concepto:con, motivo:$("#sbMot").value, destino:sbDest, obs:$("#sbObs").value.trim(), detalle: esCuenta(t) ? t : ""});
   }
 });
-$("#s-sobres").addEventListener("input", e => { if(e.target.closest(".sbf")) difForm(); });
+$("#s-sobres").addEventListener("input", e => {
+  const i = e.target;
+  if(i.id === "sbCont" && /^insert/.test(e.inputType || "") && i.selectionStart === i.value.length){ const f = fmtConteo(i.value); if(f !== i.value) i.value = f; }
+  if(i.closest(".sbf")) difForm();
+});
 $("#s-sobres").addEventListener("keydown", e => { if(e.key === "Enter" && e.target.closest(".sbf input")) $("#sbGuardar").click(); if(e.key === "Escape" && sbAbierto){ sbAbierto = null; rSobres(); } });
 sbDest = DESTINOS.includes(leerLS("sbDest", "")) ? leerLS("sbDest", "") : "Juani";
 
