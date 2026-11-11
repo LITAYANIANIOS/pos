@@ -9,13 +9,20 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f6c445'/%3E%3Cpath d='M18 14h28v38H18z' fill='%23fff' stroke='%231f2a24' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M25 26h14M25 34h14M25 42h8' stroke='%231f2a24' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#f6c445">
 <link rel="stylesheet" href="comun/estilos.css?v=2">
-<script>/* v3.2 · tema elegido antes de pintar, para que no parpadee */try{const t=localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
+<script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v3.2
+   FALTANTES · DA BOX                                              v4.1
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
+   v4.1: libreta de la sucursal más simple: una sola hoja con 3 etapas (pendiente · 📦 pedido armado · 🛒 en proceso de compras); sin "en camino"
+         ni cerrados · ✓ Llegó en CUALQUIER renglón (a veces lo trae otro y deja de hacer falta), con 5 s para deshacer. Necesita script v3.50.
+   v4.0: 🏪 cada sucursal tiene su libreta (faltantes.html?suc=MORENO): entra con la clave de la caja de esa PC o con su link secreto;
+         anota (con nota y 🔥), ve en qué está cada cosa y marca ✓ llegó · 🔥 Urgente reemplaza a "🚫 No queda" (lo marca la sucursal o Reparto)
+         · Reparto sin cantidades, ordenado: 🔥 urgentes → pendientes → 📦 En la caja (estado nuevo) → 🚚 En camino → cerrados; un estado por renglón.
+         Necesita script v3.49.
+   v3.3: ☀️/🌙 compartido con el panel y proveedores (una sola elección por dispositivo) · versión visible abajo.
    v3.2: botón ☀️/🌙 para elegir claro u oscuro (queda guardado en ese celular o PC; si no se toca, sigue al sistema).
    v3.1: estética única (Notion + notas tipo Keep): se saca el toque western del Reparto · estados con los colores
          compartidos de comun/estilos.css (F0): en compras ámbar · en camino azul · cerrado verde · no se consigue gris.
@@ -67,7 +74,7 @@ body.v-compras .nota:nth-child(even)::before{transform:translateX(-50%) rotate(2
 .st.compras{background:var(--e-compras-bg);color:var(--e-compras)} .st.camino{background:var(--e-camino-bg);color:var(--e-camino)} .st.nsc{background:var(--e-nsc-bg);color:var(--e-nsc)} .st.cerr{background:var(--e-cerr-bg);color:var(--e-cerr)}
 .camino{margin:8px 4px 4px;padding:4px 0 2px;border-radius:8px;background:rgb(255 255 255 / .55);border:1px dashed rgb(0 0 0 / .14)}
 .camino .t{font-size:12.5px;font-weight:700;color:var(--e-camino);padding:4px 8px 2px}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .camino{background:rgb(0 0 0 / .18)}} :root[data-theme="dark"] .camino{background:rgb(0 0 0 / .18)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) :is(.camino,.encaja){background:rgb(0 0 0 / .18)}} :root[data-theme="dark"] :is(.camino,.encaja){background:rgb(0 0 0 / .18)}
 /* v3.0 · pantalla simple: Vivi siempre; Joa solo el buscador; Roman en el celular (tablero a un toque) */
 body.v-compras .v-anotar{display:none}
 body.v-reparto #vivi{display:none}
@@ -80,6 +87,56 @@ body.v-reparto #vivi{display:none}
 body.embed.v-reparto #vivi{display:none!important} body.embed #bTablero{display:none!important} body.embed.v-reparto #notas{display:block!important}
 @media (max-width:560px){body.v-reparto header.top .logo div{display:none}}   /* v3.1: en el celular, sin título (no entra con los botones) */
 body.embed header.top .logo{display:none}
+/* ---------- v4.0 · 🏪 SUCURSAL (?suc=): la hoja de libreta de la caja, con la cinta del color del local ---------- */
+:root{--hoja:#fffef9;--regla:#dfe7f1;--margen:#eba8a8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hoja:#24272c;--regla:rgb(255 255 255 / .08);--margen:rgb(235 130 130 / .4)}}
+:root[data-theme="dark"]{--hoja:#24272c;--regla:rgb(255 255 255 / .08);--margen:rgb(235 130 130 / .4)}
+body.v-local :is(#vivi,#tips,#bTablero,#notas,#vista,.solo-equipo){display:none!important}
+.lib{max-width:760px;margin:8px auto 0}   /* v4.1: una sola hoja */
+.l-list li.l-etapa{display:flex;gap:6px;align-items:baseline;border-bottom:0;padding:18px 2px 2px;font-size:13px;font-weight:700}
+.l-etapa.armado{color:var(--e-caja)} .l-etapa.compras{color:var(--e-compras)}
+.hoja{position:relative;background:var(--hoja);border:1px solid var(--line);border-radius:3px 3px 10px 10px;padding:22px 16px 12px 58px;box-shadow:0 8px 24px rgb(0 0 0 / .06)}
+.hoja::before{content:"";position:absolute;top:0;bottom:0;left:42px;border-left:2px solid var(--margen)}
+.cinta{position:absolute;top:-9px;left:20px;width:110px;height:22px;transform:rotate(-2.5deg);background:var(--muted);opacity:.85;border-radius:2px}
+.lib[data-c="FALCON"] .cinta{background:var(--s1)} .lib[data-c="MORENO"] .cinta{background:var(--s2)} .lib[data-c="NACION"] .cinta{background:var(--s3)}
+.lib[data-c="SOMISA"] .cinta{background:var(--s4)} .lib[data-c="DEPOSITO"] .cinta{background:var(--e-caja)}
+.hoja h2{display:flex;align-items:baseline;gap:10px;margin:0 0 6px;font-size:22px}
+.hoja h2 small{font-size:13px;font-weight:600;color:var(--muted)}
+.l-add{display:flex;align-items:center;margin-left:-24px}
+.l-add .mas{width:24px;color:var(--margen);font-size:22px;font-weight:300;line-height:1}
+.l-add input{flex:1;min-width:0;border:0;border-bottom:2px solid var(--regla);background:transparent;padding:10px 2px;font-size:17px;color:var(--ink)}
+.l-add input:focus{outline:none;border-bottom-color:var(--ink)}
+.l-sug{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.l-sug button{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:13.5px;color:var(--ink);text-align:left}
+.l-sug button:hover,.l-sug button:focus-visible{background:var(--ink);color:var(--bg);outline:none}
+.l-sug small{color:var(--muted);margin-left:8px} .l-sug button:hover small,.l-sug button:focus-visible small{color:inherit}
+.l-opc{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px}
+.l-opc #lObs{flex:1 1 220px;min-width:0;border:0;border-bottom:1px solid var(--regla);background:transparent;padding:7px 2px;font-size:14px;color:var(--ink)}
+.l-opc #lObs:focus{outline:none;border-bottom-color:var(--muted)}
+.b-urg{border:1px solid var(--line);background:none;border-radius:99px;padding:6px 12px;font-weight:600;cursor:pointer;color:var(--muted);font-size:13px}
+.b-urg[aria-pressed="true"]{background:var(--e-urg);border-color:var(--e-urg);color:#fff}
+.l-list{list-style:none;margin:10px 0 0;padding:0}
+.l-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:9px 2px;border-bottom:1px solid var(--regla)}
+.l-list .n{overflow-wrap:anywhere;font-size:15.5px;font-weight:500;line-height:1.3}
+.l-list .n small{display:block;margin-top:2px;font-size:12.5px;color:var(--muted);font-weight:400}
+.l-list li.urg .n{color:var(--e-urg);font-weight:600}
+.l-list li.cerr .n{text-decoration:line-through;color:var(--muted);font-weight:400}
+.l-list .ac{display:flex;gap:4px;align-items:center;justify-content:flex-end}
+.l-list .ac .x{border:0;background:none;color:var(--muted);cursor:pointer;min-width:30px;height:30px;border-radius:99px;font-size:14px;padding:0 6px}
+.l-list .ac .x:hover{background:var(--sel);color:var(--ink)}
+.l-list .ac .x.on{color:var(--e-urg)}
+.l-list .ac .x[data-lu]:not(.on){filter:grayscale(1);opacity:.45} .l-list .ac .x[data-lu]:not(.on):hover{filter:none;opacity:1}   /* el 🔥 apagado no compite con los urgentes */
+.l-list .empty{display:block;padding:16px 2px;color:var(--muted)}
+.l-pie{font-size:12px;color:var(--muted);margin:10px 0 0}
+.remito{border-radius:8px;padding:14px 14px 8px;margin-bottom:14px;border:1px dashed}
+.remito h3{margin:0;font-size:15px;display:flex;gap:8px;align-items:baseline}
+.remito .sub{margin:2px 0 4px;font-size:12.5px;color:var(--muted)}
+.remito.r-caja{background:var(--e-caja-bg);border-color:color-mix(in srgb,var(--e-caja) 45%,transparent)} .remito.r-caja h3{color:var(--e-caja)}
+.remito.r-camino{background:var(--e-camino-bg);border-color:color-mix(in srgb,var(--e-camino) 45%,transparent)} .remito.r-camino h3{color:var(--e-camino)}
+.remito .l-list li{border-bottom-color:rgb(0 0 0 / .07)}
+.remito .btn{padding:5px 10px;font-size:13px}
+.l-cerr summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;padding:4px 0;list-style:none}
+.l-cerr summary::-webkit-details-marker{display:none}
 /* ---------- Vivi: anotar · buscar precio · pedir ---------- */
 .vivi{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));margin-bottom:16px}
 .v-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
@@ -118,7 +175,7 @@ body.v-anotar .solo-equipo{display:none}
 .hechos summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;padding:4px 0;list-style:none}
 .hechos summary::-webkit-details-marker{display:none}
 /* ---------- 3. Renglones ---------- */
-.ln{display:grid;grid-template-columns:22px auto minmax(0,1fr) auto;gap:8px;align-items:start;width:100%;border:0;background:none;text-align:left;padding:6px 8px;border-radius:6px;cursor:pointer;color:var(--ink);font-size:14.5px;line-height:1.35}
+.ln{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start;width:100%;border:0;background:none;text-align:left;padding:6px 8px;border-radius:6px;cursor:pointer;color:var(--ink);font-size:14.5px;line-height:1.35}
 .ln:hover,.ln:focus-visible{background:rgb(0 0 0 / .05)}
 .ln .e{font-size:14px;line-height:1.35;text-align:center}
 .ln .e.libre{width:8px;height:8px;margin:7px auto 0;background:var(--muted);border-radius:50%;opacity:.55}   /* punto = sin repartir (no es una casilla) */
@@ -128,6 +185,11 @@ body.v-anotar .solo-equipo{display:none}
 .ln .p small{display:block;color:var(--muted);font-size:12px}
 .ln .a{font-size:12px;color:var(--warn);font-weight:700;white-space:nowrap}
 .ln.hecho .p,.ln.hecho .c{text-decoration:line-through;color:var(--muted)}
+/* v4.0 · 🔥 urgente: en rojo y arriba · un solo estado por renglón (el resto lo dice el bloque) */
+.ln.urg .p{color:var(--e-urg);font-weight:600} .ln.urg .p small{font-weight:400}
+.encaja{margin:8px 4px 4px;padding:4px 0 2px;border-radius:8px;background:rgb(255 255 255 / .55);border:1px dashed color-mix(in srgb,var(--e-caja) 50%,transparent)}
+.encaja .t{font-size:12.5px;font-weight:700;color:var(--e-caja);padding:4px 8px 2px}
+.st.caja{background:var(--e-caja-bg);color:var(--e-caja)}
 .ln input[type=checkbox]{width:18px;height:18px;margin:1px 0 0;accent-color:var(--ok);cursor:pointer}
 /* ---------- 4. Menú del renglón (abajo en el celular, al lado en la PC) ---------- */
 .menu{position:fixed;inset:0;z-index:70;background:rgb(10 16 13 / .35);display:flex;align-items:flex-end;justify-content:center}
@@ -150,7 +212,8 @@ body.v-anotar .solo-equipo{display:none}
 </style>
 <script>
 /* El link trae #s=<script>&t=<llave>. La llave se guarda en este celular y se borra de la barra (base.js borra el resto). */
-(() => { const m = location.hash.match(/[#&]t=([\w-]{30,})/); if(m){ try{ localStorage.setItem("dabox.ftok", m[1]); }catch(e){} } })();
+(() => { const m = location.hash.match(/[#&]t=([\w-]{30,})/); if(m){ const s = (new URLSearchParams(location.search).get("suc") || "").toUpperCase();
+  try{ localStorage.setItem(s ? "dabox.ftok." + s : "dabox.ftok", m[1]); }catch(e){} } })();   // v4.0: link de sucursal = llave aparte
 </script>
 </head>
 <body>
@@ -176,6 +239,20 @@ body.v-anotar .solo-equipo{display:none}
   <button class="btn" id="bTablero" type="button">📋 Ver el tablero completo</button>
   <div class="tips" id="tips"></div>
   <div class="notas" id="notas"></div>
+  <section class="lib" id="local" hidden>
+    <div class="hoja">
+      <span class="cinta" aria-hidden="true"></span>
+      <h2><span id="lTit">Faltantes</span><small id="lCuenta"></small></h2>
+      <div class="l-add"><span class="mas" aria-hidden="true">+</span><input id="lTxt" autocomplete="off" maxlength="120" placeholder="¿Qué falta? Escribí y elegí del catálogo, o anotalo libre" aria-label="Qué falta" enterkeyhint="send"></div>
+      <div class="l-sug" id="lSug" hidden></div>
+      <div class="l-opc">
+        <input id="lObs" autocomplete="off" maxlength="200" placeholder="Nota opcional: cuántos, color, para quién" aria-label="Nota">
+        <button type="button" class="b-urg" id="lUrg" aria-pressed="false" title="Hace falta ya (se terminó o lo están pidiendo mucho)">🔥 Urgente</button>
+        <button class="btn sm primary" id="lOk" type="button">Anotar</button>
+      </div>
+      <ul class="l-list" id="lList"></ul>
+    </div>
+  </section>
   <p class="info" id="info"></p>
 </div>
 </div>
@@ -183,7 +260,7 @@ body.v-anotar .solo-equipo{display:none}
 <div class="menu" id="mEdit" hidden><form class="caja" id="fEdit" autocomplete="off">
   <h3>✏️ Editar renglón</h3>
   <label class="campo-l">Producto<input class="campo" id="eProd" maxlength="120"></label>
-  <div class="fila-e" style="grid-template-columns:1fr"><label class="check" style="margin-top:12px"><input type="checkbox" id="eNada"> 🚫 No queda nada</label></div>
+  <div class="fila-e" style="grid-template-columns:1fr"><label class="check" style="margin-top:12px"><input type="checkbox" id="eNada"> 🔥 Urgente</label></div>
   <label class="campo-l">Sucursal<select class="campo" id="eSuc"></select></label>
   <label class="campo-l">Nota (opcional)<input class="campo" id="eObs" maxlength="200"></label>
   <div class="ops" style="grid-template-columns:1fr 1fr;margin-top:14px"><button type="button" id="eCancel">Cancelar</button><button type="submit" style="background:var(--accent);color:var(--accent-ink)">Guardar</button></div>
@@ -218,12 +295,19 @@ const EMBED = new URLSearchParams(location.search).has("embed");          // ade
 if(EMBED) document.body.classList.add("embed");
 const ss = k => { try{ return sessionStorage.getItem(k) || ""; }catch(e){ return ""; } };
 let url = leerLS("url", ""), tok = EMBED ? "" : leerLS("ftok", ""), clave = EMBED ? LA.clave : ss("dabox.fclave") || (tok ? "" : LA.clave), vista = leerLS("fvista", "");
+/* v4.0 · 🏪 ?suc=MORENO: la libreta de una sucursal. Entra con su link (llave guardada aparte) o con la clave de la caja de esta PC */
+const SUC_L = (new URLSearchParams(location.search).get("suc") || "").toUpperCase(), LOCAL = !EMBED && SUCS.includes(SUC_L);
+const lsGet = k => { try{ return localStorage.getItem(k) || ""; }catch(e){ return ""; } };
+const cajaCfg = () => { const l = ["caja.cfg", "beta.cfg"].map(k => { try{ return JSON.parse(lsGet(k) || "null"); }catch(e){ return null; } }).filter(c => c && c.url && c.clave);
+  return l.find(c => c.suc === SUC_L) || l[0] || null; };
+const quienLocal = () => { const c = cajaCfg(); return (c && c.turno && c.turno.cajero) || quien; };   // el que tiene el turno abierto en la caja
+if(LOCAL){ tok = lsGet("dabox.ftok." + SUC_L); clave = ""; const c = tok ? null : cajaCfg(); if(c){ clave = c.clave; url = c.url; } }
 let D = null, rol = "", demo = false, quien = leerLS("fquien", ""), tipsAbiertos = false;
 async function api(accion, params = {}){
   if(demo) return demoApi(accion, params);
   LAPIZ(true);
   try{
-    const u = new URL(url); u.search = new URLSearchParams({accion, ...(tok ? {t: tok} : {clave}), quien, ...(vista ? {vista} : {}), ...params});
+    const u = new URL(url); u.search = new URLSearchParams({accion, ...(tok ? {t: tok} : {clave}), quien: LOCAL ? quienLocal() : quien, ...(LOCAL ? {suc: SUC_L} : vista ? {vista} : {}), ...params});
     const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 45000);
     let r; try{ r = await fetch(u, {cache:"no-store", signal:ctl.signal}); } finally{ clearTimeout(t); }
     if(!r.ok) throw "url";
@@ -234,8 +318,9 @@ async function api(accion, params = {}){
   }catch(e){ throw e && e.msg ? e : (e === "clave" || e === "url") ? e : e && e.name === "AbortError" ? "tiempo" : navigator.onLine === false ? "internet" : "url"; }
   finally{ LAPIZ(false); }
 }
-const errTxt = e => e === "clave" ? "🔑 El link o la clave ya no sirven (¿se cambiaron?). Pedile a Roman el link nuevo." : ERR[e] || (e && e.msg) || "No se pudo conectar.";
-async function cargar(){ D = await api("falt-ver"); rol = D.rol; if(vista && rol !== vista && rol !== "anotar"){ vista = ""; toast("Para cambiar de vista hay que publicar el script v3.44", 5000); } render(); }
+const errTxt = e => e === "clave" ? (LOCAL ? "🔑 No se pudo entrar: abrilo desde la caja (📝 Faltantes) o con el link de la sucursal." : "🔑 El link o la clave ya no sirven (¿se cambiaron?). Pedile a Roman el link nuevo.") : ERR[e] || (e && e.msg) || "No se pudo conectar.";
+const borrarLlave = () => { tok = ""; if(LOCAL){ try{ localStorage.removeItem("dabox.ftok." + SUC_L); }catch(e){} } else guardarLS("ftok", ""); };
+async function cargar(){ D = await api("falt-ver"); rol = D.rol; if(LOCAL && rol !== "local") throw {msg: "Esta planilla todavía no tiene el script v3.49 (faltantes por sucursal)."}; if(vista && rol !== vista && rol !== "anotar" && rol !== "local"){ vista = ""; toast("Para cambiar de vista hay que publicar el script v3.44", 5000); } render(); }
 /* 📦 ⇄ 🛒: Roman y Joa ven y actúan en las dos */
 $("#vista").onclick = async e => { const b = e.target.closest("[data-v]"); if(!b || b.dataset.v === rol) return;
   vista = b.dataset.v; guardarLS("fvista", vista); filtro = null;
@@ -243,7 +328,7 @@ $("#vista").onclick = async e => { const b = e.target.closest("[data-v]"); if(!b
   try{ await cargar(); }catch(err){ toast(errTxt(err), 4000); } };
 /* 🚪 salir: borra el link y la clave de este celular, para entrar con otra cuenta */
 $("#bSalir").onclick = () => abrirMenu("🚪 Salir de esta cuenta", "Para volver a entrar vas a necesitar el link o la clave.", [{t:"🚪 Salir", mal:true, f: () => {
-  tok = ""; clave = ""; quien = ""; vista = ""; demo = false; D = null; ["ftok", "fquien", "fvista"].forEach(k => guardarLS(k, ""));
+  borrarLlave(); clave = ""; quien = ""; vista = ""; demo = false; D = null; ["fquien", "fvista"].forEach(k => guardarLS(k, ""));
   guardarLS("claveR", ""); try{ sessionStorage.removeItem("dabox.fclave"); sessionStorage.removeItem("dabox.clave"); }catch(e){} $("#iClave").value = ""; mostrarLogin("Saliste. Abrí otro link de faltantes o entrá con una clave."); }}]);
 function entrar(){ $("#login").hidden = true; $("#app").hidden = false; render(); }
 $("#fLogin").onsubmit = async e => {
@@ -256,19 +341,22 @@ $("#fLogin").onsubmit = async e => {
   catch(err){ $("#lErr").textContent = errTxt(err); $("#lErr").hidden = false; if(err !== "clave") $("#lUrl").hidden = false; }
 };
 $("#bDemo").onclick = () => { demo = true; vista = ""; D = demoApi("falt-ver"); rol = D.rol; entrar(); };
-function mostrarLogin(msg){ $("#app").hidden = true; $("#login").hidden = false; $("#iUrl").value = url; $("#lUrl").hidden = !!url && !/dirección|script/i.test(msg || ""); $("#lErr").hidden = !msg;   /* si la dirección guardada falla, se puede corregir */ $("#lErr").textContent = msg || ""; }
+function mostrarLogin(msg){ if(LOCAL && !msg) msg = `🏪 ${sucNom(SUC_L)}: abrí esta página desde la caja (botón 📝 Faltantes) o con el link de la sucursal que te pasó Roman. También podés entrar con la clave de las cajas.`;
+  $("#app").hidden = true; $("#login").hidden = false; $("#iUrl").value = url; $("#lUrl").hidden = !!url && !/dirección|script/i.test(msg || ""); $("#lErr").hidden = !msg;   /* si la dirección guardada falla, se puede corregir */ $("#lErr").textContent = msg || ""; }
 async function inicio(){
   if(new URLSearchParams(location.search).has("demo")){ $("#bDemo").click(); return; }
   if(!url || (!tok && !clave)) return mostrarLogin();
   try{ await cargar(); entrar(); }
-  catch(e){ if(e === "clave"){ tok = ""; guardarLS("ftok", ""); } mostrarLogin(errTxt(e)); }
+  catch(e){ if(e === "clave") borrarLlave(); mostrarLogin(errTxt(e)); }
 }
 $("#bAct").onclick = () => refrescar(true);
 /* v3.2 · ☀️/🌙: el botón muestra a qué se pasa; la elección queda en este dispositivo */
 const esOscuro = () => { const t = document.documentElement.dataset.theme; return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
 const pintarTema = () => { const b = $("#bTema"); b.textContent = esOscuro() ? "☀️" : "🌙"; b.title = esOscuro() ? "Pasar a claro" : "Pasar a oscuro"; };
-$("#bTema").onclick = () => { const nuevo = esOscuro() ? "claro" : "oscuro"; document.documentElement.dataset.theme = nuevo === "claro" ? "light" : "dark"; try{ localStorage.setItem("falt.tema", nuevo); }catch(e){} pintarTema(); };
+$("#bTema").onclick = () => { const nuevo = esOscuro() ? "claro" : "oscuro"; document.documentElement.dataset.theme = nuevo === "claro" ? "light" : "dark"; try{ localStorage.setItem("dabox.tema", nuevo); }catch(e){} pintarTema(); };
 pintarTema();
+/* si se cambia ☀️/🌙 en otra pestaña o en el panel, esta página lo sigue al instante */
+addEventListener("storage", e => { if(e.key !== "dabox.tema") return; const t = e.newValue; if(t === "claro" || t === "oscuro") document.documentElement.dataset.theme = t === "claro" ? "light" : "dark"; else delete document.documentElement.dataset.theme; if(typeof pintarTema === "function") pintarTema(); });
 async function refrescar(avisar){
   if(demo){ D = demoApi("falt-ver"); render(); return; }
   try{ await cargar(); if(avisar) toast("Actualizado"); }catch(e){ toast(errTxt(e), 4000); }
@@ -277,24 +365,25 @@ const ocupado = () => !$("#menu").hidden || !$("#mEdit").hidden || document.acti
 setInterval(() => { if(!document.hidden && !$("#app").hidden && !ocupado()) refrescar(false); }, 90000);
 document.addEventListener("visibilitychange", () => { if(!document.hidden && D && Date.now() - D.generado > 60000 && !ocupado()) refrescar(false); });
 $("#bTablero").onclick = () => { const t = document.body.classList.toggle("tablero"); $("#bTablero").textContent = t ? "📝 Volver a la pantalla simple" : "📋 Ver el tablero completo"; scrollTo(0, 0); };
-$("#qOk").onclick = () => { const n = $("#qNom").value.trim(); if(n.length < 2) return; quien = n; guardarLS("fquien", n); $("#quien").hidden = true; toast("👋 Hola, " + n); };
+$("#qOk").onclick = () => { const n = $("#qNom").value.trim(); if(n.length < 2) return; quien = n; guardarLS("fquien", n); $("#quien").hidden = true; toast("👋 Hola, " + n); if(LOCAL) $("#lTxt").focus(); };
 
 /* =====================================================================
    2. ESTADOS, TIEMPOS Y TEXTOS
    ===================================================================== */
-const EST = {"":["", "Sin repartir"], "Depósito":["📦","Sale del depósito"], "A pedir":["🛒","En compras"], "Pedido":["🚚","Pedido"],
+const EST = {"":["", "Sin repartir"], "En caja":["📦","En la caja"], "Depósito":["🚚","Salió del depósito"], "A pedir":["🛒","En compras"], "Pedido":["🚚","Pedido"],
              "No se consigue":["🔍","No se consigue"], "Entregado":["✓","Entregado"], "No se trae":["✖","No se trae"]};
 const CERR = e => e === "Entregado" || e === "No se trae";
 const DIA = 864e5, dias = ms => Math.floor((Date.now() - ms) / DIA);
 const tsFecha = c => new Date((c.fecha || "") + "T12:00:00").getTime() || c.act;
 const edad = c => c.estado === "" ? dias(tsFecha(c)) : dias(c.act || tsFecha(c));
-const LIMITE = {"": 2, "Depósito": 3, "A pedir": 7, "Pedido": 10, "No se consigue": 0};     // días: después de esto, ⏰
-const CONSEJO = {"": "Hace %d días sin repartir", "Depósito": "Salió del depósito hace %d días: ¿ya se llevó?", "A pedir": "Hace %d días en compras sin pedir",
+const LIMITE = {"": 2, "En caja": 2, "Depósito": 3, "A pedir": 7, "Pedido": 10, "No se consigue": 0};     // días: después de esto, ⏰
+const CONSEJO = {"": "Hace %d días sin repartir", "En caja": "En la caja hace %d días: ¿ya salió?", "Depósito": "Salió del depósito hace %d días: ¿ya se llevó?", "A pedir": "Hace %d días en compras sin pedir",
                  "Pedido": "Pedido hace %d días: ¿llegó?", "No se consigue": "No se consigue: ¿reemplazo o ✖ no se trae?"};
 const atrasado = c => !CERR(c.estado) && LIMITE[c.estado] != null && edad(c) >= LIMITE[c.estado];
 const VER_HECHOS = 3;                                                     // días que quedan tachados en la nota
 const cantTxt = c => c.nada ? `<span class="c nada" title="No queda nada">🚫</span>` : `<span class="c">${c.cant > 0 ? c.cant : ""}</span>`;   // v3.0: la cantidad va en el texto
-const ST = {"A pedir":["compras","En compras"], "No se consigue":["nsc","No se consigue"], "Depósito":["camino","Sale del depósito"], "Pedido":["camino","Pedido"], "Entregado":["cerr","Entregado"], "No se trae":["cerr","No se trae"]};
+const urg = c => !!(c.urgente || c.nada);                                 // v4.0: 🔥 (los "🚫 No queda" viejos también)
+const ST = {"A pedir":["compras","En compras"], "No se consigue":["nsc","No se consigue"], "En caja":["caja","En la caja"], "Depósito":["camino","Salió del depósito"], "Pedido":["camino","Pedido"], "Entregado":["cerr","Entregado"], "No se trae":["cerr","No se trae"]};
 const stTxt = c => ST[c.estado] ? `<span class="st ${ST[c.estado][0]}">${ST[c.estado][1]}</span>` : "";
 /* v3.1: sin frases del oeste (estética única) */
 const clave2 = s => norm(s).replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(w => w && !["de","x","para","el","la","los","las","con","y","u","unidades"].includes(w)).map(w => w.replace(/(es|s)$/, "")).sort().join(" ");
@@ -304,6 +393,7 @@ const clave2 = s => norm(s).replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(w =
    ===================================================================== */
 function render(){
   if(!D) return;
+  if(rol === "local"){ renderLocal(); return; }
   $("#rol").textContent = rol === "anotar" ? "📝 Anotar" : "";
   $("#rol").hidden = rol !== "anotar"; $("#vista").hidden = rol === "anotar";
   $("#vista").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === rol));
@@ -313,9 +403,88 @@ function render(){
   $("#lEmo").textContent = rol === "compras" ? "🛒" : rol === "reparto" ? "📦" : "📝";
   $("#lSub").textContent = rol === "compras" ? "Compras · para pedir" : rol === "reparto" ? "Reparto · por sucursal" : "Lita & Añaños";
   $("#quien").hidden = !!quien || demo;
-  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. ${rol === "anotar" ? "Abajo está lo anotado de cada sucursal. Roman reparte." : "Tocá un renglón para moverlo."}`;
+  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. ${rol === "anotar" ? "Abajo está lo anotado de cada sucursal. Roman reparte." : "Tocá un renglón para moverlo."} · v4.0`;   // versión a la vista
   if(rol === "compras") renderCompras(); else renderReparto();
 }
+/* ---------- v4.0 · 🏪 LA SUCURSAL: su hoja de libreta ---------- */
+/* v4.1: la sucursal ve 3 etapas: lo que anotó · 📦 pedido armado (en la caja o ya salió) · 🛒 en proceso de compras. "✓ Llegó" en cualquiera */
+const ETAPA_L = e => e === "En caja" || e === "Depósito" ? "armado" : e === "A pedir" || e === "Pedido" || e === "No se consigue" ? "compras" : "";
+const EST_L = {"": "Anotado", armado: "📦 Pedido armado", compras: "🛒 En proceso de compras"};
+let lUrgOn = false, lDup = "", lOcultos = new Set(), lEsperan = new Map();
+function renderLocal(){
+  document.body.classList.add("v-local"); document.body.classList.remove("v-reparto", "v-compras", "v-anotar");
+  $("#vivi").hidden = true; $("#local").hidden = false; $("#local").dataset.c = D.suc || SUC_L; $("#vista").hidden = true; $("#rol").hidden = true;
+  $("#lEmo").textContent = "📝"; $("#lSub").textContent = sucNom(D.suc || SUC_L); $("#lTit").textContent = sucNom(D.suc || SUC_L);
+  $("#quien").hidden = demo || !!quienLocal();
+  const ab = (D.cards || []).filter(c => !CERR(c.estado) && !lOcultos.has(c.id)), orden = (a, b) => urg(b) - urg(a) || tsFecha(b) - tsFecha(a);
+  const et = k => ab.filter(c => ETAPA_L(c.estado) === k).sort(orden), pend = et(""), armado = et("armado"), compras = et("compras");
+  const fila = c => { const u = urg(c), meta = [c.obs ? `“${esc(c.obs)}”` : "", fechaAR(c.fecha).slice(0, 5), c.quien ? esc(c.quien) : ""].filter(Boolean).join(" · ");
+    const fuego = c.estado === "En caja" || c.estado === "Depósito" ? "" : `<button class="x${u ? " on" : ""}" type="button" data-lu="${esc(c.id)}" title="${u ? "Sacar urgente" : "Marcar urgente"}">🔥</button>`;
+    const borrar = c.estado === "" ? `<button class="x" type="button" data-lb="${esc(c.id)}" title="Borrar (me equivoqué)" aria-label="Borrar">✕</button>` : "";
+    return `<li class="${u ? "urg" : ""}"><span class="n">${u ? "🔥 " : ""}${esc(c.prod)}${meta ? `<small>${meta}</small>` : ""}</span><span class="ac">${fuego}${borrar}<button class="btn sm" type="button" data-ll="${esc(c.id)}" title="Ya lo tenemos (llegó o lo trajo otro): deja de hacer falta">✓ Llegó</button></span></li>`; };
+  const etapa = (k, l) => l.length ? `<li class="l-etapa ${k}">${EST_L[k]} <small>${l.length}</small></li>${l.map(fila).join("")}` : "";
+  $("#lList").innerHTML = (pend.map(fila).join("") || (armado.length || compras.length ? "" : `<li class="empty">No falta nada. Anotá arriba cuando se termine algo.</li>`)) + etapa("armado", armado) + etapa("compras", compras);
+  $("#lCuenta").textContent = pend.length ? `${pend.length} sin repartir` : "";
+  $("#lUrg").setAttribute("aria-pressed", lUrgOn);
+  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. Roman reparte lo anotado. · v4.1`;
+}
+async function anotarLocal(lineas){
+  const txt = $("#lTxt").value.trim().replace(/\s+/g, " "), obs = $("#lObs").value.trim();
+  const ls = lineas || (txt.length >= 2 ? [txt] : []);
+  if(!ls.length){ $("#lTxt").focus(); toast("Escribí qué falta"); return; }
+  if(!demo && !quienLocal()){ $("#quien").hidden = false; $("#qNom").focus(); toast("Primero poné tu nombre (así se sabe quién anotó)", 3500); return; }
+  const ya = !lineas && (D.cards || []).find(c => !CERR(c.estado) && norm(c.prod) === norm(txt));
+  if(ya && lDup !== norm(txt)){ lDup = norm(txt); toast(`Ya está anotado (${EST_L[ETAPA_L(ya.estado)]}). Tocá Anotar de nuevo si hace falta más.`, 4500); return; }
+  $("#lOk").disabled = true;
+  try{
+    await api("falt-nuevo", {texto: ls.join("\n"), ...(ls.length === 1 && obs ? {obs} : {}), ...(lUrgOn ? {urgente: "1"} : {})});
+    toast(ls.length > 1 ? `📝 ${ls.length} renglones anotados` : `📝 Anotado: ${lUrgOn ? "🔥 " : ""}${ls[0]}`);
+    $("#lTxt").value = ""; $("#lObs").value = ""; lUrgOn = false; lDup = ""; $("#lSug").hidden = true;
+    await refrescar(false); $("#lTxt").focus();
+  }catch(e){ toast(errTxt(e), 4000); }
+  finally{ $("#lOk").disabled = false; }
+}
+async function estadoLocal(c, estado){
+  lOcultos.add(c.id); render();
+  const mandar = async () => { try{ await api("falt-estado", {ids: c.id, estado}); c.estado = estado; c.act = Date.now(); }
+    catch(e){ toast(errTxt(e), 4000); } lOcultos.delete(c.id); render(); };
+  const t = setTimeout(() => { lEsperan.delete(c.id); mandar(); }, 5000);  // v4.1: 5 s para arrepentirse; recién ahí va a la planilla
+  lEsperan.set(c.id, () => { clearTimeout(t); mandar(); });
+  avisoDeshacer(estado === "Entregado" ? `✓ Llegó: ${c.prod}` : `✕ Borrado: ${c.prod}`, () => { clearTimeout(t); lEsperan.delete(c.id); lOcultos.delete(c.id); render(); });
+}
+addEventListener("pagehide", () => { lEsperan.forEach(f => f()); lEsperan.clear(); });   // si cierran la pestaña antes de los 5 s, igual se manda
+$("#lOk").onclick = () => anotarLocal();
+$("#lUrg").onclick = () => { lUrgOn = !lUrgOn; $("#lUrg").setAttribute("aria-pressed", lUrgOn); $("#lTxt").focus(); };
+$("#local").addEventListener("click", e => {
+  const b = e.target.closest("[data-lu],[data-ll],[data-lb]"); if(!b) return;
+  const c = (D.cards || []).find(x => x.id === (b.dataset.lu || b.dataset.ll || b.dataset.lb)); if(!c) return;
+  if(b.dataset.lu) marcarUrgente([c.id], !urg(c));
+  else if(b.dataset.ll) estadoLocal(c, "Entregado");
+  else estadoLocal(c, "No se trae");                                       // v4.1: con 5 s para deshacer, sin pregunta
+});
+/* 🔎 mientras escribe: productos del Catálogo (↓ para elegir; Enter en uno = queda el nombre exacto) */
+let lCat = null, lSugL = [];
+async function catalogoL(){ if(lCat) return lCat; try{ const r = await api("precios"); lCat = (r.items || []).map(x => ({nombre: x.nombre, precio: x.precio, k: norm(x.nombre + " " + (x.cod || ""))})); }catch(e){ lCat = []; } return lCat; }
+async function sugerirL(){
+  const t = norm($("#lTxt").value).trim().split(/\s+/).filter(w => w.length > 1);
+  if(t.join("").length < 3){ $("#lSug").hidden = true; lSugL = []; return; }
+  const cat = await catalogoL(); lSugL = cat.filter(x => t.every(w => x.k.includes(w))).sort((a, b) => a.nombre.length - b.nombre.length).slice(0, 6);
+  $("#lSug").innerHTML = lSugL.map((x, i) => `<button type="button" data-ls="${i}">${esc(x.nombre)}<small>${x.precio ? LA.money(x.precio) : ""}</small></button>`).join(""); $("#lSug").hidden = !lSugL.length;
+}
+let lT; $("#lTxt").addEventListener("input", () => { lDup = ""; clearTimeout(lT); lT = setTimeout(sugerirL, 120); });
+$("#lTxt").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); anotarLocal(); } if(e.key === "ArrowDown" && lSugL.length){ e.preventDefault(); $("#lSug button").focus(); } });
+$("#lObs").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); anotarLocal(); } });
+$("#lSug").addEventListener("click", e => { const b = e.target.closest("[data-ls]"); if(!b) return; const x = lSugL[+b.dataset.ls]; if(!x) return;
+  $("#lTxt").value = x.nombre; $("#lSug").hidden = true; lSugL = []; $("#lObs").focus(); });
+$("#lSug").addEventListener("keydown", e => { const b = e.target.closest("button"); if(!b) return;
+  if(e.key === "ArrowRight" || e.key === "ArrowDown"){ e.preventDefault(); (b.nextElementSibling || b).focus(); }
+  if(e.key === "ArrowLeft" || e.key === "ArrowUp"){ e.preventDefault(); b.previousElementSibling ? b.previousElementSibling.focus() : $("#lTxt").focus(); }
+  if(e.key === "Escape"){ $("#lSug").hidden = true; $("#lTxt").focus(); } });
+$("#lTxt").addEventListener("paste", e => {                                   // una lista entera (Keep, WhatsApp): un renglón por línea
+  const t = (e.clipboardData || window.clipboardData).getData("text"); if(!/\n/.test(t.trim())) return;
+  e.preventDefault(); const ls = lineasDe(t);
+  abrirMenu(`📋 Pegar ${ls.length} renglones`, `Cada línea queda como un renglón.<i>${ls.slice(0, 6).map(esc).join("<br>")}${ls.length > 6 ? "<br>…" : ""}</i>`, [{t:`✓ Anotar los ${ls.length}`, f: () => anotarLocal(ls)}]);
+});
 /* ---------- 📦 REPARTO: una nota por sucursal ---------- */
 let PROPS = [], filtro = null;
 function renderReparto(){
@@ -325,31 +494,32 @@ function renderReparto(){
     const mias = cs.filter(c => c.suc === s), ab = mias.filter(c => !CERR(c.estado) && (!filtro || filtro.f(c)));
     const hechos = mias.filter(c => CERR(c.estado) && dias(c.act) < VER_HECHOS);
     if(filtro && !ab.length) return "";
-    const orden = (a,b) => (a.estado === "" ? 0 : 1) - (b.estado === "" ? 0 : 1) || (b.nada - a.nada) || (edad(b) - edad(a));
-    const enCamino = ab.filter(c => c.estado === "Depósito" || c.estado === "Pedido"), pend = ab.filter(c => !enCamino.includes(c));   // v3.0
+    const orden = (a,b) => urg(b) - urg(a) || (a.estado === "" ? 0 : 1) - (b.estado === "" ? 0 : 1) || (edad(b) - edad(a));   // v4.0: 🔥 arriba
+    const enCaja = ab.filter(c => c.estado === "En caja"), enCamino = ab.filter(c => c.estado === "Depósito" || c.estado === "Pedido"), pend = ab.filter(c => !enCaja.includes(c) && !enCamino.includes(c));
     const nuevos = ab.filter(c => c.estado === "").length;
     return `<section class="nota" data-c="${s}" data-suc="${s}"><h2>${esc(sucNom(s))} <span class="n">${ab.length || ""}</span>${nuevos > 1 && rol !== "anotar" ? `<button class="ico" type="button" data-todo="${s}" title="Pasar todo lo nuevo a compras">⋯</button>` : ""}</h2>
-      ${pend.sort(orden).map(renglon).join("") || (filtro ? "" : `<div class="vacia">${enCamino.length ? "Nada más pendiente" : "Nada pendiente 🎉"}</div>`)}
+      ${pend.sort(orden).map(renglon).join("") || (filtro ? "" : `<div class="vacia">${enCamino.length || enCaja.length ? "Nada más pendiente" : "Nada pendiente 🎉"}</div>`)}
+      ${enCaja.length ? `<div class="encaja"><div class="t">📦 En la caja (${enCaja.length})</div>${enCaja.sort(orden).map(renglon).join("")}</div>` : ""}
       ${enCamino.length ? `<div class="camino"><div class="t">🚚 En camino (${enCamino.length})</div>${enCamino.sort(orden).map(renglon).join("")}</div>` : ""}
       ${filtro || rol === "anotar" ? "" : `<label class="agregar">＋<input data-agregar="${s}" maxlength="120" placeholder="Agregar… (ej: lupas, 3 azules)" enterkeyhint="done"></label>`}
       ${hechos.length && !filtro ? `<details class="hechos"><summary>✓ ${hechos.length} cerrado${hechos.length > 1 ? "s" : ""}</summary>${hechos.map(renglon).join("")}</details>` : ""}</section>`;
   }).join("");
   $("#notas").innerHTML = notas || `<div class="empty">Nada con ese filtro.</div>`;
 }
-function renglon(c){
-  const e = EST[c.estado] || EST[""], at = atrasado(c);
-  return `<button class="ln${CERR(c.estado) ? " hecho" : ""}" type="button" data-id="${esc(c.id)}">
-    ${c.estado === "" ? `<span class="e libre" title="Sin repartir"></span>` : `<span class="e" title="${e[1]}">${e[0]}</span>`}${cantTxt(c)}
-    <span class="p">${esc(c.prod)}${c.obs || ST[c.estado] ? `<small>${stTxt(c)}${c.obs ? `“${esc(c.obs)}”` : ""}</small>` : ""}</span>${at ? `<span class="a" title="${esc(CONSEJO[c.estado].replace("%d", edad(c)))}">⏰ ${edad(c)}d</span>` : `<span></span>`}</button>`;
+function renglon(c){                                                      // v4.0: texto + UN estado (el bloque dice "en la caja" / "en camino"); sin cantidades
+  const at = atrasado(c), u = urg(c) && !CERR(c.estado), st = ["En caja", "Depósito"].includes(c.estado) ? "" : stTxt(c);
+  return `<button class="ln${CERR(c.estado) ? " hecho" : ""}${u ? " urg" : ""}" type="button" data-id="${esc(c.id)}">
+    <span class="p">${u ? "🔥 " : ""}${esc(c.prod)}${c.obs || st ? `<small>${st}${c.obs ? `“${esc(c.obs)}”` : ""}</small>` : ""}</span>${at ? `<span class="a" title="${esc(CONSEJO[c.estado].replace("%d", edad(c)))}">⏰ ${edad(c)}d</span>` : `<span></span>`}</button>`;
 }
 /* 💡 lo trabado, en una línea: tocar = filtrar */
 function tipsReparto(ab){
   const P = [], fx = (t, f) => P.push({t, f});
+  const nu = ab.filter(c => urg(c) && !["En caja","Depósito","Pedido"].includes(c.estado)).length; if(nu) fx(`🔥 ${nu} urgente${nu > 1 ? "s" : ""}`, c => urg(c) && !["En caja","Depósito","Pedido"].includes(c.estado));   // v4.0
   const sin = ab.filter(c => c.estado === "" && edad(c) >= LIMITE[""]).length; if(sin) fx(`📥 ${sin} sin repartir`, c => c.estado === "" && edad(c) >= LIMITE[""]);
   const g = {}; ab.forEach(c => { const k = clave2(c.prod); (g[k] = g[k] || []).push(c); });
   Object.values(g).filter(x => new Set(x.map(c => c.suc)).size >= 2).slice(0, 2).forEach(x => { const k = clave2(x[0].prod);
     fx(`👥 “${x[0].prod}” en ${new Set(x.map(c => c.suc)).size} sucursales`, c => clave2(c.prod) === k); });
-  [["Depósito","📦 depósito atrasado"],["A pedir","🛒 compras atrasado"],["Pedido","🚚 pedidos sin llegar"],["No se consigue","🔍 no se consiguen"]].forEach(([e, t]) => {
+  [["En caja","📦 en la caja sin salir"],["Depósito","🚚 salió y no llegó"],["A pedir","🛒 compras atrasado"],["Pedido","🚚 pedidos sin llegar"],["No se consigue","🔍 no se consiguen"]].forEach(([e, t]) => {
     const n = ab.filter(c => c.estado === e && atrasado(c)).length; if(n) fx(`${n} ${t}`, c => c.estado === e && atrasado(c)); });
   PROPS = P;
   if(filtro) return `<span>🔎 ${esc(filtro.t)}</span><button type="button" data-sinfiltro>✕ Ver todo</button>`;
@@ -472,17 +642,18 @@ const buscarPrecio = txt => ({t:"🔎 Buscar precio en proveedores", f: () => { 
 function menuReparto(c){
   const op = (estado, t, mal) => ({t, mal, f: () => cambiarReparto([c.id], estado)});
   const rep = (mover, t) => ({t, f: () => reponer(c, mover)});
-  const ops = c.estado === "" ? [op("Depósito","📦 Sale del depósito"), rep(true, "📦+🛒 Sale del depósito y reponer (a compras)"), op("A pedir","🛒 Pasar a compras (Joa)"), op("Pedido","🚚 Ya está pedido / lo pido yo"), op("No se trae","✖ No se trae", true)]
+  const ops = c.estado === "" ? [op("En caja","📦 Agregado a la caja"), op("Depósito","🚚 Ya salió del depósito"), rep(true, "🚚+🛒 Salió del depósito y reponer (a compras)"), op("A pedir","🛒 Pasar a compras (Joa)"), op("Pedido","🚚 Ya está pedido / lo pido yo"), op("No se trae","✖ No se trae", true)]
+    : c.estado === "En caja" ? [op("Depósito","🚚 Salió (va en camino)"), op("Entregado","✓ Entregado en la sucursal"), rep(false, "🛒 Reponer en el depósito (a compras)"), op("","↩ Sacar de la caja")]
     : c.estado === "Depósito" ? [op("Entregado","✓ Entregado en la sucursal"), rep(false, "🛒 Reponer en el depósito (a compras)"), op("A pedir","🛒 Mejor pedirlo"), op("","↩ Volver a sin repartir")]
-    : c.estado === "A pedir" ? [op("Pedido","🚚 Ya está pedido / lo pido yo"), op("Depósito","📦 Lo tengo en el depósito"), op("","↩ Volver a sin repartir"), op("No se trae","✖ No se trae", true)]
-    : c.estado === "Pedido" ? [op("Entregado","✓ Entregado en la sucursal"), op("Depósito","📦 Llegó al depósito")]
+    : c.estado === "A pedir" ? [op("Pedido","🚚 Ya está pedido / lo pido yo"), op("En caja","📦 Lo tengo: a la caja"), op("","↩ Volver a sin repartir"), op("No se trae","✖ No se trae", true)]
+    : c.estado === "Pedido" ? [op("Entregado","✓ Entregado en la sucursal"), op("En caja","📦 Llegó al depósito: a la caja")]
     : c.estado === "No se consigue" ? [op("A pedir","🛒 Pedir de nuevo"), op("No se trae","✖ No se trae", true)]
     : [op("","↩ Volver a abrir")];
   if(rol === "anotar") ops.length = 0;   // Vivi: solo mira el detalle
-  else if(!CERR(c.estado)) ops.push({t:"✏️ Editar (texto, cantidad, sucursal)", f: () => abrirEditar(c)});
+  else if(!CERR(c.estado)) ops.push({t: urg(c) ? "Sacar 🔥 urgente" : "🔥 Marcar urgente", f: () => marcarUrgente([c.id], !urg(c))}, {t:"✏️ Editar (texto, nota, sucursal)", f: () => abrirEditar(c)});
   if(!CERR(c.estado)) ops.push(buscarPrecio(c.prod));
   const e = EST[c.estado] || EST[""];
-  abrirMenu(`${c.nada ? "🚫" : (c.cant || "?") + " ×"} ${c.prod}`,
+  abrirMenu(`${urg(c) ? "🔥 " : ""}${c.prod}`,
     `${esc(sucNom(c.suc))} · ${fechaAR(c.fecha)}${c.quien ? " · " + esc(c.quien) : ""} · <b>${e[0]} ${e[1]}</b>${c.por && c.estado ? " (" + esc(c.por) + ")" : ""}${atrasado(c) ? `<i>⏰ ${esc(CONSEJO[c.estado].replace("%d", edad(c)))}</i>` : ""}${c.obs ? `<i>“${esc(c.obs)}”</i>` : ""}`, ops);
 }
 function menuCompras(g, hecho){
@@ -557,6 +728,12 @@ async function cambiarReparto(ids, estado, sinDeshacer){
       Object.entries(por).forEach(([e0, l]) => cambiarReparto(l, e0, true)); });
   }catch(err){ const m = Object.fromEntries(antes); cs.forEach(c => c.estado = m[c.id]); render(); toast(errTxt(err), 4000); }
 }
+async function marcarUrgente(ids, si){                                      // v4.0
+  const cs = D.cards.filter(c => ids.includes(c.id)), antes = cs.map(c => [c, c.urgente, c.nada]);
+  cs.forEach(c => { c.urgente = si; if(!si) c.nada = false; }); render();
+  try{ await api("falt-urgente", {ids: ids.join(","), urgente: si ? "1" : "0"}); toast(si ? "🔥 Marcado urgente" : "Ya no es urgente"); }
+  catch(e){ antes.forEach(([c, u, n]) => { c.urgente = u; c.nada = n; }); render(); toast(errTxt(e), 4000); }
+}
 async function cambiarCompras(k, estado, sinDeshacer){
   const de = estado === "A pedir" ? D.pedidos : D.pedir, a = estado === "A pedir" ? D.pedir : D.pedidos, i = de.findIndex(g => g.k === k); if(i < 0) return;
   const g = de.splice(i, 1)[0], nsc0 = g.nsc; a.push(g); g.nsc = estado === "No se consigue"; g.vuelve = false; render();
@@ -606,16 +783,17 @@ async function reponer(c, mover){
 /* ✏️ editar un renglón (solo Reparto) */
 let edC = null;
 function abrirEditar(c){
-  edC = c; $("#eProd").value = (c.cant > 0 ? c.cant + " " : "") + c.prod; $("#eNada").checked = !!c.nada; $("#eObs").value = c.obs || "";
+  edC = c; $("#eProd").value = (c.cant > 0 ? c.cant + " " : "") + c.prod; $("#eNada").checked = urg(c); $("#eObs").value = c.obs || "";
   $("#eSuc").innerHTML = SUCS.map(s => `<option value="${s}" ${s === c.suc ? "selected" : ""}>${esc(sucNom(s))}</option>`).join("");
   $("#mEdit").hidden = false; setTimeout(() => $("#eProd").focus(), 30);
 }
 $("#fEdit").onsubmit = async e => {
   e.preventDefault(); if(!edC) return;
   const prod = $("#eProd").value.trim(); if(prod.length < 2){ $("#eProd").focus(); return; }
-  const nada = $("#eNada").checked, cant = 0, obs = $("#eObs").value.trim(), suc = $("#eSuc").value;
-  const c = edC, antes = {...c}; Object.assign(c, {prod, cant: nada ? 0 : cant, nada, obs, suc}); $("#mEdit").hidden = true; render();
-  try{ await api("falt-editar", {id:c.id, prod, obs, sucursal:suc, ...(nada ? {nada:"1"} : {cant:""})}); toast(suc !== antes.suc ? `✏️ Pasado a ${sucNom(suc)}` : "✏️ Guardado"); }
+  const u = $("#eNada").checked, obs = $("#eObs").value.trim(), suc = $("#eSuc").value;
+  const c = edC, antes = {...c}; Object.assign(c, {prod, cant: 0, nada: false, urgente: u, obs, suc}); $("#mEdit").hidden = true; render();
+  /* v4.0: la cantidad vieja queda en el texto */
+  try{ await api("falt-editar", {id:c.id, prod, obs, sucursal:suc, urgente: u ? "1" : "0"}); toast(suc !== antes.suc ? `✏️ Pasado a ${sucNom(suc)}` : "✏️ Guardado"); }
   catch(err){ Object.assign(c, antes); render(); toast(errTxt(err), 4000); }
 };
 $("#eCancel").onclick = () => { $("#mEdit").hidden = true; };
@@ -627,7 +805,7 @@ document.addEventListener("click", e => {
     if(x.unir){ const nom = x.unir.map(g => g.nombre).sort((a,b) => b.length - a.length)[0]; renombrar(x.unir.map(g => g.k), nom); return; }
     filtro = x; render(); scrollTo(0, 0); return; }
   const td = e.target.closest("[data-todo]"); if(td){ const ids = D.cards.filter(c => c.estado === "" && c.suc === td.dataset.todo).map(c => c.id);
-    abrirMenu(`${sucNom(td.dataset.todo)}`, `${ids.length} renglones sin repartir`, [{t:`🛒 Pasar los ${ids.length} a compras`, f: () => cambiarReparto(ids, "A pedir")}, {t:`📦 Los ${ids.length} salen del depósito`, f: () => cambiarReparto(ids, "Depósito")}, {t:`🚚 Los ${ids.length} ya están pedidos`, f: () => cambiarReparto(ids, "Pedido")}]); return; }
+    abrirMenu(`${sucNom(td.dataset.todo)}`, `${ids.length} renglones sin repartir`, [{t:`📦 Los ${ids.length} a la caja`, f: () => cambiarReparto(ids, "En caja")}, {t:`🛒 Pasar los ${ids.length} a compras`, f: () => cambiarReparto(ids, "A pedir")}, {t:`🚚 Los ${ids.length} salieron del depósito`, f: () => cambiarReparto(ids, "Depósito")}, {t:`🚚 Los ${ids.length} ya están pedidos`, f: () => cambiarReparto(ids, "Pedido")}]); return; }
   const tilde = e.target.closest("[data-tilde]"); if(tilde){ const hecho = !!tilde.closest(".ln.hecho"); cambiarCompras(tilde.dataset.tilde, hecho ? "A pedir" : "Pedido"); return; }
   const ln = e.target.closest(".ln[data-id]"); if(ln){ const c = D.cards.find(x => x.id === ln.dataset.id); if(c) menuReparto(c); return; }
   const lk = e.target.closest(".ln[data-k]"); if(lk){ const hecho = lk.classList.contains("hecho"), g = (hecho ? D.pedidos : D.pedir).find(x => x.k === lk.dataset.k); if(g) menuCompras(g, hecho); return; }
@@ -647,22 +825,28 @@ document.addEventListener("keydown", e => {
    ===================================================================== */
 function demoApi(accion, p){
   const hoy = new Date(), f = d => { const x = new Date(hoy - d * DIA); return x.toISOString().slice(0, 10); }, t = d => Date.now() - d * DIA;
-  if(!window._demo) window._demo = [
-    {id:"F-FAL-1", fecha:f(0), hora:"10:12", suc:"FALCON", quien:"Mica", prod:"Resma A4 Ledesma 75g", obs:"", estado:"", cant:10, nada:false, act:t(0)},
-    {id:"F-FAL-8", fecha:f(0), hora:"11:20", suc:"FALCON", quien:"Mica", prod:"Cinta de papel 24 mm", obs:"", estado:"", cant:6, nada:false, act:t(0)},
-    {id:"F-MOR-2", fecha:f(1), hora:"18:40", suc:"MORENO", quien:"Lucas", prod:"resmas ledesma", obs:"piden mucho", estado:"", cant:5, nada:false, act:t(1)},
-    {id:"F-MOR-9", fecha:f(1), hora:"18:41", suc:"MORENO", quien:"Lucas", prod:"Lupas", obs:"", estado:"", cant:3, nada:false, act:t(1)},
-    {id:"F-MOR-10", fecha:f(1), hora:"18:42", suc:"MORENO", quien:"Lucas", prod:"Cartulina negra, rosa y verde claro", obs:"", estado:"Depósito", cant:10, nada:false, act:t(1)},
-    {id:"F-NAC-3", fecha:f(3), hora:"09:05", suc:"NACION", quien:"Sofi", prod:"Plasticola 30 g", obs:"", estado:"", cant:0, nada:true, act:t(3)},
-    {id:"F-NAC-6", fecha:f(12), hora:"11:10", suc:"NACION", quien:"Sofi", prod:"Fibrones Sharpie negro", obs:"", estado:"Pedido", cant:12, nada:false, act:t(11)},
-    {id:"F-SOM-4", fecha:f(4), hora:"12:00", suc:"SOMISA", quien:"Juli", prod:"Cuaderno Rivadavia rayado", obs:"tapa dura", estado:"Depósito", cant:6, nada:false, act:t(4)},
-    {id:"F-FAL-5", fecha:f(9), hora:"16:30", suc:"FALCON", quien:"Mica", prod:"Repuesto Éxito N°3", obs:"", estado:"A pedir", cant:20, nada:false, act:t(8)},
-    {id:"F-MOR-7", fecha:f(5), hora:"10:00", suc:"MORENO", quien:"Lucas", prod:"Mapas N°3 político", obs:"", estado:"Entregado", cant:30, nada:false, act:t(1)}];
+  if(!window._demo) window._demo = [                                     // v4.0: sin cantidades (van en el texto), con 🔥 y 📦 En la caja
+    {id:"F-FAL-1", fecha:f(0), hora:"10:12", suc:"FALCON", quien:"Mica", prod:"Resma A4 Ledesma 75g", obs:"10 paquetes", estado:"", urgente:true, act:t(0)},
+    {id:"F-FAL-8", fecha:f(0), hora:"11:20", suc:"FALCON", quien:"Mica", prod:"Cinta de papel 24 mm", obs:"", estado:"En caja", act:t(0)},
+    {id:"F-MOR-2", fecha:f(1), hora:"18:40", suc:"MORENO", quien:"Lucas", prod:"resmas ledesma", obs:"piden mucho", estado:"", act:t(1)},
+    {id:"F-MOR-9", fecha:f(1), hora:"18:41", suc:"MORENO", quien:"Lucas", prod:"3 lupas", obs:"", estado:"", urgente:true, act:t(1)},
+    {id:"F-MOR-11", fecha:f(0), hora:"09:30", suc:"MORENO", quien:"Lucas", prod:"Plasticola 30 g", obs:"", estado:"En caja", act:t(0)},
+    {id:"F-MOR-10", fecha:f(1), hora:"18:42", suc:"MORENO", quien:"Lucas", prod:"Cartulina negra, rosa y verde claro", obs:"", estado:"Depósito", act:t(1)},
+    {id:"F-MOR-12", fecha:f(6), hora:"12:10", suc:"MORENO", quien:"Lucas", prod:"Repuesto Rivadavia N°3", obs:"", estado:"A pedir", act:t(5)},
+    {id:"F-NAC-3", fecha:f(3), hora:"09:05", suc:"NACION", quien:"Sofi", prod:"Plasticola 30 g", obs:"", estado:"", nada:true, act:t(3)},
+    {id:"F-NAC-6", fecha:f(12), hora:"11:10", suc:"NACION", quien:"Sofi", prod:"Fibrones Sharpie negro x12", obs:"", estado:"Pedido", act:t(11)},
+    {id:"F-SOM-4", fecha:f(4), hora:"12:00", suc:"SOMISA", quien:"Juli", prod:"Cuaderno Rivadavia rayado", obs:"tapa dura", estado:"Depósito", act:t(4)},
+    {id:"F-FAL-5", fecha:f(9), hora:"16:30", suc:"FALCON", quien:"Mica", prod:"Repuesto Éxito N°3", obs:"", estado:"A pedir", act:t(8)},
+    {id:"F-MOR-7", fecha:f(5), hora:"10:00", suc:"MORENO", quien:"Lucas", prod:"Mapas N°3 político", obs:"", estado:"Entregado", act:t(1)}];
   const cs = window._demo;
   if(accion === "prov-datos") return Promise.resolve({version:"d", provs:[{nombre:"Tiotom", desc:10, rec:10.11, esc:0, mult:2.13, red:50}, {nombre:"Lispapel", desc:10, rec:21, esc:0, mult:2.13, red:50}],
     items:[[0,"T1","LUPA 75 MM",1650,"","","",0,""], [1,"L2","Lupa 75mm mango negro",1400,"","","",0,""], [0,"T3","LUPA 50 MM C/LUZ",2200,"","","",0,""], [1,"L4","Resma A4 Ledesma 75 g",4300,"","","",0,""]]});
   if(accion === "prov-pedir") return Promise.resolve({ok:true});
   const qd = new URLSearchParams(location.search).get("demo"), vd = vista || (qd === "compras" ? "compras" : qd === "anotar" ? "anotar" : "reparto");
+  if(accion === "precios") return Promise.resolve({items: [{nombre:"Lupa 75 mm", precio:3500}, {nombre:"Lupa 50 mm con luz", precio:4800}, {nombre:"Resma A4 Ledesma 75 g", precio:9200}, {nombre:"Plasticola 30 g", precio:1100}]});
+  if(LOCAL && accion === "falt-ver") return {rol:"local", suc:SUC_L, generado:Date.now(), cards:cs.filter(c => c.suc === SUC_L)};
+  if(accion === "falt-urgente"){ cs.forEach(c => { if(String(p.ids).split(",").includes(c.id)){ c.urgente = p.urgente === "1"; if(p.urgente !== "1") c.nada = false; } }); return Promise.resolve({ok:true}); }
+  if(accion === "falt-estado" && LOCAL){ cs.forEach(c => { if(c.id === p.ids) c.estado = p.estado; }); return Promise.resolve({ok:true}); }
   if(accion === "falt-ver"){
     if(vd === "compras"){
       if(!window._demoC){ const g = {}; cs.filter(c => c.estado === "A pedir" || c.estado === "").forEach(c => { const k = norm(c.prod); const x = g[k] || (g[k] = {k, nombre:c.prod, cant:0, nada:0, n:0, desde:Infinity, obs:[], vuelve:false, nsc:false});
@@ -680,8 +864,8 @@ function demoApi(accion, p){
     if(accion === "falt-notas" && p.op === "renombrar"){ C.listas.forEach(l => { if(l[0] === p.nombre) l[0] = p.nuevo; }); C.pedir.forEach(g => { if(g.lista === p.nombre){ g.lista = p.nuevo; g.k = p.nuevo + "~" + g.k.split("~")[1]; } }); } }
   if(accion === "falt-reponer"){ const c = cs.find(x => x.id === p.id); if(c){ if(p.mover === "1") c.estado = "Depósito";
     cs.push({id:"F-DEPR-" + Date.now(), fecha:f(0), hora:"", suc:"DEPOSITO", quien:"Reparto", prod:c.prod, obs:"reponer · salió para " + c.suc, estado:"A pedir", cant:+p.cant || c.cant, nada:false, act:Date.now()}); } }
-  if(accion === "falt-editar"){ const c = cs.find(x => x.id === p.id); if(c) Object.assign(c, {prod:p.prod, obs:p.obs, suc:p.sucursal, cant:+p.cant || 0, nada:p.nada === "1"}); }
-  if(accion === "falt-nuevo"){ String(p.texto).split("\n").forEach((x, i) => cs.push({id:"F-D-" + Date.now() + i, fecha:f(0), hora:"", suc:p.sucursal, quien:"Celular", prod:x, obs:"", estado:"", cant:+p.cant || 0, nada:p.nada === "1", act:Date.now()})); }
+  if(accion === "falt-editar"){ const c = cs.find(x => x.id === p.id); if(c) Object.assign(c, {prod:p.prod, obs:p.obs, suc:p.sucursal, cant:0, nada:false, urgente:p.urgente === "1"}); }
+  if(accion === "falt-nuevo"){ String(p.texto).split("\n").forEach((x, i) => cs.push({id:"F-D-" + Date.now() + i, fecha:f(0), hora:"", suc:LOCAL ? SUC_L : p.sucursal, quien:LOCAL ? "Demo" : "Celular", prod:x, obs:p.obs || "", estado:"", urgente:p.urgente === "1", act:Date.now()})); }
   return Promise.resolve({ok:true});
 }
 

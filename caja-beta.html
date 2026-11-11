@@ -609,7 +609,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
     <button role="tab" data-tab="venta" aria-selected="true"><i class="emo">🛒</i>Venta</button>
     <button role="tab" data-tab="ventas" aria-selected="false"><i class="emo">🧾</i>Ventas de hoy</button>
     <button role="tab" data-tab="ctacte" aria-selected="false"><i class="emo">📒</i>Cuenta corriente</button>
-    <button role="tab" data-tab="falt" aria-selected="false"><i class="emo">📝</i>Faltantes<span class="pill warn" id="flN" hidden></span></button>
+    <button role="tab" data-tab="falt" aria-selected="false" title="Abre la libreta de faltantes en otra pestaña"><i class="emo">📝</i>Faltantes ↗<span class="pill warn" id="flN" hidden></span></button>
     <button class="grupo" id="gHerr" aria-expanded="true"><i class="emo">🧰</i>Herramientas<span class="fl">▾</span></button>
     <div class="sub" id="gHerrItems">
       <button role="tab" data-tab="presu" aria-selected="false"><i class="emo">📝</i>Presupuestos</button>
@@ -639,7 +639,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 
 <main id="main">
 <div class="top"><h1 id="titulo"><i class="emo">🛒</i>Venta</h1><div class="fecha"><span id="mSync" class="pill"></span><span id="hoy"></span><button class="btn sm" id="bGasto" title="Anotar un gasto (F9)">💸 Gasto</button><button class="btn sm" id="bIrCierre">💵 Cerrar caja</button><button class="btn sm" id="bVolverVenta" hidden>← Volver a la venta</button></div></div>
-<div class="demo-bar" id="betaBar" hidden>🧪 <b>Caja BETA</b> · versión nueva en prueba, con datos reales. Si algo anda raro, avisale a Roman.</div>
+<div class="demo-bar" id="betaBar" hidden>🧪 <b>Caja BETA <span id="betaVer"></span></b> · versión nueva en prueba, con datos reales. Si algo anda raro, avisale a Roman.</div>
 <div class="demo-bar" id="pruebaBar" hidden>🧪 <b>Modo prueba</b> · sucursal PRUEBA · datos reales, pero lo que se envía queda marcado PRUEBA y no cuenta en el panel <a href="?">Salir de la prueba →</a></div>
 <div class="demo-bar" id="demoBar" hidden>🎓 <b>Modo demo</b> · productos y empleados inventados · nada se envía a la planilla · se borra al cerrar la pestaña <a href="?">Salir de la demo →</a></div>
 <div class="aviso" id="aviso" hidden></div>
@@ -1222,7 +1222,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-10 v3.52";   // v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-11 v3.54";   // v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1656,7 +1656,7 @@ $("#bSalir").onclick = () => { if(cart.length && !confirm("Hay una venta sin cob
    8. PESTAÑAS
    ===================================================================== */
 const TABS = {venta:["🛒","Venta"], presu:["📝","Presupuestos"], copias:["🖨️","Cotizar copias"], kiosco:["💲","Calc de precios"], ctacte:["📒","Cuenta corriente"], falt:["📝","Faltantes"], catalogo:["🏷️","Etiquetas"], ventas:["🧾","Ventas de hoy"], cierre:["💵","Cierre de caja"], ajustes:["⚙️","Ajustes"]};
-document.querySelectorAll("nav button[data-tab]").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+document.querySelectorAll("nav button[data-tab]").forEach(b => b.onclick = () => b.dataset.tab === "falt" ? abrirFaltantes() : showTab(b.dataset.tab));   // v3.54
 $("#bIrCierre").onclick = () => {
   if(cart.length){ toast("Hay una venta sin cobrar: cobrala o vaciala antes de cerrar la caja"); return; }
   showTab("cierre");
@@ -2547,9 +2547,9 @@ const TK_INFO = {
   instagram: "@litayanianios",
   sucursales: {             // dir · horario · WhatsApp (lo vacío no se imprime)
     FALCON: {dir:"Falcon 296",       hor:"", tel:"336 454-2638", resena:"https://search.google.com/local/writereview?placeid=ChIJI5FtAE1nt5URu4lNXhFkR9U"},
-    NACION: {dir:"Nación 155",       hor:"", tel:"336 433-7375"},
-    MORENO: {dir:"Moreno 125",       hor:"", tel:"336 419-4444"},
-    SOMISA: {dir:"Av. Central 2079", hor:"", tel:"336 431-2505"}
+    NACION: {dir:"Nación 155",       hor:"", tel:"336 433-7375", resena:"https://search.google.com/local/writereview?placeid=ChIJr831LgBnt5URF3uMIzr1bWY"},
+    MORENO: {dir:"Moreno 125",       hor:"", tel:"336 419-4444", resena:"https://search.google.com/local/writereview?placeid=ChIJY8apMdpnt5URfR1RifiZcLM"},
+    SOMISA: {dir:"Av. Central 2079", hor:"", tel:"336 431-2505", resena:"https://search.google.com/local/writereview?placeid=ChIJBzjWdQBft5URveLzuuAGPEA"}   // v3.53: Nación, Moreno y Somisa con su QR
   },
   encuesta: ""              // link general (encuesta). Si la sucursal tiene "resena" (link de reseña de Google), se usa ese → QR en el ticket
 };
@@ -2853,6 +2853,14 @@ function estadoFalt(id, estado){
 }
 $("#flOk").onclick = anotarFalt;
 $("#flAct").onclick = cargarFalt;
+/* v3.54 · la libreta vive en faltantes.html?suc= (otra pestaña, misma clave de esta caja): la venta no se interrumpe y es la misma que en el celular */
+function abrirFaltantes(){
+  if(!cfg.suc){ toast("Primero configurá la sucursal (Ajustes)."); return; }
+  const w = window.open(`faltantes.html?suc=${encodeURIComponent(cfg.suc)}${DEMO ? "&demo" : ""}`, "faltantes-" + cfg.suc);
+  if(!w) toast("El navegador bloqueó la pestaña nueva: permití ventanas emergentes para este sitio.", 6000);
+  cargarFalt();
+}
+setInterval(() => { if(!document.hidden) cargarFalt(); }, 10 * 60 * 1000);   // el número de "📝 Faltantes" (lo que viene en camino) se actualiza solo
 ["#flTxt","#flObs"].forEach(s => $(s).addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); anotarFalt(); } }));
 /* 🔎 v3.50: mientras escribe, los productos del catálogo que coinciden (↓ para ir a la lista). Elegir uno = queda el nombre exacto y su código */
 let flSugL = [];
@@ -3809,7 +3817,7 @@ function renderMeta(){
   $("#wSuc").textContent = cfg.suc ? `${SUC_LBL(cfg.suc)}${cfg.pc ? " · PC "+cfg.pc : ""}${cfg.turno ? " · desde "+hm(new Date(cfg.turno.desde)) : ""}` : "";
   $("#hoy").textContent = new Date().toLocaleDateString("es-AR",{weekday:"long",day:"numeric",month:"long"}).replace(/^./, c => c.toUpperCase());
   const ms = $("#mSync");
-  $("#demoBar").hidden = !DEMO; $("#pruebaBar").hidden = !PRUEBA; $("#betaBar").hidden = !BETA; $("#bNota").hidden = !turnoAbierto();
+  $("#demoBar").hidden = !DEMO; $("#pruebaBar").hidden = !PRUEBA; $("#betaBar").hidden = !BETA; $("#betaVer").textContent = VERSION.split(" ").pop();   // v3.52: la beta dice qué versión es $("#bNota").hidden = !turnoAbierto();
   if(DEMO){ ms.className="pill warn"; ms.textContent="🎓 Demo"; }
   else if(espacioLleno){ ms.className="pill bad"; ms.textContent="Navegador lleno"; }
   else if(claveMal){ ms.className="pill bad"; ms.textContent="🔑 Clave incorrecta"; }
