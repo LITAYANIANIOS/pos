@@ -1222,7 +1222,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-10 v3.52";   // v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-10 v3.53";   // v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -2547,9 +2547,9 @@ const TK_INFO = {
   instagram: "@litayanianios",
   sucursales: {             // dir · horario · WhatsApp (lo vacío no se imprime)
     FALCON: {dir:"Falcon 296",       hor:"", tel:"336 454-2638", resena:"https://search.google.com/local/writereview?placeid=ChIJI5FtAE1nt5URu4lNXhFkR9U"},
-    NACION: {dir:"Nación 155",       hor:"", tel:"336 433-7375"},
-    MORENO: {dir:"Moreno 125",       hor:"", tel:"336 419-4444"},
-    SOMISA: {dir:"Av. Central 2079", hor:"", tel:"336 431-2505"}
+    NACION: {dir:"Nación 155",       hor:"", tel:"336 433-7375", resena:"https://search.google.com/local/writereview?placeid=ChIJr831LgBnt5URF3uMIzr1bWY"},
+    MORENO: {dir:"Moreno 125",       hor:"", tel:"336 419-4444", resena:"https://search.google.com/local/writereview?placeid=ChIJY8apMdpnt5URfR1RifiZcLM"},
+    SOMISA: {dir:"Av. Central 2079", hor:"", tel:"336 431-2505", resena:"https://search.google.com/local/writereview?placeid=ChIJBzjWdQBft5URveLzuuAGPEA"}   // v3.53: Nación, Moreno y Somisa con su QR
   },
   encuesta: ""              // link general (encuesta). Si la sucursal tiene "resena" (link de reseña de Google), se usa ese → QR en el ticket
 };
