@@ -609,7 +609,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
     <button role="tab" data-tab="venta" aria-selected="true"><i class="emo">🛒</i>Venta</button>
     <button role="tab" data-tab="ventas" aria-selected="false"><i class="emo">🧾</i>Ventas de hoy</button>
     <button role="tab" data-tab="ctacte" aria-selected="false"><i class="emo">📒</i>Cuenta corriente</button>
-    <button role="tab" data-tab="falt" aria-selected="false"><i class="emo">📝</i>Faltantes<span class="pill warn" id="flN" hidden></span></button>
+    <button role="tab" data-tab="falt" aria-selected="false" title="Abre la libreta de faltantes en otra pestaña"><i class="emo">📝</i>Faltantes ↗<span class="pill warn" id="flN" hidden></span></button>
     <button class="grupo" id="gHerr" aria-expanded="true"><i class="emo">🧰</i>Herramientas<span class="fl">▾</span></button>
     <div class="sub" id="gHerrItems">
       <button role="tab" data-tab="presu" aria-selected="false"><i class="emo">📝</i>Presupuestos</button>
@@ -1222,7 +1222,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-10 v3.53";   // v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-11 v3.54";   // v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1656,7 +1656,7 @@ $("#bSalir").onclick = () => { if(cart.length && !confirm("Hay una venta sin cob
    8. PESTAÑAS
    ===================================================================== */
 const TABS = {venta:["🛒","Venta"], presu:["📝","Presupuestos"], copias:["🖨️","Cotizar copias"], kiosco:["💲","Calc de precios"], ctacte:["📒","Cuenta corriente"], falt:["📝","Faltantes"], catalogo:["🏷️","Etiquetas"], ventas:["🧾","Ventas de hoy"], cierre:["💵","Cierre de caja"], ajustes:["⚙️","Ajustes"]};
-document.querySelectorAll("nav button[data-tab]").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+document.querySelectorAll("nav button[data-tab]").forEach(b => b.onclick = () => b.dataset.tab === "falt" ? abrirFaltantes() : showTab(b.dataset.tab));   // v3.54
 $("#bIrCierre").onclick = () => {
   if(cart.length){ toast("Hay una venta sin cobrar: cobrala o vaciala antes de cerrar la caja"); return; }
   showTab("cierre");
@@ -2853,6 +2853,14 @@ function estadoFalt(id, estado){
 }
 $("#flOk").onclick = anotarFalt;
 $("#flAct").onclick = cargarFalt;
+/* v3.54 · la libreta vive en faltantes.html?suc= (otra pestaña, misma clave de esta caja): la venta no se interrumpe y es la misma que en el celular */
+function abrirFaltantes(){
+  if(!cfg.suc){ toast("Primero configurá la sucursal (Ajustes)."); return; }
+  const w = window.open(`faltantes.html?suc=${encodeURIComponent(cfg.suc)}${DEMO ? "&demo" : ""}`, "faltantes-" + cfg.suc);
+  if(!w) toast("El navegador bloqueó la pestaña nueva: permití ventanas emergentes para este sitio.", 6000);
+  cargarFalt();
+}
+setInterval(() => { if(!document.hidden) cargarFalt(); }, 10 * 60 * 1000);   // el número de "📝 Faltantes" (lo que viene en camino) se actualiza solo
 ["#flTxt","#flObs"].forEach(s => $(s).addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); anotarFalt(); } }));
 /* 🔎 v3.50: mientras escribe, los productos del catálogo que coinciden (↓ para ir a la lista). Elegir uno = queda el nombre exacto y su código */
 let flSugL = [];
