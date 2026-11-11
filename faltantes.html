@@ -8,13 +8,15 @@
 <title>Faltantes · Lita &amp; Añaños</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f6c445'/%3E%3Cpath d='M18 14h28v38H18z' fill='%23fff' stroke='%231f2a24' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M25 26h14M25 34h14M25 42h8' stroke='%231f2a24' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#f6c445">
-<link rel="stylesheet" href="comun/estilos.css?v=1">
+<link rel="stylesheet" href="comun/estilos.css?v=2">
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v3.0
+   FALTANTES · DA BOX                                              v3.1
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
+   v3.1: estética única (Notion + notas tipo Keep): se saca el toque western del Reparto · estados con los colores
+         compartidos de comun/estilos.css (F0): en compras ámbar · en camino azul · cerrado verde · no se consigue gris.
    v3.0: sin cantidades ("3 lupas" queda como texto) · estado en palabras con color y "🚚 En camino" en su propia tarjeta · Joa busca en proveedores
          sin salir del tablero · Reparto en el celular arranca con la pantalla simple · nombre obligatorio para anotar · Reparto con toque western 🤠.
    v2.9: la clave recordada del panel (base.js v1.4) también abre faltantes · en el panel, 🔎 Buscar precio salta a 💲 Proveedores.
@@ -58,11 +60,12 @@ body.v-compras .nota:nth-child(even)::before{transform:translateX(-50%) rotate(2
 .clip-vacio{display:flex;gap:12px;align-items:center;padding:6px 8px 10px;color:var(--muted);font-size:14px}
 .clip-vacio svg{width:46px;height:62px;flex:none}
 /* v3.0 · estado en palabras, con color */
-.st{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;margin-right:5px;vertical-align:1px;background:rgb(0 0 0 / .07);color:var(--muted)}
-.st.compras{background:#fbe7c6;color:#8a5a00} .st.camino{background:#d9efe2;color:#22663f} .st.nsc{background:#fbdcdc;color:#a33}
+/* v3.1 · colores del diccionario de estados (comun/estilos.css · F0) */
+.st{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;margin-right:5px;vertical-align:1px;background:var(--e-pend-bg);color:var(--e-pend)}
+.st.compras{background:var(--e-compras-bg);color:var(--e-compras)} .st.camino{background:var(--e-camino-bg);color:var(--e-camino)} .st.nsc{background:var(--e-nsc-bg);color:var(--e-nsc)} .st.cerr{background:var(--e-cerr-bg);color:var(--e-cerr)}
 .camino{margin:8px 4px 4px;padding:4px 0 2px;border-radius:8px;background:rgb(255 255 255 / .55);border:1px dashed rgb(0 0 0 / .14)}
-.camino .t{font-size:12.5px;font-weight:700;color:#22663f;padding:4px 8px 2px}
-@media (prefers-color-scheme:dark){.st.compras{background:#4a3a15;color:#f3c96b}.st.camino{background:#1f3a2a;color:#8fd4a8}.st.nsc{background:#4a2222;color:#f19b9b}.camino{background:rgb(0 0 0 / .18)}.camino .t{color:#8fd4a8}}
+.camino .t{font-size:12.5px;font-weight:700;color:var(--e-camino);padding:4px 8px 2px}
+@media (prefers-color-scheme:dark){.camino{background:rgb(0 0 0 / .18)}}
 /* v3.0 · pantalla simple: Vivi siempre; Joa solo el buscador; Roman en el celular (tablero a un toque) */
 body.v-compras .v-anotar{display:none}
 body.v-reparto #vivi{display:none}
@@ -73,14 +76,7 @@ body.v-reparto #vivi{display:none}
   body.v-reparto #bTablero{display:block;width:100%;margin:0 0 14px}
 }
 body.embed.v-reparto #vivi{display:none!important} body.embed #bTablero{display:none!important} body.embed.v-reparto #notas{display:block!important}
-/* 🤠 v3.0 · el oeste de Roman (Reparto): madera, estrella y frases. Solo adorno */
-:root{--oeste:#ecd6a8;--oeste-ink:#5a3b16}@media (prefers-color-scheme:dark){:root{--oeste:#4a3a20;--oeste-ink:#f0d9a8}}
-body.v-reparto header.top{background:var(--oeste)!important;border-bottom:2px dashed color-mix(in srgb,var(--oeste-ink) 35%,transparent)!important}
-body.v-reparto header.top .logo div{font-family:Rockwell,"Roboto Slab","Courier New",Georgia,serif;letter-spacing:.04em;color:var(--oeste-ink)}
-body.v-reparto header.top .logo small{font-family:var(--sans);letter-spacing:0}
-.estrella{display:none;width:30px;height:30px;flex:none}
-body.v-reparto .estrella{display:block}
-@media (max-width:560px){body.v-reparto .estrella{display:none} body.v-reparto header.top .logo div{display:none}}
+@media (max-width:560px){body.v-reparto header.top .logo div{display:none}}   /* v3.1: en el celular, sin título (no entra con los botones) */
 body.embed header.top .logo{display:none}
 /* ---------- Vivi: anotar · buscar precio · pedir ---------- */
 .vivi{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));margin-bottom:16px}
@@ -161,7 +157,6 @@ body.v-anotar .solo-equipo{display:none}
   <div class="logo"><i class="emo" id="lEmo">📝</i><div>Faltantes<small id="lSub">Lita &amp; Añaños</small></div></div>
   <svg class="deco" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="6" width="20" height="20" rx="1.5" fill="#fff3a8" transform="rotate(6 17 16)"/><path d="M12 13h10M12 17h10M12 21h6" stroke="#b9a640" stroke-width="1.6" stroke-linecap="round" transform="rotate(6 17 16)"/><path d="M10 3v14a3.5 3.5 0 0 0 7 0V5a2.3 2.3 0 0 0-4.6 0v11" fill="none" stroke="#6f7c84" stroke-width="1.8" stroke-linecap="round"/></svg>
   <span class="j-hoy" id="jHoy" title="Renglones agregados al pedido hoy"></span>
-  <svg class="estrella" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3l3.6 7.6 8.3 1-6.1 5.7 1.6 8.2L16 21.4l-7.4 4.1 1.6-8.2-6.1-5.7 8.3-1z" fill="#d9a53a" stroke="#6b4a14" stroke-width="1.4" stroke-linejoin="round"/><circle cx="16" cy="15.5" r="3.2" fill="#f3d58a" stroke="#6b4a14" stroke-width="1.1"/></svg>
   <div class="seg" id="vista" hidden><button type="button" data-v="reparto">📦 Reparto</button><button type="button" data-v="compras">🛒 Compras</button></div>
   <span class="rol" id="rol"></span>
   <a class="ico solo-suelto solo-equipo" href="proveedores.html" target="_blank" rel="noopener" title="Precios de proveedores" style="text-decoration:none">💲</a>
@@ -291,10 +286,9 @@ const CONSEJO = {"": "Hace %d días sin repartir", "Depósito": "Salió del dep�
 const atrasado = c => !CERR(c.estado) && LIMITE[c.estado] != null && edad(c) >= LIMITE[c.estado];
 const VER_HECHOS = 3;                                                     // días que quedan tachados en la nota
 const cantTxt = c => c.nada ? `<span class="c nada" title="No queda nada">🚫</span>` : `<span class="c">${c.cant > 0 ? c.cant : ""}</span>`;   // v3.0: la cantidad va en el texto
-const ST = {"A pedir":["compras","En compras"], "No se consigue":["nsc","No se consigue"], "Depósito":["camino","Sale del depósito"], "Pedido":["camino","Pedido"], "Entregado":["","Entregado"], "No se trae":["","No se trae"]};
+const ST = {"A pedir":["compras","En compras"], "No se consigue":["nsc","No se consigue"], "Depósito":["camino","Sale del depósito"], "Pedido":["camino","Pedido"], "Entregado":["cerr","Entregado"], "No se trae":["cerr","No se trae"]};
 const stTxt = c => ST[c.estado] ? `<span class="st ${ST[c.estado][0]}">${ST[c.estado][1]}</span>` : "";
-const OESTE = ["Nada pendiente. Tranquilo el pueblo 🌵", "Ni un faltante a la vista, sheriff.", "Calma en el saloon. Nada que repartir.", "Todo en orden por acá. 🤠"];
-const oeste = () => OESTE[Math.floor(Math.random() * OESTE.length)];
+/* v3.1: sin frases del oeste (estética única) */
 const clave2 = s => norm(s).replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(w => w && !["de","x","para","el","la","los","las","con","y","u","unidades"].includes(w)).map(w => w.replace(/(es|s)$/, "")).sort().join(" ");
 
 /* =====================================================================
@@ -327,7 +321,7 @@ function renderReparto(){
     const enCamino = ab.filter(c => c.estado === "Depósito" || c.estado === "Pedido"), pend = ab.filter(c => !enCamino.includes(c));   // v3.0
     const nuevos = ab.filter(c => c.estado === "").length;
     return `<section class="nota" data-c="${s}" data-suc="${s}"><h2>${esc(sucNom(s))} <span class="n">${ab.length || ""}</span>${nuevos > 1 && rol !== "anotar" ? `<button class="ico" type="button" data-todo="${s}" title="Pasar todo lo nuevo a compras">⋯</button>` : ""}</h2>
-      ${pend.sort(orden).map(renglon).join("") || (filtro ? "" : `<div class="vacia">${enCamino.length ? "Nada más pendiente" : rol === "reparto" ? oeste() : "Nada pendiente 🎉"}</div>`)}
+      ${pend.sort(orden).map(renglon).join("") || (filtro ? "" : `<div class="vacia">${enCamino.length ? "Nada más pendiente" : "Nada pendiente 🎉"}</div>`)}
       ${enCamino.length ? `<div class="camino"><div class="t">🚚 En camino (${enCamino.length})</div>${enCamino.sort(orden).map(renglon).join("")}</div>` : ""}
       ${filtro || rol === "anotar" ? "" : `<label class="agregar">＋<input data-agregar="${s}" maxlength="120" placeholder="Agregar… (ej: lupas, 3 azules)" enterkeyhint="done"></label>`}
       ${hechos.length && !filtro ? `<details class="hechos"><summary>✓ ${hechos.length} cerrado${hechos.length > 1 ? "s" : ""}</summary>${hechos.map(renglon).join("")}</details>` : ""}</section>`;
