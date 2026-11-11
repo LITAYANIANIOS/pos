@@ -9,12 +9,14 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f6c445'/%3E%3Cpath d='M18 14h28v38H18z' fill='%23fff' stroke='%231f2a24' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M25 26h14M25 34h14M25 42h8' stroke='%231f2a24' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#f6c445">
 <link rel="stylesheet" href="comun/estilos.css?v=2">
+<script>/* v3.2 · tema elegido antes de pintar, para que no parpadee */try{const t=localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v3.1
+   FALTANTES · DA BOX                                              v3.2
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
+   v3.2: botón ☀️/🌙 para elegir claro u oscuro (queda guardado en ese celular o PC; si no se toca, sigue al sistema).
    v3.1: estética única (Notion + notas tipo Keep): se saca el toque western del Reparto · estados con los colores
          compartidos de comun/estilos.css (F0): en compras ámbar · en camino azul · cerrado verde · no se consigue gris.
    v3.0: sin cantidades ("3 lupas" queda como texto) · estado en palabras con color y "🚚 En camino" en su propia tarjeta · Joa busca en proveedores
@@ -44,7 +46,7 @@ header.top .logo .emo{font-size:24px}
 #vista button{padding:5px 10px;font-size:13px}
 body.embed .solo-suelto{display:none!important}
 /* 🛒 Compras (Joa) tiene su propia cara: barra celeste y su ícono, para no confundir las vistas */
-:root{--joa:#bfe3ec}@media (prefers-color-scheme:dark){:root{--joa:#24464d}}
+:root{--joa:#bfe3ec}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--joa:#24464d}} :root[data-theme="dark"]{--joa:#24464d}   /* v3.2: respeta ☀️/🌙 */
 body.v-compras header.top{background:var(--joa);border-bottom-color:transparent}
 body.v-compras{background:color-mix(in srgb,var(--joa) 25%,var(--bg))}
 body.v-compras .tips button{background:var(--surface)}
@@ -65,7 +67,7 @@ body.v-compras .nota:nth-child(even)::before{transform:translateX(-50%) rotate(2
 .st.compras{background:var(--e-compras-bg);color:var(--e-compras)} .st.camino{background:var(--e-camino-bg);color:var(--e-camino)} .st.nsc{background:var(--e-nsc-bg);color:var(--e-nsc)} .st.cerr{background:var(--e-cerr-bg);color:var(--e-cerr)}
 .camino{margin:8px 4px 4px;padding:4px 0 2px;border-radius:8px;background:rgb(255 255 255 / .55);border:1px dashed rgb(0 0 0 / .14)}
 .camino .t{font-size:12.5px;font-weight:700;color:var(--e-camino);padding:4px 8px 2px}
-@media (prefers-color-scheme:dark){.camino{background:rgb(0 0 0 / .18)}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .camino{background:rgb(0 0 0 / .18)}} :root[data-theme="dark"] .camino{background:rgb(0 0 0 / .18)}
 /* v3.0 · pantalla simple: Vivi siempre; Joa solo el buscador; Roman en el celular (tablero a un toque) */
 body.v-compras .v-anotar{display:none}
 body.v-reparto #vivi{display:none}
@@ -160,6 +162,7 @@ body.v-anotar .solo-equipo{display:none}
   <div class="seg" id="vista" hidden><button type="button" data-v="reparto">📦 Reparto</button><button type="button" data-v="compras">🛒 Compras</button></div>
   <span class="rol" id="rol"></span>
   <a class="ico solo-suelto solo-equipo" href="proveedores.html" target="_blank" rel="noopener" title="Precios de proveedores" style="text-decoration:none">💲</a>
+  <button class="ico solo-suelto" id="bTema" type="button" title="Claro / oscuro">🌙</button>
   <button class="ico" id="bAct" type="button" title="Actualizar">↻</button>
   <button class="ico solo-suelto" id="bSalir" type="button" title="Salir (para entrar con otro link o clave)">🚪</button>
 </header>
@@ -261,6 +264,11 @@ async function inicio(){
   catch(e){ if(e === "clave"){ tok = ""; guardarLS("ftok", ""); } mostrarLogin(errTxt(e)); }
 }
 $("#bAct").onclick = () => refrescar(true);
+/* v3.2 · ☀️/🌙: el botón muestra a qué se pasa; la elección queda en este dispositivo */
+const esOscuro = () => { const t = document.documentElement.dataset.theme; return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
+const pintarTema = () => { const b = $("#bTema"); b.textContent = esOscuro() ? "☀️" : "🌙"; b.title = esOscuro() ? "Pasar a claro" : "Pasar a oscuro"; };
+$("#bTema").onclick = () => { const nuevo = esOscuro() ? "claro" : "oscuro"; document.documentElement.dataset.theme = nuevo === "claro" ? "light" : "dark"; try{ localStorage.setItem("falt.tema", nuevo); }catch(e){} pintarTema(); };
+pintarTema();
 async function refrescar(avisar){
   if(demo){ D = demoApi("falt-ver"); render(); return; }
   try{ await cargar(); if(avisar) toast("Actualizado"); }catch(e){ toast(errTxt(e), 4000); }
