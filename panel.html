@@ -11,9 +11,10 @@
 <script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v2.11
+   PANEL · DA BOX                                                 v2.12
    Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.12: 🔍 Control (solo Encargado): anulaciones, cambios de medio, genéricos y transferencias sin banco por cajero, con 🔴 para revisar. Necesita script con S2.
    v2.11: 🔒 la clave va por POST (base.js v1.5), nunca en la dirección. Necesita script v3.51.
    v2.10: ☀️/🌙 claro u oscuro en todo el panel (también adentro de Faltantes y Proveedores); queda guardado en esa PC · estilos.css?v=2 (estados F0).
    v2.9: 💰 Sobres: el Contado se escribe con formato pesos mientras tipeás ($ 150.000 + $ 19.000 + $ 600) · los billetes del
@@ -147,6 +148,7 @@ iframe.embebido{width:100%;height:calc(100vh - 120px);min-height:520px;border:0;
   <section id="s-cierres" hidden></section>
   <section id="s-sobres" hidden></section>
   <section id="s-cobros" hidden></section>
+  <section id="s-control" hidden></section>
   <section id="s-productos" hidden></section>
   <section id="s-precios" hidden></section>
   <section id="s-falt" hidden></section>
@@ -163,7 +165,7 @@ const {$, esc, money, millones, pct, pad, ymd, fechaAR, norm, hace, leerLS, guar
 /* =====================================================================
    1. CONFIGURACIÓN
    ===================================================================== */
-const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], sobres:["💰","Sobres"], cobros:["💳","Cobros"], productos:["📦","Productos"], precios:["🏷️","Precios"], falt:["📝","Faltantes"], prov:["💲","Proveedores"]};
+const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], sobres:["💰","Sobres"], cobros:["💳","Cobros"], control:["🔍","Control"], productos:["📦","Productos"], precios:["🏷️","Precios"], falt:["📝","Faltantes"], prov:["💲","Proveedores"]};
 const ROLES = {admin:"Encargado", dueno:"Dueño", compras:"Compras"};
 const CON_COMPRAS = ["admin","compras"];                    // roles que ven el link al tablero de compras
 const PERIODOS = [[1,"Hoy"],[7,"7 días"],[30,"30 días"],[90,"90 días"],[365,"1 año"]];
@@ -233,7 +235,7 @@ function render(){
   Object.keys(SECCIONES).forEach(s => $("#s-"+s).hidden = s !== tab);
   $("#titulo").innerHTML = `<i class="emo">${SECCIONES[tab][0]}</i>${SECCIONES[tab][1]}`;
   $("#sAct").textContent = "Actualizado " + new Date(D.generado).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
-  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, sobres:rSobres, cobros:rCobros, productos:rProductos, precios:rPrecios, falt:() => rEmbebido("falt"), prov:() => rEmbebido("prov")})[tab]();
+  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, sobres:rSobres, cobros:rCobros, control:rControl, productos:rProductos, precios:rPrecios, falt:() => rEmbebido("falt"), prov:() => rEmbebido("prov")})[tab]();
 }
 /* 📝 💲 adentro del panel: la página se carga una sola vez (no se pierde lo escrito al cambiar de sección) y usa la clave del panel */
 function rEmbebido(s){
@@ -710,6 +712,85 @@ $("#s-sobres").addEventListener("keydown", e => { if(e.key === "Enter" && e.targ
 sbDest = DESTINOS.includes(leerLS("sbDest", "")) ? leerLS("sbDest", "") : "Juani";
 
 /* =====================================================================
+   6d. CONTROL — 🔍 por cajero (solo Encargado; el script no lo manda a otros roles).
+       Avisa, no acusa: 🔴 = "Revisar". Anulaciones · cambios de medio · genéricos (Librería, Varios, Kiosco) · transferencias sin banco.
+       Todo viene armado del script (control): acá solo se dibuja. Respeta el período y la sucursal elegidos.
+   ===================================================================== */
+const BANDERAS = {"efectivo":"💵 era efectivo", "tarde":"⏱ anulada tarde", "post-cierre":"🔒 después del cierre", "otra-pc":"👥 la anuló otro",
+                  "efe→otro":"💵→ salió de efectivo", "genérico alto":"📦 genéricos altos"};
+const medioTxt = m => MEDIOS[m] || MEDIOS[{"Efectivo":"efectivo","Postnet / QR":"postnet","Transferencia":"transf","Cta. cte.":"ctacte"}[m]] || esc(m || "—");
+const bandTxt = b => (b || []).map(x => `<span class="pill bad">${esc(BANDERAS[x] || x)}</span>`).join(" ");
+let ctSolo = true, ctCajero = null;
+/* control: {anulaciones:[tsVenta, tsAnul, suc, cajero venta, quién anuló, medio, total, venta N°, banderas[]],
+             cambiosMedio:[ts, suc, cajero, medio original, medio actual, total, banderas[]],
+             genericos:[cajero, suc, ventas $, genéricos $, % genéricos, % promedio suc, ventas solo-genérico, banderas[]],
+             transfSinBanco:[cajero, suc, cant, $]} */
+function ctDatos(){
+  const C = D.control || {}, f = x => deSuc(x);
+  const an = (C.anulaciones || []).filter(x => f(x[2])), cm = (C.cambiosMedio || []).filter(x => f(x[1])),
+        gen = (C.genericos || []).filter(x => f(x[1])), tr = (C.transfSinBanco || []).filter(x => f(x[1]));
+  const quien = x => x[4] && x[4] !== "?" ? x[4] : x[3];                       // anulación: cuenta para quien la hizo (caja vieja: el de la venta)
+  const P = {}, per = k => P[k] || (P[k] = {k, ventas:0, an:[], cm:[], gen:[], tr:[0,0], rojo:0});
+  gen.forEach(x => { const p = per(x[0]); p.ventas += x[2]; p.gen.push(x); if((x[7] || []).length) p.rojo++; });
+  an.forEach(x => { const p = per(quien(x)); p.an.push(x); if((x[8] || []).length) p.rojo++; });
+  cm.forEach(x => { const p = per(x[2]); p.cm.push(x); if((x[6] || []).length) p.rojo++; });
+  tr.forEach(x => { const p = per(x[0]); p.tr[0] += x[2]; p.tr[1] += x[3]; if(x[2]) p.rojo++; });
+  return {an, cm, gen, tr, per: Object.values(P).sort((a, b) => b.rojo - a.rojo || a.k.localeCompare(b.k))};
+}
+function rControl(){
+  const S = $("#s-control");
+  if(!D.control){ S.innerHTML = `<div class="card empty">🔍 La planilla todavía no manda el control (hace falta el script con S2).</div>`; return; }
+  const {an, cm, tr, per} = ctDatos(), roja = (x, i) => (x[i] || []).length > 0;
+  const suma = (l, i) => l.reduce((a, x) => a + (+x[i] || 0), 0);
+  const tile = (t, n, m, r, extra) => `<div class="tile${r ? " alerta" : ""}"><span>${t}</span><b>${n}</b><small>${money(m)}${r ? ` · ${r} para revisar 🔴` : ""}${extra || ""}</small></div>`;
+  const nTr = suma(tr, 2), lista = ctSolo ? per.filter(p => p.rojo) : per;
+  const fila = p => { const anM = suma(p.an, 6), efo = p.cm.filter(x => (x[6] || []).includes("efe→otro")).length;
+    const g = p.gen.map(x => `<span class="${(x[7] || []).length ? "dif-mal" : "m"}" title="Genéricos de ${esc(sucNom(x[1]))}: ${x[4].toFixed(0)} % de lo que vendió (promedio de la sucursal ${x[5].toFixed(0)} %)">${esc(sucNom(x[1]))} ${x[4].toFixed(0)} % <small>vs ${x[5].toFixed(0)} %</small></span>`).join("<br>");
+    return `<tr class="ct-f${ctCajero === p.k ? " sb-abierto" : ""}" data-caj="${esc(p.k)}" tabindex="0"><td><b>${esc(p.k)}</b></td><td class="r">${p.ventas ? money(p.ventas) : "—"}</td>
+      <td class="r">${p.an.length ? `${p.an.length} · ${money(anM)}` : "—"}</td><td class="r">${p.rojo ? `<b class="dif-mal">${p.rojo} 🔴</b>` : "—"}</td>
+      <td class="r">${efo || "—"}</td><td class="r">${g || "—"}</td><td class="r">${p.tr[0] ? `${p.tr[0]} · ${money(p.tr[1])}` : "—"}</td></tr>`; };
+  S.innerHTML = `<div class="grid">
+    <p class="note">Avisa, no acusa: 🔴 es <b>para revisar</b> (puede haber una explicación). Solo lo ves vos. Período: ${enPer()}${suc !== "TODAS" ? " · " + sucNom(suc) : ""}.</p>
+    <div class="tiles">
+      ${tile("Anulaciones", an.length, suma(an, 6), an.filter(x => roja(x, 8)).length)}
+      ${tile("Cambios de medio", cm.length, suma(cm, 5), cm.filter(x => roja(x, 6)).length)}
+      ${tile("Transferencias sin banco", nTr, suma(tr, 3), 0, nTr ? "" : " · todas en el banco")}
+    </div>
+    <div class="card"><h3><span>Por cajero</span><label class="check"><input type="checkbox" id="ctSolo" ${ctSolo ? "checked" : ""}> Solo 🔴</label></h3>
+      <p class="note">Tocá un cajero para ver el detalle. <b>Genéricos</b> = lo vendido por Librería, Varios y Kiosco (precio abierto), contra el promedio de su sucursal.</p>
+      ${lista.length ? `<div class="tw"><table><tr><th>Cajero</th><th class="r">Vendió</th><th class="r">Anuló</th><th class="r">Revisar</th><th class="r">Efectivo → otro medio</th><th class="r">Genéricos</th><th class="r">Transf. sin banco</th></tr>${lista.map(fila).join("")}</table></div>`
+        : `<div class="empty">🎉 Nada para revisar ${enPer()}.</div>`}
+    </div>
+    <div id="ctDet"></div></div>`;
+  ctDetalle();
+}
+function ctDetalle(){
+  const el = $("#ctDet"); if(!el) return;
+  const p = ctCajero && ctDatos().per.find(x => x.k === ctCajero); if(!p){ el.innerHTML = ""; return; }
+  const ok = (x, i) => !ctSolo || (x[i] || []).length;
+  const hm = ts => ts ? fechaHM(ts) : "—";
+  const an = p.an.filter(x => ok(x, 8)), cm = p.cm.filter(x => ok(x, 6)), gen = p.gen.filter(x => ok(x, 7));
+  el.innerHTML = `<div class="card"><h3><span>🔍 ${esc(p.k)}</span><button class="btn sm" id="ctCerrar" type="button">✕ Cerrar</button></h3>
+    ${ctSolo ? `<p class="note">Mostrando solo lo marcado 🔴. Destildá "Solo 🔴" para ver todo.</p>` : ""}
+    <h4>Anulaciones (${an.length})</h4>${an.length ? `<div class="tw"><table><tr><th>Venta</th><th>Sucursal</th><th class="r">N°</th><th>Medio</th><th class="r">Total</th><th>Anulada</th><th>Vendió / anuló</th><th>Revisar</th></tr>
+      ${an.map(x => `<tr><td class="num">${hm(x[0])}</td><td>${sucTag(x[2])}</td><td class="r m">${esc(x[7] ?? "")}</td><td>${medioTxt(x[5])}</td><td class="r">${money(x[6])}</td><td class="num">${hm(x[1])}</td>
+        <td>${esc(x[3])}${x[4] && x[4] !== x[3] ? ` → ${x[4] === "?" ? '<span class="m" title="Caja vieja: no manda quién anuló">?</span>' : esc(x[4])}` : ""}</td><td>${bandTxt(x[8])}</td></tr>`).join("")}</table></div>` : `<p class="m">—</p>`}
+    <h4>Cambios de medio (${cm.length})</h4>${cm.length ? `<div class="tw"><table><tr><th>Venta</th><th>Sucursal</th><th>Cobrada en</th><th>Quedó en</th><th class="r">Total</th><th>Revisar</th></tr>
+      ${cm.map(x => `<tr><td class="num">${hm(x[0])}</td><td>${sucTag(x[1])}</td><td>${medioTxt(x[3])}</td><td>${medioTxt(x[4])}</td><td class="r">${money(x[5])}</td><td>${bandTxt(x[6])}</td></tr>`).join("")}</table></div>` : `<p class="m">—</p>`}
+    <h4>Genéricos</h4>${gen.length ? `<div class="tw"><table><tr><th>Sucursal</th><th class="r">Vendió</th><th class="r">Genéricos</th><th class="r">% suyo</th><th class="r">% sucursal</th><th class="r">Ventas solo con genéricos</th><th>Revisar</th></tr>
+      ${gen.map(x => `<tr><td>${sucTag(x[1])}</td><td class="r">${money(x[2])}</td><td class="r">${money(x[3])}</td><td class="r"><b>${x[4].toFixed(1)} %</b></td><td class="r m">${x[5].toFixed(1)} %</td><td class="r">${x[6]}</td><td>${bandTxt(x[7])}</td></tr>`).join("")}</table></div>` : `<p class="m">—</p>`}
+    <h4>Transferencias sin banco</h4>${p.tr[0] ? `<p>${p.tr[0]} transferencia${p.tr[0] > 1 ? "s" : ""} · <b>${money(p.tr[1])}</b> cobradas en la caja que no aparecen en el banco. El detalle una por una está en 💳 Cobros → Transferencias.</p>` : `<p class="m">—</p>`}
+  </div>`;
+}
+$("#s-control").addEventListener("click", e => {
+  if(e.target.id === "ctCerrar"){ ctCajero = null; return rControl(); }
+  const f = e.target.closest(".ct-f"); if(!f) return; ctCajero = ctCajero === f.dataset.caj ? null : f.dataset.caj; rControl();
+  if(ctCajero) $("#ctDet").scrollIntoView({behavior:"smooth", block:"start"});
+});
+$("#s-control").addEventListener("keydown", e => { if(e.key === "Enter" && e.target.classList.contains("ct-f")) e.target.click(); });
+$("#s-control").addEventListener("change", e => { if(e.target.id === "ctSolo"){ ctSolo = e.target.checked; rControl(); } });
+
+/* =====================================================================
    7. PRODUCTOS — más vendidos (para compras)
    ===================================================================== */
 let pOrden = "cant", pBusca = "", pAbiertos = false;
@@ -1015,7 +1096,16 @@ function datosDemo(){
   dia.filter((f,i) => i % 7 === 0).forEach(f => dia.push([f[0], f[1], "ctacte", 1, Math.round(f[4]/2)]));
   const sinFacturar = [[ "CC-1", ymd(new Date(ahora - 12*864e5)), "FALCON", "Escuela N° 5", 184500, ahora - 12*864e5], ["CC-2", ymd(new Date(ahora - 4*864e5)), "DEPOSITO", "Ejemplo SA", 96300, ahora - 4*864e5]];
   const r = [ymd(new Date(ahora - (dias-1)*864e5)), ymd(new Date(ahora))];
-  return {rol:"admin", dias, generado:ahora, r, secciones:["vivo","ventas","mensual","cierres","sobres","cobros","productos","precios"], cobros, sinCierre, sobres, cobrosCC, sinFacturar,
+  const C2 = ["Celi","Delfi","Luka","Manu R","Mica","Paula"], MD = ["efectivo","postnet","transf"], control = {anulaciones:[], cambiosMedio:[], genericos:[], transfSinBanco:[]};
+  for(let i = 0; i < 14; i++){ const ts = ahora - rnd()*dias*864e5, s = SUCS[i % 4], c = C2[i % 6], m = MD[i % 3], tarde = rnd() < .3, otro = rnd() < .15, b = [];
+    const ta = ts + (tarde ? 45 : 2) * 6e4; if(m === "efectivo") b.push("efectivo"); if(tarde) b.push("tarde"); if(otro) b.push("otra-pc"); if(rnd() < .1) b.push("post-cierre");
+    control.anulaciones.push([ts, ta, s, c, otro ? C2[(i+1) % 6] : (i === 3 ? "?" : c), m, Math.round(2000 + rnd()*30000), 100 + i, b]); }
+  for(let i = 0; i < 9; i++){ const o = i % 3 ? "efectivo" : "postnet", a = o === "efectivo" ? "transf" : "efectivo";
+    control.cambiosMedio.push([ahora - rnd()*dias*864e5, SUCS[i % 4], C2[(i*2) % 6], o, a, Math.round(3000 + rnd()*25000), o === "efectivo" ? ["efe→otro"] : []]); }
+  C2.forEach((c, i) => [SUCS[i % 4], SUCS[(i+1) % 4]].forEach(s => { const v = Math.round(3e5 + rnd()*9e5), pr = 8 + rnd()*6, pc = i === 4 && s === SUCS[0] ? pr*2.1 : pr*(.6 + rnd()*.8);
+    control.genericos.push([c, s, v, Math.round(v*pc/100), pc, pr, Math.round(rnd()*(pc > pr*1.5 ? 25 : 6)), pc > pr*1.5 ? ["genérico alto"] : []]); }));
+  control.transfSinBanco.push(["Luka", "MORENO", 2, 18500], ["Mica", "SOMISA", 1, 7200]);
+  return {rol:"admin", dias, generado:ahora, r, secciones:["vivo","ventas","mensual","cierres","sobres","cobros","control","productos","precios"], cobros, control, sinCierre, sobres, cobrosCC, sinFacturar,
     vivo:[["FALCON","1","Celi","08:58",0,ahora-4e4],["FALCON","2","Joa","09:05",2,ahora-9e4],["MORENO","","Manu R","08:30",0,ahora-3e4],["NACION","","Delfi","09:00",0,ahora-36e5],["SOMISA","","Luka","13:30",0,ahora-2e4]],
     dia, horas:Object.values(horas), productos:prod, mensual, cierres};
 
