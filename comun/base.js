@@ -1,5 +1,7 @@
 /* =====================================================================
-   COMÚN · PANEL Y COMPRAS · DA BOX                                 v1.4
+   COMÚN · PANEL Y COMPRAS · DA BOX                                 v1.5
+   v1.5: 🔒 todo va por POST (clave, PIN y llave del link en el cuerpo, nunca en la dirección: no queda en historiales ni registros).
+         LA.pedir lo usa también faltantes.html. Necesita script v3.51.
    v1.4: "Recordar en este dispositivo" (30 días): la clave queda en ese celular/PC y abre panel, faltantes y proveedores sin volver a pedirla.
          Sin tildar, todo sigue igual (se olvida al cerrar la pestaña y a los 30 min sin uso).
    Lo que comparten panel.html y compras.html, para no repetirlo en cada archivo:
@@ -77,16 +79,21 @@ const LAPIZ = (() => {
     if(!n){ clearTimeout(t); t = null; clearInterval(f); el.hidden = true; }
   };
 })();
+/* v1.5 · un pedido a la planilla, por POST (text/plain: el navegador no hace consulta previa y Apps Script lo acepta) */
+async function pedir(url, cuerpo, signal){
+  const r = await fetch(url, {method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify(cuerpo), signal, cache: "no-store"});
+  if(!r.ok) throw "url";
+  const txt = (await r.text()).trim();
+  if(txt === "clave incorrecta") throw "clave";
+  try{ return JSON.parse(txt); }catch(e){ throw {tipo: "respuesta", msg: "La planilla tiene un script viejo: falta publicar la versión 3.51 (Nueva versión)."}; }
+}
 async function api(accion, params={}, intento=1){
   if(intento === 1 && !params._silencio){ LAPIZ(true); try{ return await api(accion, params, 1.5); } finally{ LAPIZ(false); } }
   if(intento === 1.5) intento = 1;
   if(params._silencio){ params = {...params}; delete params._silencio; }
-  const u = new URL(url); u.search = new URLSearchParams({accion, clave, ...params});
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 45000);
   try{
-    const r = await fetch(u, {signal:ctl.signal, cache:"no-store"});
-    if(!r.ok) throw "url";
-    let j; try{ j = await r.json(); }catch(e){ throw "url"; }
+    const j = await pedir(url, {accion, clave, ...params}, ctl.signal);       // v1.5: POST
     if(j.error === "clave incorrecta") throw "clave";
     if(j.error) throw {tipo:"respuesta", msg:j.error};
     return j;
@@ -152,5 +159,5 @@ function entrar(d){
 function salir(msg){ clave = ""; recordada = false; guardarSS("clave", ""); guardarLS("claveR", ""); enDemo = false; mostrar(msg); }
 
 window.LA = {$, esc, money, millones, pct, pad, ymd, fechaAR, norm, hace, leerLS, guardarLS, toast,
-  SUCS, NOMBRE_SUC, SUC_COLOR, sucNom, sucTag, api, ERR, ingreso, salir, LAPIZ, get demo(){ return enDemo; }, get clave(){ return clave; }};   // v1.4: clave (la usa faltantes.html)   // v1.3: LAPIZ (lo usa faltantes.html)
+  SUCS, NOMBRE_SUC, SUC_COLOR, sucNom, sucTag, api, pedir, ERR, ingreso, salir, LAPIZ, get demo(){ return enDemo; }, get clave(){ return clave; }};   // v1.4: clave (la usa faltantes.html)   // v1.3: LAPIZ (lo usa faltantes.html)
 })();
