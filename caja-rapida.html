@@ -1222,7 +1222,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-11 v3.54";   // v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-12 v3.55";   // v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -3727,12 +3727,12 @@ async function api(accion, params={}, intento=1){
   const vis = API_VISIBLE.has(accion) || params._vis; if(params._vis){ params = {...params}; delete params._vis; }
   if(vis && intento === 1){ lapiz(true); try{ return await api(accion, params, 1.5); } finally{ lapiz(false); } }
   if(intento === 1.5) intento = 1;
-  const u = new URL(cfg.url); u.search = new URLSearchParams({accion, clave:cfg.clave, ...params});
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 45000);
-  try{
-    const r = await fetch(u, {signal:ctl.signal});
+  try{                                                                         // v3.55: POST, con la clave y el PIN en el cuerpo (no quedan en historiales ni registros)
+    const r = await fetch(cfg.url, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify({accion, clave:cfg.clave, ...params}), signal:ctl.signal});
     if(!r.ok) throw {tipo:"url"};
-    let j; try{ j = await r.json(); }catch(e){ throw {tipo:"url"}; }
+    const txt = (await r.text()).trim(); if(txt === "clave incorrecta") throw {tipo:"clave"};
+    let j; try{ j = JSON.parse(txt); }catch(e){ throw {tipo:"url"}; }
     if(j && j.error === "clave incorrecta") throw {tipo:"clave"};
     return j;
   }catch(e){
