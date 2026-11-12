@@ -12,10 +12,11 @@
 <script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v4.2
+   FALTANTES · DA BOX                                              v4.3
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
+   v4.3: 🔒 la clave y la llave del link van por POST (LA.pedir, base.js v1.5), nunca en la dirección. Necesita script v3.51.
    v4.2: arreglo: los renglones de 🛒 Compras (Joa) se veían desarmados (la casilla arriba y el texto abajo) desde v4.0. La cara de Joa queda como está.
    v4.1: libreta de la sucursal más simple: una sola hoja con 3 etapas (pendiente · 📦 pedido armado · 🛒 en proceso de compras); sin "en camino"
          ni cerrados · ✓ Llegó en CUALQUIER renglón (a veces lo trae otro y deja de hacer falta), con 5 s para deshacer. Necesita script v3.50.
@@ -284,7 +285,7 @@ body.v-anotar .solo-equipo{display:none}
   </form>
 </div>
 
-<script src="comun/base.js?v=6"></script>
+<script src="comun/base.js?v=7"></script>
 <script>
 (()=>{
 "use strict";
@@ -309,11 +310,9 @@ async function api(accion, params = {}){
   if(demo) return demoApi(accion, params);
   LAPIZ(true);
   try{
-    const u = new URL(url); u.search = new URLSearchParams({accion, ...(tok ? {t: tok} : {clave}), quien: LOCAL ? quienLocal() : quien, ...(LOCAL ? {suc: SUC_L} : vista ? {vista} : {}), ...params});
+    const cuerpo = {accion, ...(tok ? {t: tok} : {clave}), quien: LOCAL ? quienLocal() : quien, ...(LOCAL ? {suc: SUC_L} : vista ? {vista} : {}), ...params};
     const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 45000);
-    let r; try{ r = await fetch(u, {cache:"no-store", signal:ctl.signal}); } finally{ clearTimeout(t); }
-    if(!r.ok) throw "url";
-    let j; try{ j = await r.json(); }catch(e){ throw "url"; }
+    let j; try{ j = await LA.pedir(url, cuerpo, ctl.signal); } finally{ clearTimeout(t); }   // v4.3: POST (la llave no va en la dirección)
     if(j.error === "clave incorrecta") throw "clave";
     if(j.error) throw {msg: j.error};
     return j;
@@ -405,7 +404,7 @@ function render(){
   $("#lEmo").textContent = rol === "compras" ? "🛒" : rol === "reparto" ? "📦" : "📝";
   $("#lSub").textContent = rol === "compras" ? "Compras · para pedir" : rol === "reparto" ? "Reparto · por sucursal" : "Lita & Añaños";
   $("#quien").hidden = !!quien || demo;
-  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. ${rol === "anotar" ? "Abajo está lo anotado de cada sucursal. Roman reparte." : "Tocá un renglón para moverlo."} · v4.2`;   // versión a la vista
+  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. ${rol === "anotar" ? "Abajo está lo anotado de cada sucursal. Roman reparte." : "Tocá un renglón para moverlo."} · v4.3`;   // versión a la vista
   if(rol === "compras") renderCompras(); else renderReparto();
 }
 /* ---------- v4.0 · 🏪 LA SUCURSAL: su hoja de libreta ---------- */
@@ -428,7 +427,7 @@ function renderLocal(){
   $("#lList").innerHTML = (pend.map(fila).join("") || (armado.length || compras.length ? "" : `<li class="empty">No falta nada. Anotá arriba cuando se termine algo.</li>`)) + etapa("armado", armado) + etapa("compras", compras);
   $("#lCuenta").textContent = pend.length ? `${pend.length} sin repartir` : "";
   $("#lUrg").setAttribute("aria-pressed", lUrgOn);
-  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. Roman reparte lo anotado. · v4.2`;
+  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. Roman reparte lo anotado. · v4.3`;
 }
 async function anotarLocal(lineas){
   const txt = $("#lTxt").value.trim().replace(/\s+/g, " "), obs = $("#lObs").value.trim();

@@ -11,9 +11,10 @@
 <script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v2.10
+   PANEL · DA BOX                                                 v2.11
    Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.11: 🔒 la clave va por POST (base.js v1.5), nunca en la dirección. Necesita script v3.51.
    v2.10: ☀️/🌙 claro u oscuro en todo el panel (también adentro de Faltantes y Proveedores); queda guardado en esa PC · estilos.css?v=2 (estados F0).
    v2.9: 💰 Sobres: el Contado se escribe con formato pesos mientras tipeás ($ 150.000 + $ 19.000 + $ 600) · los billetes del
          cajero, en pesos y con ⚠️ si una cantidad no es entera (ej. 500 x 0,13).
@@ -153,7 +154,7 @@ iframe.embebido{width:100%;height:calc(100vh - 120px);min-height:520px;border:0;
 </main>
 </div>
 
-<script src="comun/base.js?v=6"></script>
+<script src="comun/base.js?v=7"></script>
 <script>
 (()=>{
 "use strict";

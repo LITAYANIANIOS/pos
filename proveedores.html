@@ -11,10 +11,11 @@
 <script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   PROVEEDORES · DA BOX                                             v1.5
+   PROVEEDORES · DA BOX                                             v1.6
    Buscar precios en las listas de todos los proveedores a la vez (Roman, Joa, Vivi).
    ÍNDICE: 1. Lectores de listas (Excel → filas)  2. Datos y costos  3. Buscar y mostrar
            4. Comparar  5. Pedir  6. Subir listas (solo encargado)  7. Arranque
+   v1.6: 🔒 la clave y la llave del link van por POST (base.js v1.5). Necesita script v3.51.
    v1.5: sigue el ☀️/🌙 elegido en el panel o en faltantes (claro u oscuro) · estilos.css?v=2.
    v1.4: el precio grande es el del producto ENTERO (un tubito x12 minas se vende entero); el "c/u" queda chico abajo, por si se fracciona.
          Comparar sigue siendo por unidad.
@@ -119,7 +120,7 @@ kbd{font:600 11px var(--sans);background:var(--surface-2);border:1px solid var(-
   <div class="acciones"><button class="btn" data-cerrar>Cerrar</button><button class="btn primary" id="subOk" hidden>Subir</button></div>
 </div></div>
 
-<script src="comun/base.js?v=6"></script>
+<script src="comun/base.js?v=7"></script>
 <script>
 /* si se cambia ☀️/🌙 en otra pestaña o en el panel, esta página lo sigue al instante */
 addEventListener("storage", e => { if(e.key !== "dabox.tema") return; const t = e.newValue; if(t === "claro" || t === "oscuro") document.documentElement.dataset.theme = t === "claro" ? "light" : "dark"; else delete document.documentElement.dataset.theme; if(typeof pintarTema === "function") pintarTema(); });
