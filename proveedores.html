@@ -7,13 +7,15 @@
 <title>Proveedores · Lita &amp; Añaños</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f6c445'/%3E%3Cpath d='M12 24l20-10 20 10v18L32 52 12 42z M12 24l20 10 20-10 M32 34v18' fill='none' stroke='%231f2a24' stroke-width='4.5' stroke-linejoin='round'/%3E%3C/svg%3E">
 <meta name="theme-color" content="#f6c445">
-<link rel="stylesheet" href="comun/estilos.css?v=1">
+<link rel="stylesheet" href="comun/estilos.css?v=2">
+<script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   PROVEEDORES · DA BOX                                             v1.4
+   PROVEEDORES · DA BOX                                             v1.5
    Buscar precios en las listas de todos los proveedores a la vez (Roman, Joa, Vivi).
    ÍNDICE: 1. Lectores de listas (Excel → filas)  2. Datos y costos  3. Buscar y mostrar
            4. Comparar  5. Pedir  6. Subir listas (solo encargado)  7. Arranque
+   v1.5: sigue el ☀️/🌙 elegido en el panel o en faltantes (claro u oscuro) · estilos.css?v=2.
    v1.4: el precio grande es el del producto ENTERO (un tubito x12 minas se vende entero); el "c/u" queda chico abajo, por si se fracciona.
          Comparar sigue siendo por unidad.
    v1.3: entra con la clave recordada (base.js v1.4) · el link de faltantes sigue sirviendo.
@@ -119,6 +121,8 @@ kbd{font:600 11px var(--sans);background:var(--surface-2);border:1px solid var(-
 
 <script src="comun/base.js?v=6"></script>
 <script>
+/* si se cambia ☀️/🌙 en otra pestaña o en el panel, esta página lo sigue al instante */
+addEventListener("storage", e => { if(e.key !== "dabox.tema") return; const t = e.newValue; if(t === "claro" || t === "oscuro") document.documentElement.dataset.theme = t === "claro" ? "light" : "dark"; else delete document.documentElement.dataset.theme; if(typeof pintarTema === "function") pintarTema(); });
 (()=>{
 "use strict";
 const {$, esc, money, norm, toast, api, leerLS} = LA;

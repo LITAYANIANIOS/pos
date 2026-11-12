@@ -12,10 +12,11 @@
 <script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v4.1
+   FALTANTES · DA BOX                                              v4.2
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
+   v4.2: arreglo: los renglones de 🛒 Compras (Joa) se veían desarmados (la casilla arriba y el texto abajo) desde v4.0. La cara de Joa queda como está.
    v4.1: libreta de la sucursal más simple: una sola hoja con 3 etapas (pendiente · 📦 pedido armado · 🛒 en proceso de compras); sin "en camino"
          ni cerrados · ✓ Llegó en CUALQUIER renglón (a veces lo trae otro y deja de hacer falta), con 5 s para deshacer. Necesita script v3.50.
    v4.0: 🏪 cada sucursal tiene su libreta (faltantes.html?suc=MORENO): entra con la clave de la caja de esa PC o con su link secreto;
@@ -175,6 +176,7 @@ body.v-anotar .solo-equipo{display:none}
 .hechos summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;padding:4px 0;list-style:none}
 .hechos summary::-webkit-details-marker{display:none}
 /* ---------- 3. Renglones ---------- */
+.ln[data-k]{grid-template-columns:22px auto minmax(0,1fr) auto}   /* compras (Joa): tilde · cantidad · producto · aviso */
 .ln{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start;width:100%;border:0;background:none;text-align:left;padding:6px 8px;border-radius:6px;cursor:pointer;color:var(--ink);font-size:14.5px;line-height:1.35}
 .ln:hover,.ln:focus-visible{background:rgb(0 0 0 / .05)}
 .ln .e{font-size:14px;line-height:1.35;text-align:center}
@@ -403,7 +405,7 @@ function render(){
   $("#lEmo").textContent = rol === "compras" ? "🛒" : rol === "reparto" ? "📦" : "📝";
   $("#lSub").textContent = rol === "compras" ? "Compras · para pedir" : rol === "reparto" ? "Reparto · por sucursal" : "Lita & Añaños";
   $("#quien").hidden = !!quien || demo;
-  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. ${rol === "anotar" ? "Abajo está lo anotado de cada sucursal. Roman reparte." : "Tocá un renglón para moverlo."} · v4.0`;   // versión a la vista
+  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. ${rol === "anotar" ? "Abajo está lo anotado de cada sucursal. Roman reparte." : "Tocá un renglón para moverlo."} · v4.2`;   // versión a la vista
   if(rol === "compras") renderCompras(); else renderReparto();
 }
 /* ---------- v4.0 · 🏪 LA SUCURSAL: su hoja de libreta ---------- */
@@ -426,7 +428,7 @@ function renderLocal(){
   $("#lList").innerHTML = (pend.map(fila).join("") || (armado.length || compras.length ? "" : `<li class="empty">No falta nada. Anotá arriba cuando se termine algo.</li>`)) + etapa("armado", armado) + etapa("compras", compras);
   $("#lCuenta").textContent = pend.length ? `${pend.length} sin repartir` : "";
   $("#lUrg").setAttribute("aria-pressed", lUrgOn);
-  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. Roman reparte lo anotado. · v4.1`;
+  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. Roman reparte lo anotado. · v4.2`;
 }
 async function anotarLocal(lineas){
   const txt = $("#lTxt").value.trim().replace(/\s+/g, " "), obs = $("#lObs").value.trim();
