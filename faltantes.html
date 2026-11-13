@@ -12,10 +12,13 @@
 <script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v4.3
+   FALTANTES · DA BOX                                              v4.4
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
+   v4.4: 4 estados (Pendiente · 📦 Pedido armado · 🛒 En compras · ✖ No se trae; ✓ Llegó cierra desde cualquiera) · todos corrigen un renglón
+         (Vivi también 🔥, ✓ y ✖; la sucursal ✏️ y ✕ en cualquiera de los suyos) · 🛒 Compras: ✓ Pedidos plegado con 📌 fijados y arrastrar
+         renglones entre notas o a Pedidos (PC). Necesita script v3.54.
    v4.3: 🔒 la clave y la llave del link van por POST (LA.pedir, base.js v1.5), nunca en la dirección. Necesita script v3.51.
    v4.2: arreglo: los renglones de 🛒 Compras (Joa) se veían desarmados (la casilla arriba y el texto abajo) desde v4.0. La cara de Joa queda como está.
    v4.1: libreta de la sucursal más simple: una sola hoja con 3 etapas (pendiente · 📦 pedido armado · 🛒 en proceso de compras); sin "en camino"
@@ -191,6 +194,13 @@ body.v-anotar .solo-equipo{display:none}
 /* v4.0 · 🔥 urgente: en rojo y arriba · un solo estado por renglón (el resto lo dice el bloque) */
 .ln.urg .p{color:var(--e-urg);font-weight:600} .ln.urg .p small{font-weight:400}
 .encaja{margin:8px 4px 4px;padding:4px 0 2px;border-radius:8px;background:rgb(255 255 255 / .55);border:1px dashed color-mix(in srgb,var(--e-caja) 50%,transparent)}
+.encompras{margin:8px 4px 4px;padding:4px 0 2px;border-radius:8px;background:rgb(255 255 255 / .55);border:1px dashed color-mix(in srgb,var(--e-compras) 50%,transparent)}
+.encompras .t{font-size:12.5px;font-weight:700;color:var(--e-compras);padding:4px 8px 2px}
+:root[data-theme="dark"] .encompras{background:rgb(0 0 0 / .18)} @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .encompras{background:rgb(0 0 0 / .18)}}
+body.v-compras .ln[draggable="true"]{cursor:grab} .ln.arrastrando{opacity:.4}
+.nota.soltar{outline:3px dashed var(--accent,#d9a400);outline-offset:3px}
+.ped-mas{display:block;width:100%;margin-top:6px;border:1px dashed var(--line);background:none;border-radius:8px;padding:7px;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.ped-mas:hover{color:var(--ink)} .pin{font-size:12px;margin-right:2px}
 .encaja .t{font-size:12.5px;font-weight:700;color:var(--e-caja);padding:4px 8px 2px}
 .st.caja{background:var(--e-caja-bg);color:var(--e-caja)}
 .ln input[type=checkbox]{width:18px;height:18px;margin:1px 0 0;accent-color:var(--ok);cursor:pointer}
@@ -371,20 +381,22 @@ $("#qOk").onclick = () => { const n = $("#qNom").value.trim(); if(n.length < 2) 
 /* =====================================================================
    2. ESTADOS, TIEMPOS Y TEXTOS
    ===================================================================== */
-const EST = {"":["", "Sin repartir"], "En caja":["📦","En la caja"], "Depósito":["🚚","Salió del depósito"], "A pedir":["🛒","En compras"], "Pedido":["🚚","Pedido"],
+const EST = {"":["", "Pendiente"], "En caja":["📦","Pedido armado"], "Depósito":["📦","Pedido armado"], "A pedir":["🛒","En compras"], "Pedido":["🛒","Pedido al proveedor"],
              "No se consigue":["🔍","No se consigue"], "Entregado":["✓","Entregado"], "No se trae":["✖","No se trae"]};
 const CERR = e => e === "Entregado" || e === "No se trae";
+/* v4.4: para nosotros hay 4 estados: Pendiente · 📦 Pedido armado (en la caja o salió: es lo mismo) · 🛒 En compras (a pedir, pedido, no se consigue) · ✖ No se trae */
+const ARMADO = e => e === "En caja" || e === "Depósito", COMPRAS_E = e => e === "A pedir" || e === "Pedido" || e === "No se consigue";
 const DIA = 864e5, dias = ms => Math.floor((Date.now() - ms) / DIA);
 const tsFecha = c => new Date((c.fecha || "") + "T12:00:00").getTime() || c.act;
 const edad = c => c.estado === "" ? dias(tsFecha(c)) : dias(c.act || tsFecha(c));
-const LIMITE = {"": 2, "En caja": 2, "Depósito": 3, "A pedir": 7, "Pedido": 10, "No se consigue": 0};     // días: después de esto, ⏰
-const CONSEJO = {"": "Hace %d días sin repartir", "En caja": "En la caja hace %d días: ¿ya salió?", "Depósito": "Salió del depósito hace %d días: ¿ya se llevó?", "A pedir": "Hace %d días en compras sin pedir",
+const LIMITE = {"": 2, "En caja": 3, "Depósito": 3, "A pedir": 7, "Pedido": 10, "No se consigue": 0};     // días: después de esto, ⏰
+const CONSEJO = {"": "Hace %d días sin repartir", "En caja": "Armado hace %d días: ¿ya llegó a la sucursal?", "Depósito": "Armado hace %d días: ¿ya llegó a la sucursal?", "A pedir": "Hace %d días en compras sin pedir",
                  "Pedido": "Pedido hace %d días: ¿llegó?", "No se consigue": "No se consigue: ¿reemplazo o ✖ no se trae?"};
 const atrasado = c => !CERR(c.estado) && LIMITE[c.estado] != null && edad(c) >= LIMITE[c.estado];
 const VER_HECHOS = 3;                                                     // días que quedan tachados en la nota
 const cantTxt = c => c.nada ? `<span class="c nada" title="No queda nada">🚫</span>` : `<span class="c">${c.cant > 0 ? c.cant : ""}</span>`;   // v3.0: la cantidad va en el texto
 const urg = c => !!(c.urgente || c.nada);                                 // v4.0: 🔥 (los "🚫 No queda" viejos también)
-const ST = {"A pedir":["compras","En compras"], "No se consigue":["nsc","No se consigue"], "En caja":["caja","En la caja"], "Depósito":["camino","Salió del depósito"], "Pedido":["camino","Pedido"], "Entregado":["cerr","Entregado"], "No se trae":["cerr","No se trae"]};
+const ST = {"A pedir":["compras","En compras"], "No se consigue":["nsc","No se consigue"], "En caja":["caja","En la caja"], "Depósito":["caja","Pedido armado"], "Pedido":["compras","Pedido al proveedor"], "Entregado":["cerr","Entregado"], "No se trae":["cerr","No se trae"]};
 const stTxt = c => ST[c.estado] ? `<span class="st ${ST[c.estado][0]}">${ST[c.estado][1]}</span>` : "";
 /* v3.1: sin frases del oeste (estética única) */
 const clave2 = s => norm(s).replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(w => w && !["de","x","para","el","la","los","las","con","y","u","unidades"].includes(w)).map(w => w.replace(/(es|s)$/, "")).sort().join(" ");
@@ -404,7 +416,7 @@ function render(){
   $("#lEmo").textContent = rol === "compras" ? "🛒" : rol === "reparto" ? "📦" : "📝";
   $("#lSub").textContent = rol === "compras" ? "Compras · para pedir" : rol === "reparto" ? "Reparto · por sucursal" : "Lita & Añaños";
   $("#quien").hidden = !!quien || demo;
-  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. ${rol === "anotar" ? "Abajo está lo anotado de cada sucursal. Roman reparte." : "Tocá un renglón para moverlo."} · v4.3`;   // versión a la vista
+  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. ${rol === "anotar" ? "Tocá un renglón para corregirlo o marcarlo. Roman reparte." : "Tocá un renglón para moverlo."} · v4.4`;   // versión a la vista
   if(rol === "compras") renderCompras(); else renderReparto();
 }
 /* ---------- v4.0 · 🏪 LA SUCURSAL: su hoja de libreta ---------- */
@@ -421,13 +433,13 @@ function renderLocal(){
   const et = k => ab.filter(c => ETAPA_L(c.estado) === k).sort(orden), pend = et(""), armado = et("armado"), compras = et("compras");
   const fila = c => { const u = urg(c), meta = [c.obs ? `“${esc(c.obs)}”` : "", fechaAR(c.fecha).slice(0, 5), c.quien ? esc(c.quien) : ""].filter(Boolean).join(" · ");
     const fuego = c.estado === "En caja" || c.estado === "Depósito" ? "" : `<button class="x${u ? " on" : ""}" type="button" data-lu="${esc(c.id)}" title="${u ? "Sacar urgente" : "Marcar urgente"}">🔥</button>`;
-    const borrar = c.estado === "" ? `<button class="x" type="button" data-lb="${esc(c.id)}" title="Borrar (me equivoqué)" aria-label="Borrar">✕</button>` : "";
+    const borrar = `<button class="x" type="button" data-le="${esc(c.id)}" title="Corregir (texto o nota)" aria-label="Corregir">✏️</button><button class="x" type="button" data-lb="${esc(c.id)}" title="Borrar: ya no hace falta" aria-label="Borrar">✕</button>`;   // v4.4: en cualquier renglón
     return `<li class="${u ? "urg" : ""}"><span class="n">${u ? "🔥 " : ""}${esc(c.prod)}${meta ? `<small>${meta}</small>` : ""}</span><span class="ac">${fuego}${borrar}<button class="btn sm" type="button" data-ll="${esc(c.id)}" title="Ya lo tenemos (llegó o lo trajo otro): deja de hacer falta">✓ Llegó</button></span></li>`; };
   const etapa = (k, l) => l.length ? `<li class="l-etapa ${k}">${EST_L[k]} <small>${l.length}</small></li>${l.map(fila).join("")}` : "";
   $("#lList").innerHTML = (pend.map(fila).join("") || (armado.length || compras.length ? "" : `<li class="empty">No falta nada. Anotá arriba cuando se termine algo.</li>`)) + etapa("armado", armado) + etapa("compras", compras);
   $("#lCuenta").textContent = pend.length ? `${pend.length} sin repartir` : "";
   $("#lUrg").setAttribute("aria-pressed", lUrgOn);
-  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. Roman reparte lo anotado. · v4.3`;
+  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. Roman reparte lo anotado. · v4.4`;
 }
 async function anotarLocal(lineas){
   const txt = $("#lTxt").value.trim().replace(/\s+/g, " "), obs = $("#lObs").value.trim();
@@ -457,9 +469,10 @@ addEventListener("pagehide", () => { lEsperan.forEach(f => f()); lEsperan.clear(
 $("#lOk").onclick = () => anotarLocal();
 $("#lUrg").onclick = () => { lUrgOn = !lUrgOn; $("#lUrg").setAttribute("aria-pressed", lUrgOn); $("#lTxt").focus(); };
 $("#local").addEventListener("click", e => {
-  const b = e.target.closest("[data-lu],[data-ll],[data-lb]"); if(!b) return;
-  const c = (D.cards || []).find(x => x.id === (b.dataset.lu || b.dataset.ll || b.dataset.lb)); if(!c) return;
-  if(b.dataset.lu) marcarUrgente([c.id], !urg(c));
+  const b = e.target.closest("[data-lu],[data-ll],[data-lb],[data-le]"); if(!b) return;
+  const c = (D.cards || []).find(x => x.id === (b.dataset.lu || b.dataset.ll || b.dataset.lb || b.dataset.le)); if(!c) return;
+  if(b.dataset.le) abrirEditar(c);
+  else if(b.dataset.lu) marcarUrgente([c.id], !urg(c));
   else if(b.dataset.ll) estadoLocal(c, "Entregado");
   else estadoLocal(c, "No se trae");                                       // v4.1: con 5 s para deshacer, sin pregunta
 });
@@ -496,32 +509,32 @@ function renderReparto(){
     const hechos = mias.filter(c => CERR(c.estado) && dias(c.act) < VER_HECHOS);
     if(filtro && !ab.length) return "";
     const orden = (a,b) => urg(b) - urg(a) || (a.estado === "" ? 0 : 1) - (b.estado === "" ? 0 : 1) || (edad(b) - edad(a));   // v4.0: 🔥 arriba
-    const enCaja = ab.filter(c => c.estado === "En caja"), enCamino = ab.filter(c => c.estado === "Depósito" || c.estado === "Pedido"), pend = ab.filter(c => !enCaja.includes(c) && !enCamino.includes(c));
+    const enCaja = ab.filter(c => ARMADO(c.estado)), enCamino = ab.filter(c => COMPRAS_E(c.estado)), pend = ab.filter(c => c.estado === "");   // v4.4: 3 estados abiertos
     const nuevos = ab.filter(c => c.estado === "").length;
     return `<section class="nota" data-c="${s}" data-suc="${s}"><h2>${esc(sucNom(s))} <span class="n">${ab.length || ""}</span>${nuevos > 1 && rol !== "anotar" ? `<button class="ico" type="button" data-todo="${s}" title="Pasar todo lo nuevo a compras">⋯</button>` : ""}</h2>
       ${pend.sort(orden).map(renglon).join("") || (filtro ? "" : `<div class="vacia">${enCamino.length || enCaja.length ? "Nada más pendiente" : "Nada pendiente 🎉"}</div>`)}
-      ${enCaja.length ? `<div class="encaja"><div class="t">📦 En la caja (${enCaja.length})</div>${enCaja.sort(orden).map(renglon).join("")}</div>` : ""}
-      ${enCamino.length ? `<div class="camino"><div class="t">🚚 En camino (${enCamino.length})</div>${enCamino.sort(orden).map(renglon).join("")}</div>` : ""}
+      ${enCaja.length ? `<div class="encaja"><div class="t">📦 Pedido armado (${enCaja.length})</div>${enCaja.sort(orden).map(renglon).join("")}</div>` : ""}
+      ${enCamino.length ? `<div class="encompras"><div class="t">🛒 En compras (${enCamino.length})</div>${enCamino.sort(orden).map(renglon).join("")}</div>` : ""}
       ${filtro || rol === "anotar" ? "" : `<label class="agregar">＋<input data-agregar="${s}" maxlength="120" placeholder="Agregar… (ej: lupas, 3 azules)" enterkeyhint="done"></label>`}
       ${hechos.length && !filtro ? `<details class="hechos"><summary>✓ ${hechos.length} cerrado${hechos.length > 1 ? "s" : ""}</summary>${hechos.map(renglon).join("")}</details>` : ""}</section>`;
   }).join("");
   $("#notas").innerHTML = notas || `<div class="empty">Nada con ese filtro.</div>`;
 }
 function renglon(c){                                                      // v4.0: texto + UN estado (el bloque dice "en la caja" / "en camino"); sin cantidades
-  const at = atrasado(c), u = urg(c) && !CERR(c.estado), st = ["En caja", "Depósito"].includes(c.estado) ? "" : stTxt(c);
+  const at = atrasado(c), u = urg(c) && !CERR(c.estado), st = CERR(c.estado) || c.estado === "No se consigue" || c.estado === "Pedido" ? stTxt(c) : "";   // v4.4: el bloque ya dice el estado
   return `<button class="ln${CERR(c.estado) ? " hecho" : ""}${u ? " urg" : ""}" type="button" data-id="${esc(c.id)}">
     <span class="p">${u ? "🔥 " : ""}${esc(c.prod)}${c.obs || st ? `<small>${st}${c.obs ? `“${esc(c.obs)}”` : ""}</small>` : ""}</span>${at ? `<span class="a" title="${esc(CONSEJO[c.estado].replace("%d", edad(c)))}">⏰ ${edad(c)}d</span>` : `<span></span>`}</button>`;
 }
 /* 💡 lo trabado, en una línea: tocar = filtrar */
 function tipsReparto(ab){
   const P = [], fx = (t, f) => P.push({t, f});
-  const nu = ab.filter(c => urg(c) && !["En caja","Depósito","Pedido"].includes(c.estado)).length; if(nu) fx(`🔥 ${nu} urgente${nu > 1 ? "s" : ""}`, c => urg(c) && !["En caja","Depósito","Pedido"].includes(c.estado));   // v4.0
+  const nu = ab.filter(c => urg(c) && !ARMADO(c.estado) && c.estado !== "Pedido").length; if(nu) fx(`🔥 ${nu} urgente${nu > 1 ? "s" : ""}`, c => urg(c) && !ARMADO(c.estado) && c.estado !== "Pedido");   // v4.0
   const sin = ab.filter(c => c.estado === "" && edad(c) >= LIMITE[""]).length; if(sin) fx(`📥 ${sin} sin repartir`, c => c.estado === "" && edad(c) >= LIMITE[""]);
   const g = {}; ab.forEach(c => { const k = clave2(c.prod); (g[k] = g[k] || []).push(c); });
   Object.values(g).filter(x => new Set(x.map(c => c.suc)).size >= 2).slice(0, 2).forEach(x => { const k = clave2(x[0].prod);
     fx(`👥 “${x[0].prod}” en ${new Set(x.map(c => c.suc)).size} sucursales`, c => clave2(c.prod) === k); });
-  [["En caja","📦 en la caja sin salir"],["Depósito","🚚 salió y no llegó"],["A pedir","🛒 compras atrasado"],["Pedido","🚚 pedidos sin llegar"],["No se consigue","🔍 no se consiguen"]].forEach(([e, t]) => {
-    const n = ab.filter(c => c.estado === e && atrasado(c)).length; if(n) fx(`${n} ${t}`, c => c.estado === e && atrasado(c)); });
+  [[ARMADO,"📦 armados sin llegar"],[e => e === "A pedir","🛒 compras atrasado"],[e => e === "Pedido","🛒 pedidos sin llegar"],[e => e === "No se consigue","🔍 no se consiguen"]].forEach(([fe, t]) => {   // v4.4
+    const n = ab.filter(c => fe(c.estado) && atrasado(c)).length; if(n) fx(`${n} ${t}`, c => fe(c.estado) && atrasado(c)); });
   PROPS = P;
   if(filtro) return `<span>🔎 ${esc(filtro.t)}</span><button type="button" data-sinfiltro>✕ Ver todo</button>`;
   return P.length ? `<span>💡</span>` + P.map((p, i) => `<button type="button" data-p="${i}">${esc(p.t)}</button>`).join("") : "";
@@ -543,21 +556,44 @@ function renderCompras(){
   contarHoy(0);
   const orden = (a,b) => (b.nada - a.nada) || (b.vuelve - a.vuelve) || (a.desde - b.desde);
   const pedir = (D.pedir || []).slice().sort(orden), pedidos = D.pedidos || [], listas = D.listas || [];
+  const verPed = pedVer ? pedidos.slice().sort((a, b) => pins.has(b.k) - pins.has(a.k)) : pedidos.filter(g => pins.has(g.k));   // v4.4: plegado; se ven solo los 📌
   $("#tips").innerHTML = tipsCompras(pedir);
-  const ln = (g, hecho) => `<div class="ln${hecho ? " hecho" : ""}" data-k="${esc(g.k)}" role="button" tabindex="0">
+  const ln = (g, hecho) => `<div class="ln${hecho ? " hecho" : ""}" data-k="${esc(g.k)}" role="button" tabindex="0"${hecho ? "" : ' draggable="true"'}>
     <input type="checkbox" ${hecho ? "checked" : ""} data-tilde="${esc(g.k)}" aria-label="${hecho ? "Volver a la lista" : "Agregado al pedido"}">
     ${g.nada && !g.cant ? `<span class="c nada">🚫</span>` : `<span class="c">${g.cant > 0 ? g.cant : ""}</span>`}
-    <span class="p">${esc(g.nombre)}<small>${[hecho && g.lista ? "📁 " + esc(g.lista) : "", g.n > 1 ? `${g.n} pedidos` : "", g.nada ? `🚫 sin stock en ${g.nada}` : "", g.vuelve ? "🔁 volvió" : "", hecho && g.nsc ? "🔍 no se consigue" : ""].filter(Boolean).join(" · ")}</small></span>
+    <span class="p">${hecho && pins.has(g.k) ? '<span class="pin" title="Fijado">📌</span>' : ""}${esc(g.nombre)}<small>${[hecho && g.lista ? "📁 " + esc(g.lista) : "", g.n > 1 ? `${g.n} pedidos` : "", g.nada ? `🚫 sin stock en ${g.nada}` : "", g.vuelve ? "🔁 volvió" : "", hecho && g.nsc ? "🔍 no se consigue" : ""].filter(Boolean).join(" · ")}</small></span>
     ${!hecho && dias(g.desde) >= 7 ? `<span class="a">⏰ ${dias(g.desde)}d</span>` : "<span></span>"}</div>`;
-  const nota = (nombre, color, items) => `<section class="nota" data-c="${nombre ? "L-" + esc(color || "gris") : "COMPRAS"}">
+  const nota = (nombre, color, items) => `<section class="nota" data-c="${nombre ? "L-" + esc(color || "gris") : "COMPRAS"}" data-soltar="${esc(nombre)}">
       <h2>${nombre ? "📁 " + esc(nombre) : "🛒 Para pedir"} <span class="n">${items.length || ""}</span><button class="ico" type="button" data-nota="${esc(nombre)}" title="Opciones de la nota">⋯</button></h2>
       ${items.map(g => ln(g, false)).join("") || (nombre ? `<div class="vacia">Vacía: mové renglones acá o agregá abajo.</div>` : `<div class="clip-vacio">${CLIP}<span>${esc(fraseVacia())}</span></div>`)}
       <label class="agregar">＋<input data-libre="${esc(nombre)}" maxlength="120" placeholder="Agregar… (ej: 10 agendas Talbot)" enterkeyhint="done"></label></section>`;
   $("#notas").innerHTML = nota("", "", pedir.filter(g => !g.lista || !listas.some(l => l[0] === g.lista)))
     + listas.map(([n, c]) => nota(n, c, pedir.filter(g => g.lista === n))).join("")
     + `<button class="nota nueva" type="button" id="bNuevaNota">＋ Nueva nota<small>por proveedor o tema (ej: Colours, Preventa Talbot)</small></button>`
-    + `<section class="nota" data-c="PEDIDOS"><h2>✓ Pedidos <span class="n">${pedidos.length || ""}</span></h2>
-      ${pedidos.length ? pedidos.map(g => ln(g, true)).join("") : `<div class="vacia">Lo que tildes queda acá unos días, por si te equivocaste.</div>`}</section>`;
+    + `<section class="nota" data-c="PEDIDOS" data-soltar="PEDIDOS"><h2>✓ Pedidos <span class="n">${pedidos.length || ""}</span></h2>
+      ${verPed.map(g => ln(g, true)).join("") || `<div class="vacia">${pedidos.length ? "Arrastrá acá lo que ya pediste. Tocá un pedido y 📌 Fijar para tenerlo a la vista." : "Lo que tildes o arrastres acá queda unos días, por si te equivocaste."}</div>`}
+      ${pedidos.length > verPed.length || pedVer ? `<button class="ped-mas" type="button" id="bPedVer">${pedVer ? "▲ Ocultar los pedidos" : (pedidos.length === 1 ? "▼ Ver el pedido" : `▼ Ver los ${pedidos.length} pedidos`)}</button>` : ""}</section>`;
+  arrastrables();
+}
+/* v4.4 · ✓ Pedidos plegado: se ven solo los 📌 fijados (los elige Joa, quedan en esta PC) · ▼ Ver todos */
+let pedVer = false, pins = new Set((() => { try{ return JSON.parse(leerLS("fpins", "[]")); }catch(e){ return []; } })());
+const guardarPins = () => { const vivos = new Set((D.pedidos || []).map(g => g.k)); pins = new Set([...pins].filter(k => vivos.has(k))); guardarLS("fpins", JSON.stringify([...pins])); };
+/* v4.4 · arrastrar como en Trello (PC): un renglón a otra nota (mueve) o a ✓ Pedidos (pedido). En el celular sigue el menú */
+let arrK = null; const $$ = s => [...document.querySelectorAll(s)];
+function arrastrables(){
+  $$("#notas .ln[draggable]").forEach(el => {
+    el.ondragstart = e => { arrK = el.dataset.k; el.classList.add("arrastrando"); e.dataTransfer.effectAllowed = "move"; try{ e.dataTransfer.setData("text/plain", arrK); }catch(x){} };
+    el.ondragend = () => { el.classList.remove("arrastrando"); $$(".nota.soltar").forEach(n => n.classList.remove("soltar")); arrK = null; };
+  });
+  $$("#notas .nota[data-soltar]").forEach(n => {
+    n.ondragover = e => { if(arrK == null) return; e.preventDefault(); n.classList.add("soltar"); };
+    n.ondragleave = e => { if(!n.contains(e.relatedTarget)) n.classList.remove("soltar"); };
+    n.ondrop = e => { e.preventDefault(); n.classList.remove("soltar"); const k = arrK; arrK = null; if(k == null) return;
+      const g = (D.pedir || []).find(x => x.k === k); if(!g) return; const dest = n.dataset.soltar;
+      if(dest === "PEDIDOS") return cambiarCompras(k, "Pedido");
+      const enListas = (D.listas || []).some(l => l[0] === g.lista), actual = enListas ? g.lista : "";
+      if(dest !== actual) mover(k, dest); };
+  });
 }
 function tipsCompras(l){
   const P = [], by = {};
@@ -643,22 +679,21 @@ const buscarPrecio = txt => ({t:"🔎 Buscar precio en proveedores", f: () => { 
 function menuReparto(c){
   const op = (estado, t, mal) => ({t, mal, f: () => cambiarReparto([c.id], estado)});
   const rep = (mover, t) => ({t, f: () => reponer(c, mover)});
-  const ops = c.estado === "" ? [op("En caja","📦 Agregado a la caja"), op("Depósito","🚚 Ya salió del depósito"), rep(true, "🚚+🛒 Salió del depósito y reponer (a compras)"), op("A pedir","🛒 Pasar a compras (Joa)"), op("Pedido","🚚 Ya está pedido / lo pido yo"), op("No se trae","✖ No se trae", true)]
-    : c.estado === "En caja" ? [op("Depósito","🚚 Salió (va en camino)"), op("Entregado","✓ Entregado en la sucursal"), rep(false, "🛒 Reponer en el depósito (a compras)"), op("","↩ Sacar de la caja")]
-    : c.estado === "Depósito" ? [op("Entregado","✓ Entregado en la sucursal"), rep(false, "🛒 Reponer en el depósito (a compras)"), op("A pedir","🛒 Mejor pedirlo"), op("","↩ Volver a sin repartir")]
-    : c.estado === "A pedir" ? [op("Pedido","🚚 Ya está pedido / lo pido yo"), op("En caja","📦 Lo tengo: a la caja"), op("","↩ Volver a sin repartir"), op("No se trae","✖ No se trae", true)]
-    : c.estado === "Pedido" ? [op("Entregado","✓ Entregado en la sucursal"), op("En caja","📦 Llegó al depósito: a la caja")]
-    : c.estado === "No se consigue" ? [op("A pedir","🛒 Pedir de nuevo"), op("No se trae","✖ No se trae", true)]
+  /* v4.4: 4 estados (Pendiente · 📦 Pedido armado · 🛒 En compras · ✖ No se trae) y ✓ Llegó cierra desde cualquiera */
+  const ops = c.estado === "" ? [op("En caja","📦 Pedido armado (sale del depósito)"), rep(true, "📦+🛒 Armado y reponer el depósito (a compras)"), op("A pedir","🛒 Pasar a compras"), op("Entregado","✓ Ya lo tienen (llegó)"), op("No se trae","✖ No se trae", true)]
+    : ARMADO(c.estado) ? [op("Entregado","✓ Llegó a la sucursal"), rep(false, "🛒 Reponer el depósito (a compras)"), op("A pedir","🛒 Mejor pedirlo"), op("","↩ Volver a pendiente")]
+    : COMPRAS_E(c.estado) ? [op("Entregado","✓ Llegó a la sucursal"), op("En caja","📦 Llegó al depósito: pedido armado"), ...(c.estado === "No se consigue" ? [op("A pedir","🛒 Pedir de nuevo")] : []), op("","↩ Volver a pendiente"), op("No se trae","✖ No se trae", true)]
     : [op("","↩ Volver a abrir")];
-  if(rol === "anotar") ops.length = 0;   // Vivi: solo mira el detalle
-  else if(!CERR(c.estado)) ops.push({t: urg(c) ? "Sacar 🔥 urgente" : "🔥 Marcar urgente", f: () => marcarUrgente([c.id], !urg(c))}, {t:"✏️ Editar (texto, nota, sucursal)", f: () => abrirEditar(c)});
+  if(rol === "anotar") ops.splice(0, ops.length, ...(CERR(c.estado) ? [] : [op("Entregado","✓ Ya lo tienen (llegó)"), op("No se trae","✖ No se trae (borrar)", true)]));   // v4.4: Vivi corrige, 🔥, ✓ y ✖; repartir lo hace Roman
+  if(!CERR(c.estado)) ops.push({t:"✏️ Corregir (texto, nota, sucursal)", f: () => abrirEditar(c)}, {t: urg(c) ? "Sacar 🔥 urgente" : "🔥 Marcar urgente", f: () => marcarUrgente([c.id], !urg(c))});
   if(!CERR(c.estado)) ops.push(buscarPrecio(c.prod));
   const e = EST[c.estado] || EST[""];
   abrirMenu(`${urg(c) ? "🔥 " : ""}${c.prod}`,
     `${esc(sucNom(c.suc))} · ${fechaAR(c.fecha)}${c.quien ? " · " + esc(c.quien) : ""} · <b>${e[0]} ${e[1]}</b>${c.por && c.estado ? " (" + esc(c.por) + ")" : ""}${atrasado(c) ? `<i>⏰ ${esc(CONSEJO[c.estado].replace("%d", edad(c)))}</i>` : ""}${c.obs ? `<i>“${esc(c.obs)}”</i>` : ""}`, ops);
 }
 function menuCompras(g, hecho){
-  const ops = hecho ? [{t:"↩ Volver a la lista", f: () => cambiarCompras(g.k, "A pedir")}, ...(g.nsc ? [{t:"✓ Lo conseguí: agregado al pedido", f: () => cambiarCompras(g.k, "Pedido")}] : [])]
+  const ops = hecho ? [{t: pins.has(g.k) ? "📌 Dejar de fijar" : "📌 Fijar (que se vea con los pedidos plegados)", f: () => { pins.has(g.k) ? pins.delete(g.k) : pins.add(g.k); guardarPins(); render(); }},
+       {t:"↩ Volver a la lista", f: () => cambiarCompras(g.k, "A pedir")}, ...(g.nsc ? [{t:"✓ Lo conseguí: agregado al pedido", f: () => cambiarCompras(g.k, "Pedido")}] : [])]
     : [{t:"✓ Agregado al pedido", f: () => cambiarCompras(g.k, "Pedido")}, {t:`🔍 No se consigue (vuelve en ${D.vuelveDias} días)`, f: () => cambiarCompras(g.k, "No se consigue")},
        {t:"📁 Mover a otra nota", f: () => menuMover(g)},
        {t:"✏️ Cambiar el nombre", f: () => { const n = prompt("Nombre para pedir (si ponés el mismo que otro, se juntan):", g.nombre); if(n && n.trim() && n.trim() !== g.nombre) renombrar([g.k], n.trim()); }},
@@ -781,17 +816,18 @@ async function reponer(c, mover){
   try{ await api("falt-reponer", {id:c.id, mover: mover ? "1" : "0"}); toast(mover ? "📦 Sale del depósito · 🛒 reponer pasó a compras" : "🛒 Reponer pasó a compras"); await refrescar(false); }
   catch(e){ c.estado = antes; render(); toast(errTxt(e), 4000); }
 }
-/* ✏️ editar un renglón (solo Reparto) */
+/* ✏️ corregir un renglón (v4.4: todos; la sucursal, lo suyo) */
 let edC = null;
 function abrirEditar(c){
   edC = c; $("#eProd").value = (c.cant > 0 ? c.cant + " " : "") + c.prod; $("#eNada").checked = urg(c); $("#eObs").value = c.obs || "";
   $("#eSuc").innerHTML = SUCS.map(s => `<option value="${s}" ${s === c.suc ? "selected" : ""}>${esc(sucNom(s))}</option>`).join("");
+  $("#eSuc").closest("label").hidden = rol === "local";                     // v4.4: la sucursal corrige lo suyo, no lo pasa a otra
   $("#mEdit").hidden = false; setTimeout(() => $("#eProd").focus(), 30);
 }
 $("#fEdit").onsubmit = async e => {
   e.preventDefault(); if(!edC) return;
   const prod = $("#eProd").value.trim(); if(prod.length < 2){ $("#eProd").focus(); return; }
-  const u = $("#eNada").checked, obs = $("#eObs").value.trim(), suc = $("#eSuc").value;
+  const u = $("#eNada").checked, obs = $("#eObs").value.trim(), suc = rol === "local" ? edC.suc : $("#eSuc").value;
   const c = edC, antes = {...c}; Object.assign(c, {prod, cant: 0, nada: false, urgente: u, obs, suc}); $("#mEdit").hidden = true; render();
   /* v4.0: la cantidad vieja queda en el texto */
   try{ await api("falt-editar", {id:c.id, prod, obs, sucursal:suc, urgente: u ? "1" : "0"}); toast(suc !== antes.suc ? `✏️ Pasado a ${sucNom(suc)}` : "✏️ Guardado"); }
@@ -806,12 +842,13 @@ document.addEventListener("click", e => {
     if(x.unir){ const nom = x.unir.map(g => g.nombre).sort((a,b) => b.length - a.length)[0]; renombrar(x.unir.map(g => g.k), nom); return; }
     filtro = x; render(); scrollTo(0, 0); return; }
   const td = e.target.closest("[data-todo]"); if(td){ const ids = D.cards.filter(c => c.estado === "" && c.suc === td.dataset.todo).map(c => c.id);
-    abrirMenu(`${sucNom(td.dataset.todo)}`, `${ids.length} renglones sin repartir`, [{t:`📦 Los ${ids.length} a la caja`, f: () => cambiarReparto(ids, "En caja")}, {t:`🛒 Pasar los ${ids.length} a compras`, f: () => cambiarReparto(ids, "A pedir")}, {t:`🚚 Los ${ids.length} salieron del depósito`, f: () => cambiarReparto(ids, "Depósito")}, {t:`🚚 Los ${ids.length} ya están pedidos`, f: () => cambiarReparto(ids, "Pedido")}]); return; }
+    abrirMenu(`${sucNom(td.dataset.todo)}`, `${ids.length} renglones sin repartir`, [{t:`📦 Los ${ids.length}: pedido armado`, f: () => cambiarReparto(ids, "En caja")}, {t:`🛒 Pasar los ${ids.length} a compras`, f: () => cambiarReparto(ids, "A pedir")}]); return; }
   const tilde = e.target.closest("[data-tilde]"); if(tilde){ const hecho = !!tilde.closest(".ln.hecho"); cambiarCompras(tilde.dataset.tilde, hecho ? "A pedir" : "Pedido"); return; }
   const ln = e.target.closest(".ln[data-id]"); if(ln){ const c = D.cards.find(x => x.id === ln.dataset.id); if(c) menuReparto(c); return; }
   const lk = e.target.closest(".ln[data-k]"); if(lk){ const hecho = lk.classList.contains("hecho"), g = (hecho ? D.pedidos : D.pedir).find(x => x.k === lk.dataset.k); if(g) menuCompras(g, hecho); return; }
   const bn = e.target.closest("[data-nota]"); if(bn){ menuNota(bn.dataset.nota); return; }
   if(e.target.closest("#bNuevaNota")){ crearNota(); return; }
+  if(e.target.closest("#bPedVer")){ pedVer = !pedVer; render(); return; }
 });
 document.addEventListener("keydown", e => {
   if(e.key === "Escape" && !$("#menu").hidden){ cerrarMenu(); return; }
@@ -847,6 +884,7 @@ function demoApi(accion, p){
   if(accion === "precios") return Promise.resolve({items: [{nombre:"Lupa 75 mm", precio:3500}, {nombre:"Lupa 50 mm con luz", precio:4800}, {nombre:"Resma A4 Ledesma 75 g", precio:9200}, {nombre:"Plasticola 30 g", precio:1100}]});
   if(LOCAL && accion === "falt-ver") return {rol:"local", suc:SUC_L, generado:Date.now(), cards:cs.filter(c => c.suc === SUC_L)};
   if(accion === "falt-urgente"){ cs.forEach(c => { if(String(p.ids).split(",").includes(c.id)){ c.urgente = p.urgente === "1"; if(p.urgente !== "1") c.nada = false; } }); return Promise.resolve({ok:true}); }
+  if(accion === "falt-editar" && LOCAL){ const c = cs.find(x => x.id === p.id); if(c) Object.assign(c, {prod:p.prod, obs:p.obs, urgente:p.urgente === "1"}); return Promise.resolve({ok:true}); }
   if(accion === "falt-estado" && LOCAL){ cs.forEach(c => { if(c.id === p.ids) c.estado = p.estado; }); return Promise.resolve({ok:true}); }
   if(accion === "falt-ver"){
     if(vd === "compras"){

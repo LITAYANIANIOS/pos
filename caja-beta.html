@@ -1222,7 +1222,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-12 v3.55";   // v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-12 v3.57";   // v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -2528,10 +2528,12 @@ const TK_CSS = `.tk{font-family:ui-monospace,Consolas,"Courier New",monospace;co
 document.head.insertAdjacentHTML("beforeend", "<style>"+TK_CSS+"</style>");
 
 /* v3.52: lo que el cliente se ahorró = descuento + diferencia de los combos (precio de lista − precio del combo) */
-const ahorroVenta = s => Math.round((s.desc || 0) + s.items.reduce((a, i) => a + (i.combo ? Math.max(0, i.cant * i.precio - (i.sub ?? subt(i))) : 0), 0));
+const subI = i => i.combo == null && i.sub != null ? i.sub : subt(i);                                  // v3.57: venta de la otra PC = su subtotal guardado
+const comboI = i => i.combo == null && i.sub != null ? i.sub < i.cant * i.precio - 0.5 : conCombo(i);
+const ahorroVenta = s => Math.round((s.desc || 0) + s.items.reduce((a, i) => a + (i.combo || (i.combo == null && i.sub != null) ? Math.max(0, i.cant * i.precio - (i.sub ?? subt(i))) : 0), 0));
 const descVenta = s => ({manual:"especial", efectivo:"efectivo", transferencia:"transferencia", monto:"por monto", unidades:"por cantidad"})[s.descTipo || "efectivo"] || s.descMotivo || "";
 function ticketHTML(s){
-  const lineas = s.items.map(i => `<div class="tk-l"><span>${i.cant!=1 ? i.cant+" × " : ""}${esc(i.nombre)}${conCombo(i) ? " (combo)" : ""}</span><span>${money(subt(i))}</span></div>`).join("");
+  const lineas = s.items.map(i => `<div class="tk-l"><span>${i.cant!=1 ? i.cant+" × " : ""}${esc(i.nombre)}${comboI(i) ? " (combo)" : ""}</span><span>${money(subI(i))}</span></div>`).join("");
   const vuelto = s.medio==="efectivo" && s.pagaCon ? `<div class="tk-l"><span>Paga con</span><span>${money(s.pagaCon)}</span></div><div class="tk-l"><span>Vuelto</span><span>${money(s.pagaCon - s.total)}</span></div>` : "";
   return `<div class="tk"><div class="tk-h"><b>${esc(NEGOCIO)}</b><small>Sucursal ${esc(s.sucursal)}</small></div>
     <div class="tk-m"><span>${fechaAR(s.fecha)} ${s.hora}</span><span>N° ${esc(nro(s))}</span></div>
@@ -2579,7 +2581,7 @@ function tkQR(suc){   // SVG del QR de reseñas de la sucursal (o de la encuesta
   try{ const q = qrcode(0, "M"); q.addData(url); q.make(); return q.createSvgTag({cellSize:4, margin:0}).replace(/width="\d+px" height="\d+px"/, 'width="100%"'); }catch(e){ return ""; }
 }
 function ticketA4HTML(s){
-  const filas = s.items.map(i => `<tr><td>${i.cant}</td><td>${esc(i.nombre)}${conCombo(i) && !/combo/i.test(i.nombre) ? " <b>(combo)</b>" : ""}</td><td class="r">${money(i.precio)}</td><td class="r">${money(subt(i))}</td></tr>`).join("");
+  const filas = s.items.map(i => `<tr><td>${i.cant}</td><td>${esc(i.nombre)}${comboI(i) && !/combo/i.test(i.nombre) ? " <b>(combo)</b>" : ""}</td><td class="r">${money(i.precio)}</td><td class="r">${money(subI(i))}</td></tr>`).join("");
   const lista = s.items.reduce((a, i) => a + i.cant * i.precio, 0), ah = ahorroVenta(s), combos = ah - (s.desc || 0);
   const suc = Object.entries(TK_INFO.sucursales).filter(([, x]) => x.dir || x.hor || x.tel)
     .map(([k, x]) => `<div class="suc${k === s.sucursal ? " yo" : ""}"><b>${esc(SUC_LBL(k))}</b>${x.dir ? " · " + esc(x.dir) : ""}${x.hor ? "<br>" + esc(x.hor) : ""}${x.tel ? " · WhatsApp " + esc(x.tel) : ""}</div>`).join("");
@@ -2599,7 +2601,8 @@ function ticketA4HTML(s){
     </div></div>`;
 }
 let tkId = null;
-function abrirTicket(id){ const s=sales.find(x=>x.id===id); if(!s) return; tkId=id; $("#tkWa").hidden=false; $("#tkPrint").onclick=imprimirTicket; $("#tkBody").innerHTML=ticketHTML(s); $("#tkOverlay").hidden=false; $("#tkPrint").focus(); }
+const ventaDe = id => sales.find(x => x.id === id) || remotas.find(x => x.id === id);   // v3.57: también la de la otra PC
+function abrirTicket(id){ const s=ventaDe(id); if(!s) return; tkId=id; $("#tkWa").hidden=false; $("#tkPrint").onclick=imprimirTicket; $("#tkBody").innerHTML=ticketHTML(s); $("#tkOverlay").hidden=false; $("#tkPrint").focus(); }
 const TK_PRINT_HTML = $("#tkPrint").innerHTML;
 function cerrarTicket(){ $("#tkOverlay").hidden=true; tkId=null; $("#tkPrint").innerHTML = TK_PRINT_HTML; if(!$("#tab-venta").hidden) focusQ(); }
 function imprimir(cuerpo, titulo, css){   // iframe oculto: no lo bloquean como a las ventanas emergentes · css: estilo propio (ticket A4)
@@ -2611,7 +2614,7 @@ function imprimir(cuerpo, titulo, css){   // iframe oculto: no lo bloquean como 
 }
 function ticketTexto(s){
   const L = [`*${NEGOCIO.toUpperCase()}*`, `${fechaAR(s.fecha)} ${s.hora} · N° ${nro(s)}`, ""];
-  s.items.forEach(i => L.push(`${i.cant!=1 ? i.cant+" × " : ""}${i.nombre}${conCombo(i) ? " 🏷️ combo" : ""} — ${money(subt(i))}`));
+  s.items.forEach(i => L.push(`${i.cant!=1 ? i.cant+" × " : ""}${i.nombre}${comboI(i) ? " 🏷️ combo" : ""} — ${money(subI(i))}`));
   if(s.desc) L.push(`Descuento ${descVenta(s)} ${s.descPct}% — −${money(s.desc)}`);
   L.push("", `*TOTAL: ${money(s.total)}*`);
   if(ahorroVenta(s)) L.push(`🎉 ¡Ahorraste ${money(ahorroVenta(s))}!`);
@@ -2619,9 +2622,9 @@ function ticketTexto(s){
   return L.join("\n");
 }
 $("#tkClose").onclick = cerrarTicket;
-function imprimirTicket(){ const s=sales.find(x=>x.id===tkId); if(s) imprimir(ticketA4HTML(s), "Ticket "+nro(s), TK_A4_CSS + "@page{size:A4;margin:13mm}"); }   // v3.52: hoja A4
+function imprimirTicket(){ const s=ventaDe(tkId); if(s) imprimir(ticketA4HTML(s), "Ticket "+nro(s), TK_A4_CSS + "@page{size:A4;margin:13mm}"); }   // v3.52: hoja A4
 $("#tkPrint").onclick = imprimirTicket;
-$("#tkWa").onclick = () => { const s=sales.find(x=>x.id===tkId); if(s) copiar(ticketTexto(s), "Ticket copiado"); };
+$("#tkWa").onclick = () => { const s=ventaDe(tkId); if(s) copiar(ticketTexto(s), "Ticket copiado"); };
 $("#tkOverlay").addEventListener("click", e => { if(e.target.id==="tkOverlay") cerrarTicket(); });
 
 /* =====================================================================
@@ -3423,7 +3426,9 @@ async function cargarRemotas(){
   if(DEMO || !cfg.url || (PCS_POR_SUC[cfg.suc] || 1) < 2){ remotas = []; return; }
   try{
     const r = await api("ventasSuc", {sucursal:cfg.suc, pc:cfg.pc||""}); if(!r || r.error || !Array.isArray(r.ventas)) return;   // script anterior a v3.32
-    remotas = r.ventas.map(v => ({...v, remota:true, fecha:ymd(new Date(v.ts))}));
+    remotas = r.ventas.map(v => { const m = String(v.descTxt || "").match(/^(\S+)\s+([\d.,]*)%(?:\s*·\s*(.*))?/);   // v3.57: lo necesario para el ticket
+      return {...v, remota:true, fecha:ymd(new Date(v.ts)), sucursal:cfg.suc, ...(m ? {descTipo:m[1], descPct:m[2], descMotivo:m[3] || ""} : {}),
+        items:(v.items || []).map(i => ({...i, precio: i.precio || (i.cant ? Math.round((i.sub || 0) / i.cant) : 0)}))}; });
     let cambio = false; (r.anuladas || []).forEach(id => { const s = sales.find(x => x.id === id); if(s && !s.anulada){ s.anulada = true; cambio = true; } });
     if(cambio) guardar("sales", sales);
     if(!$("#tab-ventas").hidden) renderVentas();
@@ -3445,7 +3450,7 @@ function renderVentas(){
       <div class="order-h" style="padding:0;border:0"><div class="badge">${esc(nro(s))}</div><div><b>${esc(medioL(s.medio))}</b>${s.medioOrig ? `<span class="antes">antes ${esc(medioL(s.medioOrig))}</span>` : ""}<span>${s.hora} · ${esc(s.cajero)}${s.cliente ? " · 📒 " + esc(s.cliente) : ""}</span></div>${estado(s)}</div>
       <div class="its">${its}${mas}${s.desc ? `<div class="l"><span>Descuento ${esc(descVenta(s))} ${s.descPct}%</span><span>−${money(s.desc)}</span></div>` : ""}</div>
       <div class="vt"><span>Total</span><b>${money(s.total)}</b></div>
-      <div class="bar2">${s.remota ? `<span class="pc-tag">PC ${esc(s.pc || "?")}</span>` : `<button class="btn soft sm" data-tk="${esc(s.id)}">Ticket</button>`}${s.anulada || s.ts <= c ? "" : `${s.remota ? "" : `<button class="btn sm" data-md="${esc(s.id)}">Cambiar medio</button>`}<button class="btn danger sm" data-an="${esc(s.id)}">Anular</button>`}</div>
+      <div class="bar2">${s.remota ? `<span class="pc-tag">PC ${esc(s.pc || "?")}</span>` : ""}<button class="btn soft sm" data-tk="${esc(s.id)}">Ticket</button>${s.anulada || s.ts <= c ? "" : `${s.remota ? "" : `<button class="btn sm" data-md="${esc(s.id)}">Cambiar medio</button>`}<button class="btn danger sm" data-an="${esc(s.id)}">Anular</button>`}</div>
     </div>`; }).join("") || `<div class="empty">🌱 Todavía no hay ventas hoy.</div>`;
 }
 $("#gridV").addEventListener("click", e => {
@@ -3453,8 +3458,8 @@ $("#gridV").addEventListener("click", e => {
   const md = e.target.closest("[data-md]"); if(md){ abrirMedio(md.dataset.md); return; }
   const b = e.target.closest("[data-an]"); if(!b) return;
   dobleToque(b, "¿Seguro?", () => {
-    const s = sales.find(x => x.id === b.dataset.an) || remotas.find(x => x.id === b.dataset.an); if(!s) return; s.anulada = true;
-    if(!s.remota) guardar("sales", sales); encolar("anulacion", s.id); renderVentas(); toast(`Venta ${nro(s)} anulada${s.remota ? " (de la otra PC)" : ""}`);
+    const s = sales.find(x => x.id === b.dataset.an) || remotas.find(x => x.id === b.dataset.an); if(!s) return; s.anulada = true; s.anulTs = Date.now(); s.anulPor = cfg.turno ? cfg.turno.cajero : "";
+    if(!s.remota) guardar("sales", sales); encolar("anulacion", s.id, {cajero: s.anulPor, ts: s.anulTs}); renderVentas(); toast(`Venta ${nro(s)} anulada${s.remota ? " (de la otra PC)" : ""}`);
   });
 });
 
@@ -3765,10 +3770,10 @@ async function post(body){
     throw e;
   }finally{ clearTimeout(t); }
 }
-function encolar(tipo, id){ if(DEMO) return; queue.push({tipo, id}); guardar("queue", queue); flush(); }
+function encolar(tipo, id, extra){ if(DEMO) return; queue.push({tipo, id, ...(extra || {})}); guardar("queue", queue); flush(); }
 function payload(op){
   if(op.tipo==="venta"){ const s=sales.find(x=>x.id===op.id); return s && {...s, tipo:"venta", medio: medioL(s.medio)}; }
-  if(op.tipo==="anulacion") return {tipo:"anulacion", id:op.id};
+  if(op.tipo==="anulacion"){ const s = sales.find(x=>x.id===op.id) || {}; return {tipo:"anulacion", id:op.id, cajero: op.cajero || s.anulPor || "", ts: op.ts || s.anulTs || 0}; }   // v3.56: quién y cuándo (S2)
   if(op.tipo==="medio"){ const s=sales.find(x=>x.id===op.id); return s && {tipo:"medio", id:s.id, medio: medioL(s.medio), cambio: s.cambio || ""}; }
   if(op.tipo==="cierre"){ const c=cierres.find(x=>x.id===op.id); return c && {...c, tipo:"cierre"}; }
   if(op.tipo==="pagoCC"){ const x=pagosCC.find(y=>y.id===op.id); return x && {...x, tipo:"pagoCC"}; }
