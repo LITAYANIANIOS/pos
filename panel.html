@@ -11,9 +11,12 @@
 <script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v2.13
+   PANEL · DA BOX                                                 v2.14
    Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.14: 🏷️ Precios: 🧮 TANDA DE COSTOS. Traés varios productos EXISTENTES por código (de barras o interno; escaneás/tecleás de a uno + Enter,
+          o pegás una lista), elegís el proveedor de la tanda → aplica sus condiciones (desc, recargo, margen, redondeo) y deja la venta sugerida
+          editable. "Guardar los N": guarda el costo de cada uno (y el precio si dejaste la venta). Reusa prov-datos. Cliente solo: sin script nuevo.
    v2.13: 🏷️ Precios: ＋ TANDA de altas (varios productos de una vez desde las listas de proveedores, categoría y margen "↓ a todas",
           unidades por bulto → costo por unidad) · casillero Costo en cada producto del Catálogo (a mano) · 📝 Faltantes se abre en otra pestaña.
    v2.12: 🔍 Control (solo Encargado): anulaciones, cambios de medio, genéricos y transferencias sin banco por cajero, con 🔴 para revisar. Necesita script con S2.
@@ -876,8 +879,9 @@ async function rPrecios(){
   const S = $("#s-precios");
   if(!prCat){ S.innerHTML = `<div class="card empty">Cargando el catálogo…</div>`; try{ await prCargar(); }catch(e){ S.innerHTML = `<div class="card empty">${esc(LA.ERR[e] || "No se pudo cargar el catálogo.")}</div>`; return; } }
   S.innerHTML = `<div class="grid"><div class="card">
-    <h3><span>Catálogo</span><span><button class="btn sm primary" id="prNuevo" type="button">＋ Producto nuevo</button> <button class="btn sm" id="prRec" type="button" title="Volver a leer el Catálogo de la planilla">↻</button></span></h3>
+    <h3><span>Catálogo</span><span><button class="btn sm primary" id="prNuevo" type="button">＋ Producto nuevo</button> <button class="btn sm" id="prCostosBtn" type="button" title="Cargar el costo de varios productos de una factura, por código">🧮 Costos</button> <button class="btn sm" id="prRec" type="button" title="Volver a leer el Catálogo de la planilla">↻</button></span></h3>
     <div class="pr-tanda" id="prTanda" hidden></div>
+    <div class="pr-tanda" id="prTandaC" hidden></div>
     <p class="note">Buscá el producto, escribí el precio nuevo y <b>Enter</b>. Podés poner una cuenta: <b>4500*2,13</b> (costo × margen), <b>+10%</b> o <b>-5%</b> (redondea a $ ${REDONDEO}). Las cajas lo toman en hasta 30 minutos.</p>
     <div class="pr-busca"><input class="campo" id="prQ" autocomplete="off" spellcheck="false" placeholder="🔎 Nombre o código (ej: resma boreal)" value="${esc(prBusca)}"><span class="m" id="prN"></span></div>
     <div class="tw"><table class="pr-t" id="prT"></table></div><div class="pr-prov" id="prProv" hidden></div></div>
@@ -1060,6 +1064,96 @@ async function tGuardar(){
 }
 $("#s-precios").addEventListener("input", e => { if(e.target.closest("#prTanda")) tCampo(e); });
 $("#s-precios").addEventListener("change", e => { if(e.target.closest("#prTanda") && e.target.dataset.f) tCampo(e); });
+
+/* 🧮 TANDA DE COSTOS (v2.14): traer varios productos EXISTENTES por código (de barras o interno) y cargarles el costo de la factura.
+   El proveedor es uno para toda la tanda → aplica sus condiciones (desc, recargo, margen, redondeo) y deja la venta sugerida editable.
+   Guarda el costo (precio-costo) y, si dejás la venta, también el precio (precio-editar). Reusa pvD. Cliente solo: sin script nuevo. */
+let tandaC = [], tcGuardando = false, tcProv = 0, tcMapa = null;
+const tcNum = s => { const x = Number(String(s).replace(/\$/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".")); return x > 0 ? Math.round(x * 100) / 100 : 0; };   // monto de factura: conserva centavos, NO redondea a $50
+const tcCond = () => (pvD && pvD.provs && pvD.provs[tcProv]) || {nombre:"a mano", desc:0, rec:0, mult:2.13, red:REDONDEO};
+const tcCostoU = r => { if(!(r.costoB > 0)) return 0; const c = tcCond(); return Math.round(r.costoB * (1 - (c.desc || 0) / 100) * (1 + (c.rec || 0) / 100) / (r.unid || 1) * 100) / 100; };
+const tcSug = r => { const cu = tcCostoU(r); if(!(cu > 0)) return 0; const c = tcCond(), v = cu * (c.mult || 2.13), red = c.red || REDONDEO;
+  return v < red * 2 ? Math.max(10, Math.round(v / 10) * 10) : Math.round(v / red) * red; };
+function tcMapaCod(){ tcMapa = new Map(); (prCat || []).forEach(p => [p.cod, ...String(p.alt || "").split(/[\s,;|]+/)].forEach(c => { const k = String(c || "").replace(/^0+/, ""); if(k) tcMapa.set(k, p); })); }
+function tcAgregar(cods){
+  if(!tcMapa) tcMapaCod();
+  const list = String(cods).split(/[\s,;|\n]+/).map(s => s.trim()).filter(Boolean); let ok = 0; const no = [];
+  list.forEach(cd => { const p = tcMapa.get(cd.replace(/^0+/, "")); if(!p){ no.push(cd); return; } if(tandaC.some(r => r.cod === p.cod)) return;
+    tandaC.push({cod:p.cod, nom:p.nombre, costoB:0, unid:1, precio:"", manual:false, err:""}); ok++; });
+  return {ok, no};
+}
+function tcRender(foco){
+  const el = $("#prTandaC"); if(!el) return;
+  const prov = (pvD && pvD.provs) || [];
+  el.hidden = false;
+  el.innerHTML = `<div class="t-cab"><b>🧮 Tanda de costos${tandaC.length ? " · " + tandaC.length : ""}</b>
+      <span class="t-todos">Proveedor <select class="campo" id="tcProv">${prov.map((p, j) => `<option value="${j}" ${j === tcProv ? "selected" : ""}>${esc(p.nombre)}</option>`).join("") || `<option value="0">a mano</option>`}</select></span>
+      <button class="btn sm" id="tcCerrar" type="button" style="margin-left:auto">Cerrar</button></div>
+    <div class="pr-busca"><input class="campo" id="tcCod" autocomplete="off" spellcheck="false" placeholder="📷 Escaneá o escribí un código + Enter (o pegá varios)"><span class="m">de barras o interno · si no está, avisa</span></div>
+    ${tandaC.length ? `<div class="tw"><table class="t-t"><tr><th>Producto</th><th class="r" title="Lo que figura en la factura (bulto o unidad)">Costo factura</th><th class="r" title="Unidades que trae el bulto">Unid.</th><th class="r">Costo c/u</th><th>Venta</th><th></th></tr>
+    ${tandaC.map((r, i) => { const cu = tcCostoU(r), pv = prEval(r.precio || "", 0), pr = pv ? pv.v : (r.precio.trim() ? 0 : tcSug(r)), x = cu > 0 && pr > 0 ? pr / cu : 0;
+      return `<tr data-tc="${i}" class="${r.err ? "t-err" : ""}">
+      <td><b>${esc(r.nom)}</b><small class="m">${esc(r.cod)}${r.err ? ` · <b class="dif-mal">${esc(r.err)}</b>` : ""}</small></td>
+      <td class="r"><input class="campo num t-u" data-fc="costoB" value="${r.costoB > 0 ? String(r.costoB).replace(".", ",") : ""}" placeholder="de la factura" inputmode="decimal"></td>
+      <td class="r"><input class="campo num t-u" data-fc="unid" value="${r.unid}" inputmode="numeric"></td>
+      <td class="r">${cu > 0 ? `<b>${money(cu)}</b>${r.unid > 1 ? `<small class="m">bulto ÷ ${r.unid}</small>` : ""}` : "—"}</td>
+      <td><input class="campo num t-p" data-fc="precio" value="${esc(r.precio)}" placeholder="${tcSug(r) || "venta"}" inputmode="decimal">
+        <small class="${x && x < 1.5 ? "dif-mal" : "m"}">${pv && pv.cuenta ? "= " + money(pv.v) + " · " : !r.precio && tcSug(r) ? "sugerido · " : ""}${x ? "×" + x.toFixed(2).replace(".", ",") : ""}</small></td>
+      <td><button class="btn sm" data-txc="${i}" type="button" title="Sacar">✕</button></td></tr>`; }).join("")}</table></div>
+    <div class="acc"><span class="m">Costo de la factura + proveedor → costo c/u y venta (margen del proveedor, editable). Venta vacía = guarda solo el costo.</span>
+      <button class="btn sm" id="tcVaciar" type="button">Vaciar</button>
+      <button class="btn primary" id="tcGuardar" type="button">💾 Guardar ${tandaC.length === 1 ? "1" : "los " + tandaC.length}</button></div>`
+    : `<div class="acc"><span class="m">Escaneá o escribí un código arriba para empezar.</span></div>`}`;
+  if(foco === "cod"){ const f = $("#tcCod"); if(f) f.focus(); }
+  else if(foco != null){ const f = el.querySelector(`tr[data-tc="${foco}"] [data-fc="costoB"]`); if(f){ f.focus(); f.select(); } }
+}
+function tcCampo(e){
+  const tr = e.target.closest("tr[data-tc]"), f = e.target.dataset.fc; if(!tr || !f) return;
+  const r = tandaC[+tr.dataset.tc]; if(!r) return; let v = e.target.value;
+  if(f === "unid") v = Math.max(1, Math.round(Number(String(v).replace(/\D/g, "")) || 1));
+  if(f === "costoB") v = tcNum(v);
+  if(f === "precio") r.manual = !!String(v).trim();
+  r[f] = v; r.err = "";
+  if(e.type === "change" && ["unid", "costoB"].includes(f)){ if(!r.manual) r.precio = tcSug(r) ? String(tcSug(r)) : ""; tcRender(); }
+}
+async function tcGuardar(){
+  if(tcGuardando) return;
+  tandaC.forEach(r => { r.err = !(tcCostoU(r) > 0) ? "falta el costo" : ""; });
+  if(tandaC.some(r => r.err)){ tcRender(); return LA.toast("Revisá las filas en rojo", 4000); }
+  tcGuardando = true; const b = $("#tcGuardar"); let ok = 0;
+  for(const r of [...tandaC]){
+    if(b) b.textContent = `Guardando ${ok + 1}…`;
+    const cu = Math.round(tcCostoU(r) * 100) / 100, pv = prEval(r.precio || "", 0), precio = r.precio.trim() ? (pv ? pv.v : 0) : 0;
+    if(r.precio.trim() && !(precio > 0)){ r.err = "venta: número o cuenta"; continue; }
+    const p = (prCat || []).find(x => x.cod === r.cod); if(!p){ r.err = "ya no está en el Catálogo"; continue; }
+    try{
+      if(!LA.demo) await LA.api("precio-costo", {cod:p.cod, nombreOrig:p.nombre, costo:cu, _sinReintento:1});
+      prCostos[prK(p)] = [cu, ymd(new Date())];
+      if(precio > 0){ const antes = p.precio;
+        if(LA.demo) p.precio = precio; else { const res = await LA.api("precio-editar", {cod:p.cod, nombreOrig:p.nombre, precio, combo:p.combo || "", _sinReintento:1}); Object.assign(p, res.item); }
+        prCambios.unshift([ymd(new Date()), new Date().toTimeString().slice(0,5), (ROLES[D.rol] || "") + " · COSTO", p.cod, p.nombre, antes, p.precio, p.combo || ""]); }
+      tandaC.splice(tandaC.indexOf(r), 1); ok++;
+    }catch(e){ if(e === "clave"){ tcGuardando = false; LA.salir(LA.ERR.clave); return; } r.err = (e && e.msg) || LA.ERR[e] || "no se guardó"; }
+  }
+  tcGuardando = false; tcRender(); prTabla(); prHist();
+  LA.toast(tandaC.length ? `✓ ${ok} guardado${ok === 1 ? "" : "s"} · ${tandaC.length} con error (quedaron en la tanda)` : `✓ ${ok} producto${ok === 1 ? "" : "s"} con costo guardado${ok === 1 ? "" : "s"}`, 5000);
+}
+/* listeners propios de la tanda de costos (no tocan los de la tanda de altas) */
+$("#s-precios").addEventListener("input", e => { if(e.target.closest("#prTandaC") && e.target.dataset.fc) tcCampo(e); });
+$("#s-precios").addEventListener("change", e => { if(e.target.id === "tcProv"){ tcProv = +e.target.value; tandaC.forEach(r => { if(!r.manual) r.precio = tcSug(r) ? String(tcSug(r)) : ""; }); return tcRender(); }
+  if(e.target.closest("#prTandaC") && e.target.dataset.fc) tcCampo(e); });
+$("#s-precios").addEventListener("keydown", e => {
+  if(e.target.id === "tcCod" && e.key === "Enter"){ e.preventDefault(); const v = e.target.value.trim(); if(!v) return;
+    const r = tcAgregar(v); e.target.value = ""; tcRender("cod");
+    if(r.no.length) LA.toast(`No está${r.no.length > 1 ? "n" : ""} en el Catálogo: ${r.no.slice(0, 5).join(", ")}${r.no.length > 5 ? "…" : ""}`, 4500);
+    else if(r.ok) LA.toast(`＋ ${r.ok} a la tanda`); return; }
+  if(e.target.closest("#prTandaC") && e.key === "Enter" && e.target.dataset.fc){ e.preventDefault(); e.target.dispatchEvent(new Event("change", {bubbles:true})); } });
+$("#s-precios").addEventListener("click", async e => {
+  if(e.target.id === "prCostosBtn"){ await pvCargar(); tcMapaCod(); tcRender("cod"); const el = $("#prTandaC"); if(el) el.scrollIntoView({block:"nearest"}); return; }
+  if(e.target.id === "tcCerrar"){ const el = $("#prTandaC"); if(el) el.hidden = true; return; }
+  if(e.target.id === "tcGuardar") return tcGuardar();
+  if(e.target.id === "tcVaciar"){ if(e.target.dataset.ok !== "1"){ e.target.dataset.ok = "1"; e.target.textContent = "¿Vaciar?"; return; } tandaC = []; return tcRender("cod"); }
+  const tx = e.target.closest("[data-txc]"); if(tx){ tandaC.splice(+tx.dataset.txc, 1); return tcRender(); } });
 
 /* 💲 lo mismo en las listas de proveedores (debajo del Catálogo): para comparar o cargarlo con un toque */
 let prProvT;
