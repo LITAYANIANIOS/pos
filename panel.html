@@ -11,9 +11,13 @@
 <script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v2.15
+   PANEL · DA BOX                                                 v2.16
    Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.16: 💳 Cobros · 🏦 BANCO NACIÓN: se suelta el RESUMEN MENSUAL en PDF (o un .txt de "Movimientos históricos", con hora) junto con los demás.
+          El PDF se lee en esta PC con pdf.js guardado en el repo (comun/pdf/, v4.10.38): no sale de la PC ni se carga nada de afuera.
+          Va a la misma hoja que Banco Provincia (Banco movimientos) con clave "BNA|fecha|comprobante|importe" (no se duplica). Sin script nuevo:
+          el script v3.54 ya cruza los movimientos sin hora con ±2 días. Los pases entre cuentas propias quedan como "Propia" (no se cruzan).
    v2.15: 🏷️ Precios MÁS SIMPLE. Una línea por producto: Costo factura · Costo real · Margen × (rojo < 1,5 · amarillo < 2 · verde) · Precio · Antes.
           Arriba, una vez: "Factura de [proveedor]" con su desc., IVA/recargo y margen (o "Otro (a mano)"). Escribís el costo del papel
           (o 14500/50 si es por bulto) → costo real y precio sugerido al instante. Combo, códigos, categoría, 💡 lista del proveedor y 🚫 en ▾.
@@ -472,16 +476,16 @@ function rCierres(){
 const DIF_SEMANA = 2000;
 /* ---------- 📥 v2.8 · CARGAR ARCHIVOS: se leen en esta PC y viajan a la planilla por POST con la clave del encargado (nunca en la dirección) ----------
    QR (Transacciones QR) · Movimientos presentados · Liquidaciones (CSV de Payway) · Banco Provincia (Exportar movimientos → formato CAC) */
-const FUENTES = {qr:["QR (Payway)", 8], tq:["Transferencias QR (Payway)", 35], mov:["Movimientos (Payway)", 8], liq:["Liquidaciones (Payway)", 35], banco:["Banco Provincia", 8]};   // nombre, días hasta que avisa
+const FUENTES = {qr:["QR (Payway)", 8], tq:["Transferencias QR (Payway)", 35], mov:["Movimientos (Payway)", 8], liq:["Liquidaciones (Payway)", 35], banco:["Banco Provincia", 8], bna:["Banco Nación", 0]};   // bna: el alias viejo (sin aviso de "toca cargar")   // nombre, días hasta que avisa
 let porCargar = [];
 function cargaCard(C){
   const ult = {qr: C.ultimoQR, tq: C.ultimoTQ, mov: C.ultimoMov, liq: C.ultimoLiq, banco: C.transferencias && C.transferencias.ultimo};
   const pill = k => { const f = ult[k], d = f ? Math.floor((Date.now() - new Date(f + "T12:00").getTime()) / 864e5) : null;
     return `<span class="pill ${d == null ? "" : d > FUENTES[k][1] ? "warn" : "ok"}">${FUENTES[k][0]}: ${f ? `hasta ${fechaAR(f).slice(0, 5)}${d > FUENTES[k][1] ? ` · hace ${d} días` : ""}` : "sin cargar"}</span>`; };
-  const tocaYa = Object.keys(FUENTES).filter(k => k !== "liq" && k !== "tq").some(k => !ult[k] || (Date.now() - new Date(ult[k] + "T12:00").getTime()) / 864e5 > FUENTES[k][1]);
+  const tocaYa = Object.keys(FUENTES).filter(k => k !== "liq" && k !== "tq" && k !== "bna").some(k => !ult[k] || (Date.now() - new Date(ult[k] + "T12:00").getTime()) / 864e5 > FUENTES[k][1]);
   return `<div class="card" style="grid-column:1/-1"><h3><span>📥 Cargar archivos${tocaYa ? ` <span class="pill warn">toca cargar</span>` : ""}</span></h3>
-    <div class="fuentes">${Object.keys(FUENTES).map(pill).join("")}</div>
-    <div class="carga" id="carga" tabindex="0">Soltá acá los archivos de la semana, todos juntos (o <u>tocá para elegirlos</u>): QR, Movimientos y Liquidaciones de Payway y los del banco (formato CAC, uno por día).<input type="file" id="cargaIn" multiple accept=".csv,.txt,.cac" hidden></div>
+    <div class="fuentes">${Object.keys(FUENTES).filter(k => k !== "bna").map(pill).join("")}</div>
+    <div class="carga" id="carga" tabindex="0">Soltá acá los archivos de la semana, todos juntos (o <u>tocá para elegirlos</u>): QR, Movimientos y Liquidaciones de Payway los del Banco Provincia (formato CAC, uno por día) y el resumen de Banco Nación (PDF).<input type="file" id="cargaIn" multiple accept=".csv,.txt,.cac,.pdf" hidden></div>
     <div id="cargaPrev"></div></div>`;
 }
 const csvFilas = t => { const out = []; let f = [], c = "", q = false;
@@ -503,8 +507,64 @@ function leerBanco(t){
     out.push([r[4], Math.round(imp * 100) / 100, cod, con, det.slice(0, 120), real, nom, cuit, tipo, [r[4], s, cod, r[7].trim(), det.slice(0, 60).trim()].join("|")]); });
   return out;
 }
+/* 🏦 BANCO NACIÓN (v2.16): el alias de BNA se usó hasta el 6/11 y todavía entran transferencias.
+   Lee el RESUMEN MENSUAL en PDF (se suelta como los demás) o un .txt con "Movimientos históricos" (con hora).
+   El PDF se lee en esta PC con pdf.js guardado en el repo (comun/pdf/): no se manda a ningún lado ni se carga nada de afuera.
+   Las filas salen con la misma forma que Banco Provincia y van a la misma hoja (Banco movimientos): el script no cambia.
+   Sin hora (resumen) el script cruza hasta ±2 días; con hora (históricos), ±6 h. */
+const bnaNum = s => Number(String(s).replace(/[+\s]/g, "").replace(/\./g, "").replace(",", "."));
+function bnaTipo(desc, imp){
+  const d = desc.toUpperCase();
+  if(imp > 0 && /INTER\.?MM/.test(d)) return "Propia";                                  // pase entre cuentas propias (ej. $ 1.900.000)
+  if(imp > 0 && /DEBIN|TRANSF|CREDIN|C BE TR/.test(d)) return "Transferencia";
+  if(/GRAVAMEN|GRAV\.|ARBA|I\.V\.A|IVA|RETEN|PERCEP|IMPUESTO|AFIP/.test(d)) return "Impuesto";
+  if(/COMIS/.test(d)) return "Comisión";
+  return imp < 0 ? "Salida" : "Otro";
+}
+function leerBNA(lineas){
+  const out = []; let col = null, saldo = null;                                          // col: dónde terminan DEBITOS / CREDITOS / SALDO en esta página
+  lineas.forEach(l0 => {
+    const l = String(l0).replace(/\s+$/, "");
+    const sa = l.match(/SALDO ANTERIOR\s+([\d.]+,\d\d)(\s*-)?/); if(sa){ saldo = (sa[2] ? -1 : 1) * bnaNum(sa[1]); return; }
+    if(/DEBITOS/.test(l) && /CREDITOS/.test(l)){ col = ["DEBITOS", "CREDITOS", "SALDO"].map(w => l.indexOf(w) + w.length); return; }
+    // Movimientos históricos (con hora): 03/11/2026 19:34:40 6231 0001 TIDT TRANSF.INT.DIST.TITULAR 2372 +4500,00 8888
+    const lt = l.replace(/^[\s_]+/, "").replace(/\s+/g, " ").trim();
+    let m = lt.match(/^(\d\d)\/(\d\d)\/(\d{4}) (\d\d:\d\d:\d\d) \d{4} \d{4} (?:[A-Z]{4} )?(.+?) (\d+) ([+-][\d.]*\d,\d\d)(?: \d+)?$/);
+    if(m){ const f = `${m[3]}-${m[2]}-${m[1]}`, imp = Math.round(bnaNum(m[7]) * 100) / 100, desc = m[5].trim(), tipo = bnaTipo(desc, imp);
+      const real = tipo === "Transferencia" && m[4] !== "00:00:00" ? `${f} ${m[4]}` : "";
+      out.push([f, imp, "BNA", desc, desc, real, "BNA", "", tipo, ["BNA", f, m[6], imp.toFixed(2)].join("|")]); return; }   // misma clave que el resumen: no se duplica
+    // Resumen mensual: 01/09/26 DEBIN 27356321427   1532   [débito]   [crédito]   [saldo]. La columna dice si es débito o crédito
+    m = l.match(/^[\s_]*(\d\d)\/(\d\d)\/(\d\d)\s+(.+?)\s+(\d+)\s+(?=[\d.]+,\d\d)/);   // "____" = marca de corte de hoja
+    if(!m || !col) return;
+    let imp = null, sv = null; const re = /[\d.]+,\d\d(\s*-)?/g; let t; re.lastIndex = m[0].length;
+    while((t = re.exec(l))){ const v = bnaNum(t[0].replace(/\s*-$/, "")), fin = t.index + t[0].replace(/\s*-$/, "").length, k = col.map((c, i) => [Math.abs(c - fin), i]).sort((a, b) => a[0] - b[0])[0][1];
+      if(k === 0) imp = -v; else if(k === 1) imp = v; else sv = t[1] ? -v : v; }
+    if(imp == null) return;
+    if(saldo != null && sv != null && Math.abs(saldo + imp - sv) > 0.02 && Math.abs(saldo - imp - sv) < 0.02) imp = -imp;   // el saldo manda (columna corrida)
+    if(sv != null) saldo = sv; else if(saldo != null) saldo += imp;
+    const f = `20${m[3]}-${m[2]}-${m[1]}`, desc = m[4].trim(); imp = Math.round(imp * 100) / 100;
+    const tipo = bnaTipo(desc, imp), cuit = (desc.match(/DEBIN (\d{11})\b/) || ["", ""])[1];
+    out.push([f, imp, "BNA", desc, desc, "", cuit ? "DEBIN" : "BNA", cuit, tipo, ["BNA", f, m[5], imp.toFixed(2)].join("|")]);
+  });
+  return out;
+}
+/* PDF → renglones: junta los textos de cada página por altura (y) y los ordena de izquierda a derecha */
+async function pdfRenglones(buf){
+  const pdfjs = await import("./comun/pdf/pdf.min.mjs?v=4.10.38");
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL("./comun/pdf/pdf.worker.min.mjs?v=4.10.38", location.href).href;
+  const doc = await pdfjs.getDocument({data: buf, isEvalSupported: false, disableFontFace: true}).promise, out = [];
+  for(let p = 1; p <= doc.numPages; p++){
+    const c = await (await doc.getPage(p)).getTextContent(), filas = new Map();
+    c.items.forEach(it => { if(!it.str.trim()) return; const y = Math.round(it.transform[5] / 2); if(!filas.has(y)) filas.set(y, []); filas.get(y).push([it.transform[4], it.str]); });
+    const w = c.items.filter(it => it.str.trim().length > 3).map(it => it.width / it.str.length).sort((a, b) => a - b), cw = w[w.length >> 1] || 5;   // ancho de una letra
+    [...filas.keys()].sort((a, b) => b - a).forEach(y => { let l = ""; filas.get(y).sort((a, b) => a[0] - b[0]).forEach(([x, s]) => { const p = Math.round(x / cw); l += (l.length < p ? " ".repeat(p - l.length) : " ") + s; }); out.push(l); });
+  }
+  return out;
+}
+
 function tipoArchivo(nombre, t){
   if(/^\d+;\d{4};\d{3};\d+;\d{4}-\d{2}-\d{2};/m.test(t.slice(0, 400))) return "banco";
+  if((/BANCO DE LA\s+NACI[OÓ]N|NACION ARGENTINA/i.test(t.slice(0, 3000)) || /^\s*\d\d\/\d\d\/\d{4} \d\d:\d\d:\d\d \d{4} \d{4} /m.test(t.slice(0, 5000)))) return "bna";   // después del CAC: un CAC puede nombrar a Banco Nación en el detalle
   const h = t.slice(0, 2000).toUpperCase();
   if(h.includes("QR ID") && h.includes("MONTO NETO") && h.includes("NRO CUPON")) return "tq";
   if(h.includes("QR ID") && h.includes("MEDIO DE PAGO")) return "qr";
@@ -515,13 +575,17 @@ function tipoArchivo(nombre, t){
 async function leerCarga(files){
   for(const f of files){
     if(f.size > 12e6){ LA.toast(`${f.name}: demasiado grande`); continue; }
-    let t = await f.text(); if(t.includes("\uFFFD")) t = new TextDecoder("latin1").decode(await f.arrayBuffer());   // el banco viene en latin-1
-    const tipo = tipoArchivo(f.name, t);
-    if(!tipo){ porCargar.push({nombre: f.name, tipo: "", filas: []}); continue; }
-    const filas = tipo === "banco" ? leerBanco(t) : csvFilas(t);
-    const fechas = tipo === "banco" ? filas.map(x => x[0]) : [];
+    const esPdf = /\.pdf$/i.test(f.name) || f.type === "application/pdf"; let t, lineas = null;
+    if(esPdf){ try{ LA.LAPIZ(true); lineas = await pdfRenglones(await f.arrayBuffer()); t = lineas.join("\n"); }
+      catch(e){ LA.toast(`${f.name}: no se pudo leer el PDF`, 5000); t = ""; } finally{ LA.LAPIZ(false); } }
+    else { t = await f.text(); if(t.includes("\uFFFD")) t = new TextDecoder("latin1").decode(await f.arrayBuffer()); }   // el banco viene en latin-1
+    let tipo = tipoArchivo(f.name, t); if(esPdf && tipo !== "bna") tipo = "";             // de los PDF, solo el resumen de Banco Nación
+    if(!tipo){ porCargar.push({nombre: f.name + (esPdf && !t.replace(/\s/g, "") ? " (escaneado: no tiene texto)" : ""), tipo: "", filas: []}); continue; }
+    const esBco = tipo === "banco" || tipo === "bna", filas = tipo === "banco" ? leerBanco(t) : tipo === "bna" ? leerBNA(lineas || t.split(/\r?\n/)) : csvFilas(t);
+    if(tipo === "bna" && !filas.length){ porCargar.push({nombre: f.name, tipo: "", filas: []}); continue; }
+    const fechas = esBco ? filas.map(x => x[0]) : [];
     porCargar.push({nombre: f.name, tipo, filas, desde: fechas.length ? fechas.reduce((a, b) => a < b ? a : b) : "", hasta: fechas.length ? fechas.reduce((a, b) => a > b ? a : b) : "",
-      transf: tipo === "banco" ? filas.filter(x => x[8] === "Transferencia").length : 0});
+      transf: esBco ? filas.filter(x => x[8] === "Transferencia").length : 0});
   }
   prevCarga();
 }
@@ -540,7 +604,7 @@ async function subirCarga(){
       if(LA.demo){ hechos.push(`${FUENTES[x.tipo][0]}: ${x.filas.length}`); continue; }
       for(let i = 0; i < x.filas.length; i += 8000){                                     // en partes, para no pasar el límite del script
         LA.LAPIZ(true);
-        try{ const r = await fetch(url, {method: "POST", body: JSON.stringify({tipo: "cobros-subir", hoja: x.tipo, filas: x.filas.slice(i, i + 8000), clave: LA.clave})});
+        try{ const r = await fetch(url, {method: "POST", body: JSON.stringify({tipo: "cobros-subir", hoja: x.tipo === "bna" ? "banco" : x.tipo, filas: x.filas.slice(i, i + 8000), clave: LA.clave})});
           const j = await r.json(); if(j.error) throw new Error(j.error);
           if(i === 0) hechos.push(`${FUENTES[x.tipo][0]}: ${j.filas}${j.repetidas ? ` (+${j.repetidas} ya estaban)` : ""}`); }
         finally{ LA.LAPIZ(false); }
