@@ -11,9 +11,10 @@
 <script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v2.16
+   PANEL · DA BOX                                                 v2.16.1
    Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.16.1: pdf.js en comun/ (pdf.min.mjs, pdf.worker.min.mjs), donde quedó en el repo · si el PDF no se puede leer lo dice (antes decía "escaneado").
    v2.16: 💳 Cobros · 🏦 BANCO NACIÓN: se suelta el RESUMEN MENSUAL en PDF (o un .txt de "Movimientos históricos", con hora) junto con los demás.
           El PDF se lee en esta PC con pdf.js guardado en el repo (comun/pdf/, v4.10.38): no sale de la PC ni se carga nada de afuera.
           Va a la misma hoja que Banco Provincia (Banco movimientos) con clave "BNA|fecha|comprobante|importe" (no se duplica). Sin script nuevo:
@@ -550,8 +551,8 @@ function leerBNA(lineas){
 }
 /* PDF → renglones: junta los textos de cada página por altura (y) y los ordena de izquierda a derecha */
 async function pdfRenglones(buf){
-  const pdfjs = await import("./comun/pdf/pdf.min.mjs?v=4.10.38");
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL("./comun/pdf/pdf.worker.min.mjs?v=4.10.38", location.href).href;
+  const pdfjs = await import("./comun/pdf.min.mjs?v=4.10.38");
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL("./comun/pdf.worker.min.mjs?v=4.10.38", location.href).href;
   const doc = await pdfjs.getDocument({data: buf, isEvalSupported: false, disableFontFace: true}).promise, out = [];
   for(let p = 1; p <= doc.numPages; p++){
     const c = await (await doc.getPage(p)).getTextContent(), filas = new Map();
@@ -575,12 +576,12 @@ function tipoArchivo(nombre, t){
 async function leerCarga(files){
   for(const f of files){
     if(f.size > 12e6){ LA.toast(`${f.name}: demasiado grande`); continue; }
-    const esPdf = /\.pdf$/i.test(f.name) || f.type === "application/pdf"; let t, lineas = null;
+    const esPdf = /\.pdf$/i.test(f.name) || f.type === "application/pdf"; let t, lineas = null, errPdf = false;
     if(esPdf){ try{ LA.LAPIZ(true); lineas = await pdfRenglones(await f.arrayBuffer()); t = lineas.join("\n"); }
-      catch(e){ LA.toast(`${f.name}: no se pudo leer el PDF`, 5000); t = ""; } finally{ LA.LAPIZ(false); } }
+      catch(e){ errPdf = true; console.error(e); LA.toast(`${f.name}: no se pudo leer el PDF`, 5000); t = ""; } finally{ LA.LAPIZ(false); } }
     else { t = await f.text(); if(t.includes("\uFFFD")) t = new TextDecoder("latin1").decode(await f.arrayBuffer()); }   // el banco viene en latin-1
     let tipo = tipoArchivo(f.name, t); if(esPdf && tipo !== "bna") tipo = "";             // de los PDF, solo el resumen de Banco Nación
-    if(!tipo){ porCargar.push({nombre: f.name + (esPdf && !t.replace(/\s/g, "") ? " (escaneado: no tiene texto)" : ""), tipo: "", filas: []}); continue; }
+    if(!tipo){ porCargar.push({nombre: f.name + (errPdf ? " (no se pudo abrir el lector de PDF: ¿están comun/pdf.min.mjs y comun/pdf.worker.min.mjs?)" : esPdf && !t.replace(/\s/g, "") ? " (escaneado: no tiene texto)" : ""), tipo: "", filas: []}); continue; }
     const esBco = tipo === "banco" || tipo === "bna", filas = tipo === "banco" ? leerBanco(t) : tipo === "bna" ? leerBNA(lineas || t.split(/\r?\n/)) : csvFilas(t);
     if(tipo === "bna" && !filas.length){ porCargar.push({nombre: f.name, tipo: "", filas: []}); continue; }
     const fechas = esBco ? filas.map(x => x[0]) : [];
