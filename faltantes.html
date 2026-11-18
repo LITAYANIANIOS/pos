@@ -12,10 +12,11 @@
 <script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   FALTANTES · DA BOX                                              v4.5
+   FALTANTES · DA BOX                                              v4.6
    Estilo Keep: una NOTA por sucursal con renglones (cantidad + producto). Tocar un renglón = qué hacer con él.
    📦 Reparto (Roman y Vivi): ve las notas de todas las sucursales y reparte.
    🛒 Compras (Joa): nota "Para pedir" (sumada y SIN sucursal) + notas propias por proveedor o tema. Tildar = agregado al pedido.
+   v4.6: el buscador del catálogo es OPCIONAL (🔎 al lado del campo). Por defecto se anota lo que se escribe, sin cargar el catálogo: más rápido.
    v4.5: "Pedido armado" pasa a llamarse 📦 Preparado (en la caja o salió del depósito = un solo paso). "Pedido al proveedor" ya no es un paso
          aparte: para Roman y las sucursales, todo lo que Joa consigue se ve 🛒 En compras (Joa ubica por proveedor = eso es el pedido).
          La vista de Joa (notas + tildar) no cambia en esta versión. No necesita script nuevo (sigue con v3.54).
@@ -114,6 +115,8 @@ body.v-local :is(#vivi,#tips,#bTablero,#notas,#vista,.solo-equipo){display:none!
 .l-add .mas{width:24px;color:var(--margen);font-size:22px;font-weight:300;line-height:1}
 .l-add input{flex:1;min-width:0;border:0;border-bottom:2px solid var(--regla);background:transparent;padding:10px 2px;font-size:17px;color:var(--ink)}
 .l-add input:focus{outline:none;border-bottom-color:var(--ink)}
+.l-bus{border:0;background:none;font-size:16px;padding:6px 4px;cursor:pointer;opacity:.5}
+.l-bus[aria-pressed="true"]{opacity:1}
 .l-sug{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
 .l-sug button{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:13.5px;color:var(--ink);text-align:left}
 .l-sug button:hover,.l-sug button:focus-visible{background:var(--ink);color:var(--bg);outline:none}
@@ -259,7 +262,7 @@ body.v-compras .ln[draggable="true"]{cursor:grab} .ln.arrastrando{opacity:.4}
     <div class="hoja">
       <span class="cinta" aria-hidden="true"></span>
       <h2><span id="lTit">Faltantes</span><small id="lCuenta"></small></h2>
-      <div class="l-add"><span class="mas" aria-hidden="true">+</span><input id="lTxt" autocomplete="off" maxlength="120" placeholder="¿Qué falta? Escribí y elegí del catálogo, o anotalo libre" aria-label="Qué falta" enterkeyhint="send"></div>
+      <div class="l-add"><span class="mas" aria-hidden="true">+</span><input id="lTxt" autocomplete="off" maxlength="120" placeholder="¿Qué falta? (código o descripción)" aria-label="Qué falta" enterkeyhint="send"><button type="button" id="lBuscar" class="l-bus" aria-pressed="false" title="Buscar en el catálogo (opcional): para elegir el nombre exacto">🔎</button></div>
       <div class="l-sug" id="lSug" hidden></div>
       <div class="l-opc">
         <input id="lObs" autocomplete="off" maxlength="200" placeholder="Nota opcional: cuántos, color, para quién" aria-label="Nota">
@@ -442,7 +445,7 @@ function renderLocal(){
   $("#lList").innerHTML = (pend.map(fila).join("") || (armado.length || compras.length ? "" : `<li class="empty">No falta nada. Anotá arriba cuando se termine algo.</li>`)) + etapa("armado", armado) + etapa("compras", compras);
   $("#lCuenta").textContent = pend.length ? `${pend.length} sin repartir` : "";
   $("#lUrg").setAttribute("aria-pressed", lUrgOn);
-  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. Roman reparte lo anotado. · v4.5`;
+  $("#info").textContent = `${demo ? "🎓 Datos de prueba · " : ""}Actualizado ${hace(D.generado)}. Roman reparte lo anotado. · v4.6`;
 }
 async function anotarLocal(lineas){
   const txt = $("#lTxt").value.trim().replace(/\s+/g, " "), obs = $("#lObs").value.trim();
@@ -480,7 +483,7 @@ $("#local").addEventListener("click", e => {
   else estadoLocal(c, "No se trae");                                       // v4.1: con 5 s para deshacer, sin pregunta
 });
 /* 🔎 mientras escribe: productos del Catálogo (↓ para elegir; Enter en uno = queda el nombre exacto) */
-let lCat = null, lSugL = [];
+let lCat = null, lSugL = [], lBuscarOn = false;
 async function catalogoL(){ if(lCat) return lCat; try{ const r = await api("precios"); lCat = (r.items || []).map(x => ({nombre: x.nombre, precio: x.precio, k: norm(x.nombre + " " + (x.cod || ""))})); }catch(e){ lCat = []; } return lCat; }
 async function sugerirL(){
   const t = norm($("#lTxt").value).trim().split(/\s+/).filter(w => w.length > 1);
@@ -488,7 +491,9 @@ async function sugerirL(){
   const cat = await catalogoL(); lSugL = cat.filter(x => t.every(w => x.k.includes(w))).sort((a, b) => a.nombre.length - b.nombre.length).slice(0, 6);
   $("#lSug").innerHTML = lSugL.map((x, i) => `<button type="button" data-ls="${i}">${esc(x.nombre)}<small>${x.precio ? LA.money(x.precio) : ""}</small></button>`).join(""); $("#lSug").hidden = !lSugL.length;
 }
-let lT; $("#lTxt").addEventListener("input", () => { lDup = ""; clearTimeout(lT); lT = setTimeout(sugerirL, 120); });
+let lT; $("#lTxt").addEventListener("input", () => { lDup = ""; clearTimeout(lT); if(!lBuscarOn){ $("#lSug").hidden = true; return; } lT = setTimeout(sugerirL, 120); });
+/* v4.6: 🔎 opcional. Apagado = no se carga el catálogo ni se sugiere nada */
+$("#lBuscar").onclick = () => { lBuscarOn = !lBuscarOn; $("#lBuscar").setAttribute("aria-pressed", lBuscarOn); if(lBuscarOn) sugerirL(); else { $("#lSug").hidden = true; lSugL = []; } $("#lTxt").focus(); };
 $("#lTxt").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); anotarLocal(); } if(e.key === "ArrowDown" && lSugL.length){ e.preventDefault(); $("#lSug button").focus(); } });
 $("#lObs").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); anotarLocal(); } });
 $("#lSug").addEventListener("click", e => { const b = e.target.closest("[data-ls]"); if(!b) return; const x = lSugL[+b.dataset.ls]; if(!x) return;
