@@ -489,7 +489,7 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 /* ---------- 6b2. Presupuestos ---------- */
 .pr-vence{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--muted);font-weight:500}
 .pr-vence input{padding:7px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);color:var(--ink);font:inherit}
-.order-h #prNuevo{margin-left:auto}
+.order-h #prGuardarB{margin-left:auto}   /* v3.64 */
 .pr-guard{list-style:none;margin:0;padding:0 10px 12px;max-height:40vh;overflow:auto}
 .pr-guard li{display:grid;grid-template-columns:minmax(0,1fr) auto 26px;gap:4px 10px;align-items:center;padding:8px;border-radius:var(--r-sm);cursor:pointer}
 .pr-guard li:hover{background:var(--sel)}
@@ -741,14 +741,14 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
     <div class="col-izq">
     <div class="card">
       <div class="form2">
-        <label>Cliente <input id="prCli" autocomplete="off" spellcheck="false" placeholder="Ej: Laura Gómez"></label>
-        <label>Teléfono <input id="prTel" inputmode="tel" autocomplete="off" placeholder="Ej: 336 4123456"></label>
+        <label>Cliente <input id="prCli" list="prCliL" autocomplete="off" spellcheck="false" placeholder="Ej: Laura Gómez"></label>
+        <label>Teléfono <input id="prTel" inputmode="tel" autocomplete="off" placeholder="Ej: 336 4123456"><small class="pr-hint" id="prCliH" hidden></small></label>
         <label>Escuela <input id="prEsc" list="prEscL" autocomplete="off" spellcheck="false" placeholder="Ej: San José"></label>
         <label>Sala / grado <input id="prSala" list="prSalaL" autocomplete="off" spellcheck="false" placeholder="Ej: Sala de 4"><small class="pr-hint">Sala 3 = 1ª sección · 4 = 2ª · 5 = 3ª</small></label>
         <label>Nota <input id="prNota" autocomplete="off" placeholder="Ej: colores, retira el sábado"></label>
         <label>Listas iguales <input id="prN" inputmode="numeric" autocomplete="off" value="1"></label>
       </div>
-      <datalist id="prEscL"></datalist><datalist id="prSalaL"></datalist>
+      <datalist id="prEscL"></datalist><datalist id="prCliL"></datalist><datalist id="prSalaL"></datalist>
       <div class="pr-aviso pr-plant" id="prPlant" hidden></div>
       <label class="pr-vence">Válido hasta <span class="note">opcional</span> <input type="date" id="prVence"> <button class="btn sm" id="prSinFecha" hidden>Quitar</button></label>
       <div class="searchbox" style="margin-top:14px"><svg class="i" viewBox="0 0 24 24" style="color:var(--muted)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -770,7 +770,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
     </div>
 
     <div class="card">
-      <div class="order-h"><div class="badge y">📝</div><div><b>Presupuesto</b><span id="prCount">Sin productos</span></div><button class="btn sm" id="prOtra" title="Otra lista para el mismo cliente">＋ Otra lista</button><button class="btn sm" id="prNuevo">＋ Nuevo</button></div>
+      <div class="order-h"><div class="badge y">📝</div><div><b>Presupuesto</b><span id="prCount">Sin productos</span></div><button class="btn sm" id="prOtra" title="Otra lista para el mismo cliente">＋ Otra lista</button><button class="btn sm" id="prGuardarB" title="Guardar en esta PC y en la planilla">💾 Guardar</button><button class="btn sm" id="prNuevo">＋ Nuevo</button></div>
       <div class="pr-aviso" id="prAviso" hidden></div>
       <ul class="lines" id="prLines"></ul>
       <div class="empty" id="prEmpty">🔍 Buscá productos a la izquierda.<br><small>Se guarda en esta PC y en la planilla: lo encuentran todas las sucursales.</small></div>
@@ -1241,7 +1241,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-20 v3.63";   // v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-20 v3.65";   // v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -3139,7 +3139,7 @@ async function imprimirEtiquetas(){
 const PRESU_MAX = 80;
 let presus = leer("presus", []), pr = null, pFound = [], pSel = 0;
 const cfgDesc = () => (cat && cat.config) || {};      // descuentos por defecto: hoja Configuración de la planilla
-let plants = leer("plantillas", {t:0, items:[]}), prRem = [], prSyncT = null;   // v3.60
+let plants = leer("plantillas", {t:0, items:[]}), prRem = [], prSyncT = null, cliSug = null;   // v3.60 · v3.65: cliSug
 const prNuevo = () => ({id:"P-"+Date.now().toString(36), creado:Date.now(), mod:Date.now(), cliente:"", nota:"", vence:"", items:[], vendido:0,
   tel:"", escuela:"", sala:"", n:1, plant:"", grupo:"", suc:cfg.suc || "", cajero:cfg.turno ? cfg.turno.cajero : "",
   descEfe: +cfgDesc().descEfe || 0, descTra: +cfgDesc().descTra || 0});
@@ -3175,9 +3175,11 @@ function prGuardar(){                                   // se guarda solo, en ca
 function prSync(){
   if(DEMO || !pr || prVacio(pr)) return;
   const id = pr.id; clearTimeout(prSyncT);
-  prSyncT = setTimeout(() => { if(queue.some(q => q.tipo === "presupuesto" && q.id === id)) flush(); else encolar("presupuesto", id); }, 5000);
+  const x = pr;
+  prSyncT = setTimeout(() => { if(queue.some(q => q.tipo === "presupuesto" && q.id === id)) flush(); else encolar("presupuesto", id); cliLocal(x); }, 5000);   // v3.65: cliLocal
 }
 function prAbrir(x){
+  cliSug = null;                                                                            // v3.65
   pr = x ? JSON.parse(JSON.stringify(x)) : prNuevo();
   $("#prCli").value = pr.cliente; $("#prNota").value = pr.nota; $("#prVence").value = pr.vence;
   $("#prTel").value = pr.tel || ""; $("#prEsc").value = pr.escuela || ""; $("#prSala").value = pr.sala || ""; $("#prN").value = pr.n || 1;
@@ -3210,7 +3212,7 @@ function renderPresu(){
   $("#prCount").textContent = pr.items.length ? `${pr.items.length} producto${pr.items.length>1?"s":""} · ${u} u.` + ((+pr.n || 1) > 1 ? ` · ×${pr.n} listas` : "") + (pr.vendido ? " · ✓ ya pasado a la venta" : "") : "Sin productos";
   const ch = prCambios();
   $("#prAviso").hidden = !ch.length;
-  renderPlant();
+  renderPlant(); renderCli();
   if(ch.length) $("#prAviso").innerHTML = `<span>⚠️ ${ch.length} precio${ch.length>1?"s cambiaron":" cambió"} desde el ${new Date(pr.creado).toLocaleDateString("es-AR")}</span><button class="btn sm" id="prAct">Actualizar precios</button>`;
   renderGuardados();
 }
@@ -3282,14 +3284,26 @@ $("#prAviso").addEventListener("click", e => {
 /* v3.62: antes de dejar el presupuesto actual (queda guardado) tiene que tener nombre */
 function prSalir(id){                                   // v3.63: nombre y teléfono
   if(!pr || id === pr.id || !pr.items.length) return true;
+  return prCompleto("pasar a otro presupuesto");
+}
+function prCompleto(para){
   const sinNom = !pr.cliente.trim(), sinTel = String(pr.tel || "").replace(/\D/g, "").length < 7;
   if(!sinNom && !sinTel) return true;
   $("#prCli").classList.toggle("pr-falta", sinNom); $("#prTel").classList.toggle("pr-falta", sinTel);
   (sinNom ? $("#prCli") : $("#prTel")).focus();
-  toast(`✋ Falta ${sinNom && sinTel ? "el nombre y el teléfono" : sinNom ? "el nombre" : "el teléfono"} del cliente. Completalo antes de pasar a otro presupuesto`, 5000); return false;
+  toast(`✋ Falta ${sinNom && sinTel ? "el nombre y el teléfono" : sinNom ? "el nombre" : "el teléfono"} del cliente. Completalo antes de ${para}`, 5000); return false;
 }
 ["#prCli","#prTel"].forEach(s => $(s).addEventListener("input", () => $(s).classList.remove("pr-falta")));
 $("#prNuevo").onclick = () => { if(prSalir()) prAbrir(null); };
+/* v3.64: 💾 Guardar — para quedarse tranquilo: guarda y manda a la planilla en el momento (sin esperar los 5 s) */
+$("#prGuardarB").onclick = () => {
+  if(!pr || prVacio(pr)){ toast("No hay nada para guardar todavía"); return; }
+  if(!prCompleto("guardar")) return;
+  prGuardar(); clearTimeout(prSyncT);
+  if(DEMO){ toast("💾 Guardado en esta PC (demo: no va a la planilla)"); return; }
+  if(queue.some(q => q.tipo === "presupuesto" && q.id === pr.id)) flush(); else encolar("presupuesto", pr.id);
+  toast("💾 Guardado en esta PC y enviado a la planilla");
+};
 $("#prGToggle").onclick = () => { const ab = $("#prGuard").hidden; $("#prGuard").hidden = !ab; $("#prBusBox").hidden = !ab; if(!ab) $("#prRemoto").hidden = true; $("#prGToggle").setAttribute("aria-expanded", ab); $("#prGFl").textContent = ab ? "▾" : "▸"; };
 $("#prGuard").addEventListener("click", e => {
   const d = e.target.closest("[data-del]");
@@ -3406,6 +3420,10 @@ $("#imgOverlay").addEventListener("click", e => { if(e.target.id === "imgOverlay
    Una por escuela + sala + temporada (desde septiembre se arma la del año siguiente). Se guardan en la planilla (hoja Plantillas listas)
    y las ven todas las sucursales. Al cargar una, los precios salen del catálogo de hoy. */
 const SALAS = ["Maternal","Sala de 3","Sala de 4","Sala de 5","Multiedad","1º grado","2º grado","3º grado","4º grado","5º grado","6º grado"];
+const DEMO_ESC = [{e:"San José", o:"", n:"Inicial y Primario"}, {e:"Jardín 920 · Normal R. Obligado", o:"920 · Jardín 920 · Normal · Rafael Obligado", n:"Inicial"},
+  {e:"Escuela 43 · Dr. Maximiano Vázquez", o:"43 · EP 43 · Escuela 43", n:"Primario"},
+  {e:"Escuela 49 · Rafael Obligado", o:"49 · Normal · Escuela Normal", n:"Primario"}];   // v3.65
+const DEMO_CLI = [{t:"3364123456", n:"Laura Gómez", e:"San José", p:2, c:1}];
 const DEMO_PLANT = [{id:"PL-demo", escuela:"San José", sala:"Sala de 4", anio:2027, usos:3, ts:Date.now(),
   items:[{cod:"7792001", nombre:"Cuaderno Rivadavia ABC tapa dura 50h", cat:"CUADERNOS ABC", cant:2, precio:6900}, {cod:"7792020", nombre:"Plasticola 40g", cat:"ADHESIVOS", cant:1, precio:1300}]}];
 const plLimpio = s => norm(String(s || "")).replace(/[^a-z0-9]+/g, " ").trim();
@@ -3432,18 +3450,74 @@ function renderPlant(){
 }
 function renderDatalists(){
   const u = a => [...new Set(a.map(s => String(s || "").trim()).filter(Boolean))].sort((x,y) => x.localeCompare(y, "es"));
-  $("#prEscL").innerHTML = u([...plants.items.map(p => p.escuela), ...presus.map(x => x.escuela)]).map(s => `<option value="${esc(s)}">`).join("");
+  const oficiales = plants.esc || [], ofK = new Set(oficiales.map(e => plLimpio(e.e)));                             // v3.65: primero las de la hoja Escuelas
+  $("#prEscL").innerHTML = oficiales.map(e => `<option value="${esc(e.e)}" label="${esc([e.o, e.n].filter(Boolean).join(" · ").slice(0, 70))}">`).join("")
+    + u([...plants.items.map(p => p.escuela), ...presus.map(x => x.escuela)]).filter(s => !ofK.has(plLimpio(s))).map(s => `<option value="${esc(s)}">`).join("");
+  $("#prCliL").innerHTML = (plants.cli || []).slice(-1500).map(c => `<option value="${esc(c.n)}" label="${esc(c.t + (c.e ? " · " + c.e : ""))}">`).join("");
   $("#prSalaL").innerHTML = u([...SALAS, ...plants.items.map(p => p.sala)]).map(s => `<option value="${esc(s)}"${SECC[s] ? ` label="${SECC[s]}"` : ""}>`).join("");
 }
 async function cargarPlantillas(){
-  if(DEMO){ if(!plants.items.length) plants = {t:Date.now(), items:DEMO_PLANT}; }
+  if(DEMO){ if(!plants.items.length) plants = {t:Date.now(), items:DEMO_PLANT}; if(!plants.esc) plants.esc = DEMO_ESC; if(!plants.cli) plants.cli = DEMO_CLI; }
   else if(Date.now() - plants.t > 10*60000 && cfg.url){
     try{ const r = await api("plantillas"); if(r && Array.isArray(r.plantillas)){
       const pend = plants.items.filter(p => queue.some(q => q.tipo === "plantilla" && q.id === p.id));          // las que todavía no salieron de esta PC
-      plants = {t:Date.now(), items: r.plantillas.filter(p => !pend.some(x => x.id === p.id)).concat(pend)}; guardar("plantillas", plants); } }catch(e){}
+      plants = {t:Date.now(), items: r.plantillas.filter(p => !pend.some(x => x.id === p.id)).concat(pend),
+                esc: r.escuelas || plants.esc || [], cli: (r.clientes || []).concat((plants.cli || []).filter(c => c.local && !(r.clientes || []).some(x => x.t === c.t)))};   // v3.65
+      guardar("plantillas", plants); } }catch(e){}
   }
-  renderDatalists(); if(pr) renderPlant();
+  renderDatalists(); if(pr){ renderPlant(); renderCli(); }
 }
+/* ---------- v3.65 · 🏫 ESCUELA SIEMPRE ESCRITA IGUAL y 👤 CLIENTES DE LISTAS ----------
+   Escuela: al salir del campo, si coincide con el nombre o con "otros nombres" de la hoja Escuelas ("920", "normal", "ep 43"),
+   queda el nombre de la hoja. Si no está, queda con mayúscula inicial ("don bosco" → "Don Bosco").
+   Clientes de listas (hoja aparte en la planilla, por teléfono): con el teléfono o el nombre completa lo que falte. */
+const MINUS = new Set(["de","del","la","las","los","y","e"]);
+const titulo = s => String(s || "").trim().replace(/\s+/g, " ").toLowerCase().split(" ").map((w,i) => i && MINUS.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+function escCanon(t){
+  const k = plLimpio(t); if(!k) return "";
+  let l = (plants.esc || []).filter(x => plLimpio(x.e) === k || String(x.o || "").split("·").some(a => plLimpio(a) === k));
+  if(l.length > 1 && pr && pr.sala){ const ini = !/grado/i.test(pr.sala); l = l.filter(x => !x.n || (ini ? /inicial/i : /primario/i).test(x.n)); }   // "normal": jardín o primaria según la sala
+  if(l.length === 1) return l[0].e;
+  if(l.length > 1) return String(t).trim();                                                 // dos posibles: queda como está y la lista muestra las dos
+  return t === String(t).toLowerCase() || t === String(t).toUpperCase() ? titulo(t) : String(t).trim();   // si ya tiene mayúsculas a gusto, se respeta
+}
+const telDig = t => String(t || "").replace(/\D/g, "");
+function cliBuscar(tel){
+  const d = telDig(tel); if(d.length < 7) return null; const l = plants.cli || [];
+  return l.find(c => c.t === d) || l.find(c => c.t.length >= 7 && (c.t.endsWith(d) || d.endsWith(c.t))) || null;
+}
+//                                                        cliSug: sugerido por nombre: se usa solo si el cajero toca "Usar" (no se mete solo en el teléfono)
+function renderCli(){
+  const b = $("#prCliH"), c = pr && cliBuscar(pr.tel);
+  if(c){ cliSug = null; b.hidden = false; b.textContent = `👤 Ya es cliente: ${c.n}${c.e ? " · " + c.e : ""} · ${c.p} presupuesto${c.p === 1 ? "" : "s"}${c.c ? " · compró" : ""}`; return; }
+  if(cliSug && !telDig(pr.tel)){ b.hidden = false; b.innerHTML = `👤 ¿Es ${esc(cliSug.n)} · ${esc(cliSug.t)}? <a href="#" id="prCliUsar">Usar</a>`; return; }
+  b.hidden = true;
+}
+function cliCompletar(c){                                // completa solo lo vacío: nunca pisa lo que escribió el cajero
+  if(!c) return; let cambio = false;
+  if(!pr.cliente.trim()){ pr.cliente = c.n; $("#prCli").value = c.n; cambio = true; }
+  if(!telDig(pr.tel)){ pr.tel = c.t; $("#prTel").value = c.t; cambio = true; }
+  if(!String(pr.escuela || "").trim() && c.e){ pr.escuela = c.e; $("#prEsc").value = c.e; cambio = true; }
+  if(cambio){ prGuardar(); renderPlant(); toast("👤 Cliente de listas: completé los datos"); }
+  renderCli();
+}
+function cliLocal(x){                                    // lo que se carga en esta PC se reconoce enseguida (la planilla manda en la próxima carga)
+  const d = telDig(x.tel); if(d.length < 7 || !x.cliente.trim()) return;
+  const l = plants.cli || (plants.cli = []), c = l.find(y => y.t === d);
+  if(c){ c.n = x.cliente.trim(); if(x.escuela) c.e = x.escuela; }
+  else l.push({t:d, n:x.cliente.trim(), e:x.escuela || "", p:1, c:0, local:1});
+  guardar("plantillas", plants);
+}
+$("#prEsc").addEventListener("change", () => { const v = escCanon($("#prEsc").value); $("#prEsc").value = v; pr.escuela = v; prGuardar(); renderPlant(); });
+$("#prSala").addEventListener("change", () => { const v = escCanon(pr.escuela); if(v && v !== pr.escuela){ pr.escuela = v; $("#prEsc").value = v; prGuardar(); renderPlant(); } });
+$("#prTel").addEventListener("input", () => { const c = cliBuscar(pr.tel); if(c && !pr.cliente.trim()) cliCompletar(c); else renderCli(); });
+$("#prCli").addEventListener("change", () => {
+  if(telDig(pr.tel)) return; const k = plLimpio(pr.cliente), l = (plants.cli || []).filter(c => plLimpio(c.n) === k);
+  cliSug = l.length === 1 ? l[0] : null; renderCli();
+});
+$("#prCliH").addEventListener("mousedown", e => { if(e.target.closest("#prCliUsar")) e.preventDefault(); });   // no saca el foco: si no, el "change" redibuja y el clic se pierde
+$("#prCliH").addEventListener("click", e => { if(!e.target.closest("#prCliUsar")) return; e.preventDefault(); const c = cliSug; cliSug = null; cliCompletar(c); });
+
 function plCargar(p){
   pr.items = JSON.parse(JSON.stringify(p.items)).map(l => {                      // precio de hoy del catálogo (si el producto sigue)
     if(l.libre || l.abierto) return l; const c = pool.find(x => x.cod === l.cod && !x._open);
@@ -3481,7 +3555,7 @@ async function prBuscar(){
   if(q.length < 3){ toast("Escribí al menos 3 letras o números"); $("#prBus").focus(); return; }
   if(DEMO){ toast("En la demo no hay planilla"); return; }
   try{ const r = await api("presupuestos", {q, _vis:1});
-    if(r && r.error){ toast(/desconocida/.test(r.error) ? "Falta actualizar el script de la planilla (v3.56)" : r.error, 5000); return; }
+    if(r && r.error){ toast(/desconocida/.test(r.error) ? "Falta actualizar el script de la planilla (v3.58)" : r.error, 5000); return; }
     prRem = (r && r.presupuestos) || []; }
   catch(e){ toast(ERR_CONEXION[e.tipo] || "No se pudo buscar", 5000); return; }
   const ul = $("#prRemoto"); ul.hidden = false;
