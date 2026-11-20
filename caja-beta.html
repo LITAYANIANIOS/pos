@@ -505,6 +505,9 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 #prVentaBar .btn{flex-direction:column;gap:2px;line-height:1.2}
 #prVentaBar .btn small{font-weight:500;opacity:.8}
 .pr-aviso{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;background:var(--warn-soft);color:var(--warn);border-radius:var(--r-sm);padding:10px 12px;font-weight:600;font-size:13px;margin-top:12px}
+.pr-bus{display:flex;gap:8px;padding:0 10px 10px}   /* v3.60 */
+.pr-bus input{flex:1;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);color:var(--ink);font:inherit}
+.pr-plant{background:var(--accent-soft);color:var(--ink)}
 .pr-img{max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:var(--r-sm);margin:12px 0;background:var(--surface-2)}
 .pr-img img{display:block;width:100%}
 .vcard .antes{display:block;font-size:11px;color:var(--warn);font-weight:600}
@@ -736,8 +739,14 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
     <div class="card">
       <div class="form2">
         <label>Cliente <input id="prCli" autocomplete="off" spellcheck="false" placeholder="Ej: Laura Gómez"></label>
-        <label>Nota <input id="prNota" autocomplete="off" placeholder="Ej: Colegio Nacional · 3er grado"></label>
+        <label>Teléfono <input id="prTel" inputmode="tel" autocomplete="off" placeholder="Ej: 336 4123456"></label>
+        <label>Escuela <input id="prEsc" list="prEscL" autocomplete="off" spellcheck="false" placeholder="Ej: San José"></label>
+        <label>Sala / grado <input id="prSala" list="prSalaL" autocomplete="off" spellcheck="false" placeholder="Ej: Sala de 4"></label>
+        <label>Nota <input id="prNota" autocomplete="off" placeholder="Ej: colores, retira el sábado"></label>
+        <label>Listas iguales <input id="prN" inputmode="numeric" autocomplete="off" value="1"></label>
       </div>
+      <datalist id="prEscL"></datalist><datalist id="prSalaL"></datalist>
+      <div class="pr-aviso pr-plant" id="prPlant" hidden></div>
       <label class="pr-vence">Válido hasta <span class="note">opcional</span> <input type="date" id="prVence"> <button class="btn sm" id="prSinFecha" hidden>Quitar</button></label>
       <div class="searchbox" style="margin-top:14px"><svg class="i" viewBox="0 0 24 24" style="color:var(--muted)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         <input id="pq" class="search" autocomplete="off" spellcheck="false" placeholder="Buscar producto o código…  (ej: 3*cuaderno)" aria-label="Buscar producto para el presupuesto"></div>
@@ -752,14 +761,16 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
     <div class="card calc">
       <button class="calc-h" id="prGToggle" aria-expanded="false"><span>📂 Guardados en esta PC</span><span class="pill" id="prGN">0</span><span class="fl" id="prGFl">▸</span></button>
       <ul class="pr-guard" id="prGuard" hidden></ul>
+      <div class="pr-bus" id="prBusBox" hidden><input id="prBus" autocomplete="off" spellcheck="false" placeholder="Buscar en todas las sucursales: nombre, teléfono o escuela"><button class="btn sm" id="prBusBtn">🔎 Buscar</button></div>
+      <ul class="pr-guard" id="prRemoto" hidden></ul>
     </div>
     </div>
 
     <div class="card">
-      <div class="order-h"><div class="badge y">📝</div><div><b>Presupuesto</b><span id="prCount">Sin productos</span></div><button class="btn sm" id="prNuevo">＋ Nuevo</button></div>
+      <div class="order-h"><div class="badge y">📝</div><div><b>Presupuesto</b><span id="prCount">Sin productos</span></div><button class="btn sm" id="prOtra" title="Otra lista para el mismo cliente">＋ Otra lista</button><button class="btn sm" id="prNuevo">＋ Nuevo</button></div>
       <div class="pr-aviso" id="prAviso" hidden></div>
       <ul class="lines" id="prLines"></ul>
-      <div class="empty" id="prEmpty">🔍 Buscá productos a la izquierda.<br><small>Se guarda solo en esta PC mientras lo armás.</small></div>
+      <div class="empty" id="prEmpty">🔍 Buscá productos a la izquierda.<br><small>Se guarda en esta PC y en la planilla: lo encuentran todas las sucursales.</small></div>
       <div class="total"><span id="prTotL">Total</span><b id="prTot">$ 0</b></div>
       <div class="pr-desc">
         <label>💵 Efectivo <span>−<input id="prDE" inputmode="decimal" autocomplete="off" placeholder="0">%</span></label><b id="prEfe">—</b>
@@ -769,6 +780,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
         <button class="btn" id="prImg">🖼️ Imagen</button>
         <button class="btn" id="prWa">💬 WhatsApp</button>
         <button class="btn" id="prPrint">🖨️ Imprimir</button>
+        <button class="btn" id="prPlantG">📚 Guardar plantilla</button>
       </div>
       <div class="bar2" id="prVentaBar"></div>
     </div>
@@ -1226,7 +1238,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-20 v3.59";   // v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-20 v3.60";   // v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1703,7 +1715,7 @@ function showTab(t){
   Object.keys(TABS).forEach(x => $("#tab-"+x).hidden = x !== t);
   $("#titulo").innerHTML = `<i class="emo">${TABS[t][0]}</i>${TABS[t][1]}`;
   if(t==="venta"){ focusQ(); setTimeout(altoCarrito, 0); } if(t==="catalogo"){ renderCatalogo(); $("#cq").focus(); } if(t==="copias"){ renderCopias(); $("#cpPag").focus(); } if(t==="kiosco"){ calcKiosco(); $("#kCosto").focus(); } if(t==="ventas") cargarRemotas(); if(t==="ventas") renderVentas(); if(t==="ctacte"){ renderCC(); $("#ccQ").focus(); } if(t==="falt"){ renderFalt(); cargarFalt(); $("#flTxt").focus(); } if(t==="presu"){ renderPresu(); $("#pq").focus(); }
-  renderEtqBar(); if(t==="cierre") renderCierre(); if(t==="ajustes") renderAjustes();
+  renderEtqBar(); if(t==="presu") cargarPlantillas(); if(t==="cierre") renderCierre(); if(t==="ajustes") renderAjustes();
   $("#bIrCierre").hidden = t !== "venta"; $("#bVolverVenta").hidden = t !== "cierre"; $("#bGasto").hidden = !["venta","cierre"].includes(t);   // el cierre se abre desde Venta y vuelve a Venta
 }
 
@@ -3117,17 +3129,20 @@ async function imprimirEtiquetas(){
 
 /* =====================================================================
    12e. PRESUPUESTOS (listas escolares, pedidos)
-   Se arma con el mismo buscador de la venta. Se guarda solo en esta PC (últimos 40).
+   Se arma con el mismo buscador de la venta. Se guarda en esta PC (últimos 80) y en la planilla (hoja Presupuestos, v3.60).
+   v3.60: teléfono, escuela, sala, ×N listas iguales · 📚 plantillas por escuela + sala (hoja Plantillas listas) · buscar en todas las sucursales.
    Sale como imagen, texto para WhatsApp o impreso, y pasa a la venta con un botón.
    ===================================================================== */
-const PRESU_MAX = 40;
+const PRESU_MAX = 80;
 let presus = leer("presus", []), pr = null, pFound = [], pSel = 0;
 const cfgDesc = () => (cat && cat.config) || {};      // descuentos por defecto: hoja Configuración de la planilla
+let plants = leer("plantillas", {t:0, items:[]}), prRem = [], prSyncT = null;   // v3.60
 const prNuevo = () => ({id:"P-"+Date.now().toString(36), creado:Date.now(), mod:Date.now(), cliente:"", nota:"", vence:"", items:[], vendido:0,
+  tel:"", escuela:"", sala:"", n:1, plant:"", grupo:"", suc:cfg.suc || "", cajero:cfg.turno ? cfg.turno.cajero : "",
   descEfe: +cfgDesc().descEfe || 0, descTra: +cfgDesc().descTra || 0});
 /* precios del presupuesto: lista (tarjetas) y, si hay descuento, efectivo y transferencia. Redondeo ↑ como el catálogo */
 function prOpciones(x){
-  const lista = Math.round(x.items.reduce((a,l) => a + subt(l), 0)), e = +x.descEfe || 0, t = +x.descTra || 0;
+  const lista = Math.round(x.items.reduce((a,l) => a + subt(l), 0) * (+x.n || 1)), e = +x.descEfe || 0, t = +x.descTra || 0;   // v3.60: × listas iguales
   const con = d => Math.ceil(lista * (1 - d/100) / REDONDEO) * REDONDEO;
   return [{k:"lista", l: e||t ? "Precio de lista" : "Total", det: !(e||t) ? "" : t ? "Tarjeta de crédito o débito" : "Tarjeta o transferencia", d:0, total:lista, medio:"postnet"},
           ...(e > 0 ? [{k:"efe", l:`Efectivo (−${e}%)`, det:"", d:e, total:con(e), medio:"efectivo"}] : []),
@@ -3141,18 +3156,28 @@ function renderPrecios(){
   $("#prVentaBar").innerHTML = op.length === 1 ? `<button class="btn primary" data-pv="lista">🛒 Pasar a la venta</button>`
     : op.map(o => `<button class="btn${o.k==="lista" ? "" : " primary"}" data-pv="${o.k}">🛒 ${{lista:"Lista", efe:"Efectivo", tra:"Transferencia"}[o.k]}<small>${money(o.total)}</small></button>`).join("");
 }
-const prTotal = x => Math.round(x.items.reduce((a,l) => a + subt(l), 0));
-const prVacio = x => !x.items.length && !x.cliente.trim() && !x.nota.trim();
+const prTotal = x => Math.round(x.items.reduce((a,l) => a + subt(l), 0) * (+x.n || 1));
+const prUna = x => Math.round(x.items.reduce((a,l) => a + subt(l), 0));               // v3.60: total de UNA lista
+const prVacio = x => !x.items.length && !x.cliente.trim() && !x.nota.trim() && !String(x.tel || "").trim();
+/* v3.60: escuela · sala · N listas · nota (para WhatsApp, imagen e impresión) */
+const prDet = x => [[x.escuela, x.sala].map(s => String(s || "").trim()).filter(Boolean).join(" · "), (+x.n || 1) > 1 ? `${x.n} listas iguales` : "", String(x.nota || "").trim()].filter(Boolean).join(" · ");
 function prGuardar(){                                   // se guarda solo, en cada cambio
   pr.mod = Date.now();
   presus = presus.filter(x => x.id !== pr.id);
   if(!prVacio(pr)) presus.unshift(pr);
   presus = presus.slice(0, PRESU_MAX);
-  guardar("presus", presus); renderGuardados();
+  guardar("presus", presus); renderGuardados(); prSync();
+}
+/* v3.60: a la planilla, 5 s después del último cambio (por la cola: si no hay internet sale cuando vuelva) */
+function prSync(){
+  if(DEMO || !pr || prVacio(pr)) return;
+  const id = pr.id; clearTimeout(prSyncT);
+  prSyncT = setTimeout(() => { if(queue.some(q => q.tipo === "presupuesto" && q.id === id)) flush(); else encolar("presupuesto", id); }, 5000);
 }
 function prAbrir(x){
   pr = x ? JSON.parse(JSON.stringify(x)) : prNuevo();
   $("#prCli").value = pr.cliente; $("#prNota").value = pr.nota; $("#prVence").value = pr.vence;
+  $("#prTel").value = pr.tel || ""; $("#prEsc").value = pr.escuela || ""; $("#prSala").value = pr.sala || ""; $("#prN").value = pr.n || 1;
   $("#pq").value = ""; pFound = []; renderPResults(); renderPresu(); $("#pq").focus();
 }
 /* precios que cambiaron en el catálogo desde que se armó */
@@ -3164,6 +3189,9 @@ function renderPresu(){
   if(!pr){ const ult = presus.find(x => !x.vendido && Date.now() - x.mod < 864e5); pr = ult ? JSON.parse(JSON.stringify(ult)) : prNuevo(); }   // retoma el último del día
   if(pr.cliente !== $("#prCli").value && document.activeElement !== $("#prCli")) $("#prCli").value = pr.cliente;
   if(pr.nota !== $("#prNota").value && document.activeElement !== $("#prNota")) $("#prNota").value = pr.nota;
+  ["tel","escuela","sala","plant","grupo"].forEach(k => { if(pr[k] == null) pr[k] = ""; }); if(!(+pr.n >= 1)) pr.n = 1;   // v3.60: presupuestos de antes
+  [["#prTel","tel"],["#prEsc","escuela"],["#prSala","sala"]].forEach(([id,k]) => { if(document.activeElement !== $(id)) $(id).value = pr[k]; });
+  if(document.activeElement !== $("#prN")) $("#prN").value = pr.n;
   $("#prVence").value = pr.vence; $("#prSinFecha").hidden = !pr.vence;
   if(pr.descEfe == null){ pr.descEfe = +cfgDesc().descEfe || 0; pr.descTra = +cfgDesc().descTra || 0; }   // presupuestos de antes
   if(document.activeElement !== $("#prDE")) $("#prDE").value = pr.descEfe || "";
@@ -3176,16 +3204,17 @@ function renderPresu(){
   $("#prEmpty").hidden = pr.items.length > 0;
   renderPrecios();
   const u = pr.items.reduce((a,b) => a+b.cant, 0);
-  $("#prCount").textContent = pr.items.length ? `${pr.items.length} producto${pr.items.length>1?"s":""} · ${u} u.` + (pr.vendido ? " · ✓ ya pasado a la venta" : "") : "Sin productos";
+  $("#prCount").textContent = pr.items.length ? `${pr.items.length} producto${pr.items.length>1?"s":""} · ${u} u.` + ((+pr.n || 1) > 1 ? ` · ×${pr.n} listas` : "") + (pr.vendido ? " · ✓ ya pasado a la venta" : "") : "Sin productos";
   const ch = prCambios();
   $("#prAviso").hidden = !ch.length;
+  renderPlant();
   if(ch.length) $("#prAviso").innerHTML = `<span>⚠️ ${ch.length} precio${ch.length>1?"s cambiaron":" cambió"} desde el ${new Date(pr.creado).toLocaleDateString("es-AR")}</span><button class="btn sm" id="prAct">Actualizar precios</button>`;
   renderGuardados();
 }
 function renderGuardados(){
   $("#prGN").textContent = presus.length;
   $("#prGuard").innerHTML = presus.map((x,i) => `<li data-i="${i}" class="${pr && x.id===pr.id ? "act" : ""}"><span class="n">${esc(x.cliente || "Sin nombre")}${x.vendido ? " ✓" : ""}</span><span class="t">${money(prTotal(x))}</span><button class="x" data-del="${i}" aria-label="Borrar">✕</button>
-    <span class="sub">${new Date(x.mod).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})} ${hm(new Date(x.mod))} · ${x.items.length} ítem${x.items.length===1?"":"s"}${x.nota ? " · "+esc(x.nota) : ""}${x.vendido ? " · vendido" : ""}</span></li>`).join("")
+    <span class="sub">${new Date(x.mod).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})} ${hm(new Date(x.mod))} · ${x.items.length} ítem${x.items.length===1?"":"s"}${x.tel ? " · 📞 "+esc(x.tel) : ""}${x.escuela ? " · "+esc(x.escuela) : ""}${x.sala ? " "+esc(x.sala) : ""}${(+x.n||1)>1 ? " · ×"+x.n : ""}${x.grupo ? " · 🔗" : ""}${x.nota ? " · "+esc(x.nota) : ""}${x.vendido ? " · vendido" : ""}</span></li>`).join("")
     || `<li class="sub" style="cursor:default">Todavía no hay presupuestos guardados.</li>`;
 }
 function pSearch(){
@@ -3234,17 +3263,21 @@ $("#prLines").addEventListener("keydown", e => { if(e.key==="Enter"||e.key==="Es
 $("#prLines").addEventListener("click", e => { const b = e.target.closest(".x"); if(!b) return; pr.items.splice(+b.dataset.i,1); prGuardar(); renderPresu(); $("#pq").focus(); });
 $("#prCli").addEventListener("input", () => { pr.cliente = $("#prCli").value; prGuardar(); });
 $("#prNota").addEventListener("input", () => { pr.nota = $("#prNota").value; prGuardar(); });
+$("#prTel").addEventListener("input", () => { pr.tel = $("#prTel").value; prGuardar(); });                          // v3.60
+$("#prEsc").addEventListener("input", () => { pr.escuela = $("#prEsc").value; prGuardar(); renderPlant(); });
+$("#prSala").addEventListener("input", () => { pr.sala = $("#prSala").value; prGuardar(); renderPlant(); });
+$("#prN").addEventListener("input", () => { pr.n = Math.max(1, Math.min(50, Math.round(toNum($("#prN").value)) || 1)); renderPrecios(); prGuardar(); renderPresu(); });
 $("#prVence").addEventListener("change", () => { pr.vence = $("#prVence").value; prGuardar(); renderPresu(); });
 [["#prDE","descEfe"],["#prDT","descTra"]].forEach(([id,k]) => $(id).addEventListener("input", () => {
   pr[k] = Math.min(90, Math.max(0, toNum($(id).value))); renderPrecios(); prGuardar(); }));
 $("#prSinFecha").onclick = () => { pr.vence = ""; prGuardar(); renderPresu(); };
-["#prCli","#prNota"].forEach(s => $(s).addEventListener("keydown", e => { if(e.key==="Enter"){ e.preventDefault(); $("#pq").focus(); } }));
+["#prCli","#prNota","#prTel","#prEsc","#prSala","#prN"].forEach(s => $(s).addEventListener("keydown", e => { if(e.key==="Enter"){ e.preventDefault(); $("#pq").focus(); } }));
 $("#prAviso").addEventListener("click", e => {
   if(!e.target.closest("#prAct")) return;
   prCambios().forEach(c => pr.items[c.i].precio = c.precio); pr.creado = Date.now(); prGuardar(); renderPresu(); toast("Precios actualizados");
 });
 $("#prNuevo").onclick = () => prAbrir(null);
-$("#prGToggle").onclick = () => { const ab = $("#prGuard").hidden; $("#prGuard").hidden = !ab; $("#prGToggle").setAttribute("aria-expanded", ab); $("#prGFl").textContent = ab ? "▾" : "▸"; };
+$("#prGToggle").onclick = () => { const ab = $("#prGuard").hidden; $("#prGuard").hidden = !ab; $("#prBusBox").hidden = !ab; if(!ab) $("#prRemoto").hidden = true; $("#prGToggle").setAttribute("aria-expanded", ab); $("#prGFl").textContent = ab ? "▾" : "▸"; };
 $("#prGuard").addEventListener("click", e => {
   const d = e.target.closest("[data-del]");
   if(d){ dobleToque(d, "¿Borrar?", () => { const x = presus[+d.dataset.del]; presus.splice(+d.dataset.del,1); guardar("presus", presus);
@@ -3265,9 +3298,10 @@ $("#prWa").onclick = () => {
   if(!prListo()) return;
   const L = [`*${NEGOCIO.toUpperCase()}* · Presupuesto`, prFecha(pr) + (prSuc() ? ` · Sucursal ${prSuc()}` : "")];
   if(pr.cliente.trim()) L.push(`Cliente: ${pr.cliente.trim()}`);
-  if(pr.nota.trim()) L.push(`_${pr.nota.trim()}_`);
+  if(prDet(pr)) L.push(`_${prDet(pr)}_`);
   L.push("");
   pr.items.forEach(l => L.push(`${l.cant!=1 ? l.cant+" × " : ""}${l.nombre}${conCombo(l) ? " 🏷️ combo" : ""} — ${money(subt(l))}`));
+  if((+pr.n || 1) > 1) L.push(`_Por lista: ${money(prUna(pr))} · ${pr.n} listas iguales_`);   // v3.60
   L.push("");
   prOpciones(pr).forEach(o => L.push(`*${o.l.toUpperCase()}: ${money(o.total)}*` + (o.det ? ` _(${o.det.toLowerCase()})_` : "")));
   if(pr.vence) L.push(`Válido hasta el ${fechaAR(pr.vence)}`);
@@ -3285,8 +3319,9 @@ $("#prPrint").onclick = () => {
     .pd td{border-bottom:1px solid #ddd;padding:5px 4px}.pd .r{text-align:right;white-space:nowrap}.pd .c{text-align:center;width:40px}
     .pd-t{display:flex;justify-content:flex-end;gap:20px;font-size:18px;font-weight:700;margin-top:12px}.pd-f{margin-top:18px;color:#555;font-size:11px}</style>
     <div class="pd"><div class="pd-h"><div><b>${esc(NEGOCIO)}</b><small>Presupuesto${prSuc() ? " · Sucursal "+esc(prSuc()) : ""}</small></div>
-    <div style="text-align:right">${prFecha(pr)}${pr.cliente.trim() ? `<br><b style="font-size:14px">${esc(pr.cliente.trim())}</b>` : ""}${pr.nota.trim() ? `<br>${esc(pr.nota.trim())}` : ""}</div></div>
+    <div style="text-align:right">${prFecha(pr)}${pr.cliente.trim() ? `<br><b style="font-size:14px">${esc(pr.cliente.trim())}</b>` : ""}${prDet(pr) ? `<br>${esc(prDet(pr))}` : ""}</div></div>
     <table><tr><th class="c">Cant.</th><th>Producto</th><th class="r">Precio</th><th class="r">Subtotal</th></tr>${filas}</table>
+    ${(+pr.n || 1) > 1 ? `<div class="pd-t" style="font-size:14px;font-weight:600"><span>Por lista · ${pr.n} listas iguales</span><span>${money(prUna(pr))}</span></div>` : ""}
     ${prOpciones(pr).map((o,i) => `<div class="pd-t"${i ? ' style="font-size:15px;margin-top:4px"' : ""}><span>${esc(o.l)}${o.det ? ` <small style="font-weight:400;color:#555">· ${esc(o.det.toLowerCase())}</small>` : ""}</span><span>${money(o.total)}</span></div>`).join("")}
     <div class="pd-f">${pr.vence ? `Precios válidos hasta el ${fechaAR(pr.vence)}. ` : ""}Presupuesto no válido como factura.</div></div>`, "Presupuesto " + (pr.cliente || ""));
 };
@@ -3296,7 +3331,7 @@ let prImgBlob = null;
 async function prImagen(){
   await fuentesEtq();
   const W = 1080, P = 64, FT = '-apple-system,"Segoe UI",Roboto,Arial,sans-serif', ROW = 86;
-  const cab = 250 + (pr.cliente.trim() ? 52 : 0) + (pr.nota.trim() ? 44 : 0);
+  const cab = 250 + (pr.cliente.trim() ? 52 : 0) + (prDet(pr) ? 44 : 0);
   const ops = prOpciones(pr), H = cab + 30 + pr.items.length*ROW + 230 + (pr.vence ? 40 : 0) + (ops.length-1)*96;
   const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
   const corta = (t, max) => { if(x.measureText(t).width <= max) return t; while(t.length > 1 && x.measureText(t+"…").width > max) t = t.slice(0,-1); return t+"…"; };
@@ -3312,7 +3347,7 @@ async function prImagen(){
   if(prSuc()){ x.font = `26px ${FT}`; x.fillText("Sucursal " + prSuc(), W-P, 120); }
   let y = 245; x.textAlign = "left";
   if(pr.cliente.trim()){ x.fillStyle = "#111"; x.font = `700 38px ${FT}`; x.fillText(corta(pr.cliente.trim(), W-2*P), P, y); y += 52; }
-  if(pr.nota.trim()){ x.fillStyle = "#555"; x.font = `30px ${FT}`; x.fillText(corta(pr.nota.trim(), W-2*P), P, y); y += 44; }
+  if(prDet(pr)){ x.fillStyle = "#555"; x.font = `30px ${FT}`; x.fillText(corta(prDet(pr), W-2*P), P, y); y += 44; }
   y = cab + 10; x.fillStyle = "#e5e5e5"; x.fillRect(P, y, W-2*P, 2); y += 20;
   pr.items.forEach(l => {                                                             // nombre / cant × precio / subtotal
     x.textAlign = "right"; x.fillStyle = "#111"; x.font = `700 32px ${FT}`; const sub = money(subt(l)); x.fillText(sub, W-P, y+ROW/2-4);
@@ -3354,13 +3389,100 @@ $("#imgShare").onclick = async () => { try{ await navigator.share({files:[new Fi
 $("#imgClose").onclick = () => { $("#imgOverlay").hidden = true; };
 $("#imgOverlay").addEventListener("click", e => { if(e.target.id === "imgOverlay") $("#imgOverlay").hidden = true; });
 
+/* ---------- v3.60 · 📚 PLANTILLAS POR ESCUELA + SALA ----------
+   Una por escuela + sala + temporada (desde septiembre se arma la del año siguiente). Se guardan en la planilla (hoja Plantillas listas)
+   y las ven todas las sucursales. Al cargar una, los precios salen del catálogo de hoy. */
+const SALAS = ["Maternal","Sala de 3","Sala de 4","Sala de 5","Multiedad","1º grado","2º grado","3º grado","4º grado","5º grado","6º grado"];
+const DEMO_PLANT = [{id:"PL-demo", escuela:"San José", sala:"Sala de 4", anio:2027, usos:3, ts:Date.now(),
+  items:[{cod:"7792001", nombre:"Cuaderno Rivadavia ABC tapa dura 50h", cat:"CUADERNOS ABC", cant:2, precio:6900}, {cod:"7792020", nombre:"Plasticola 40g", cat:"ADHESIVOS", cant:1, precio:1300}]}];
+const plLimpio = s => norm(String(s || "")).replace(/[^a-z0-9]+/g, " ").trim();
+const plKey = (e, s) => plLimpio(e) + "|" + plLimpio(s);
+const plAnio = () => { const d = new Date(); return d.getMonth() >= 8 ? d.getFullYear() + 1 : d.getFullYear(); };
+function plMatch(x){
+  if(!x || !String(x.escuela || "").trim() || !String(x.sala || "").trim()) return null;
+  const k = plKey(x.escuela, x.sala);
+  return plants.items.filter(p => plKey(p.escuela, p.sala) === k).sort((a,b) => (b.anio - a.anio) || (b.ts - a.ts))[0] || null;
+}
+function renderPlant(){
+  const b = $("#prPlant"), p = pr && plMatch(pr);
+  b.hidden = !p || p.id === pr.plant; if(b.hidden) return;
+  b.innerHTML = `<span>📚 Hay plantilla de ${esc(p.escuela)} · ${esc(p.sala)} (${p.anio}) · ${p.items.length} producto${p.items.length === 1 ? "" : "s"}${p.usos ? ` · usada ${p.usos} ${p.usos === 1 ? "vez" : "veces"}` : ""}</span>
+    <button class="btn sm" id="prPlantC">${pr.items.length ? "Reemplazar productos" : "Cargar"}</button>`;
+}
+function renderDatalists(){
+  const u = a => [...new Set(a.map(s => String(s || "").trim()).filter(Boolean))].sort((x,y) => x.localeCompare(y, "es"));
+  $("#prEscL").innerHTML = u([...plants.items.map(p => p.escuela), ...presus.map(x => x.escuela)]).map(s => `<option value="${esc(s)}">`).join("");
+  $("#prSalaL").innerHTML = u([...SALAS, ...plants.items.map(p => p.sala)]).map(s => `<option value="${esc(s)}">`).join("");
+}
+async function cargarPlantillas(){
+  if(DEMO){ if(!plants.items.length) plants = {t:Date.now(), items:DEMO_PLANT}; }
+  else if(Date.now() - plants.t > 10*60000 && cfg.url){
+    try{ const r = await api("plantillas"); if(r && Array.isArray(r.plantillas)){
+      const pend = plants.items.filter(p => queue.some(q => q.tipo === "plantilla" && q.id === p.id));          // las que todavía no salieron de esta PC
+      plants = {t:Date.now(), items: r.plantillas.filter(p => !pend.some(x => x.id === p.id)).concat(pend)}; guardar("plantillas", plants); } }catch(e){}
+  }
+  renderDatalists(); if(pr) renderPlant();
+}
+function plCargar(p){
+  pr.items = JSON.parse(JSON.stringify(p.items)).map(l => {                      // precio de hoy del catálogo (si el producto sigue)
+    if(l.libre || l.abierto) return l; const c = pool.find(x => x.cod === l.cod && !x._open);
+    return c ? {...l, nombre:c.nombre, cat:c.cat, precio:c.precio, ...(c.combo ? {combo:c.combo} : {})} : l; });
+  pr.plant = p.id; pr.creado = Date.now(); prGuardar(); renderPresu(); toast(`📚 Plantilla cargada · ${p.items.length} productos`); $("#pq").focus();
+}
+$("#prPlant").addEventListener("click", e => {
+  const b = e.target.closest("#prPlantC"), p = plMatch(pr); if(!b || !p) return;
+  pr.items.length ? dobleToque(b, "¿Reemplazar?", () => plCargar(p)) : plCargar(p);
+});
+$("#prPlantG").onclick = e => {
+  if(!prListo()) return;
+  if(!String(pr.escuela).trim() || !String(pr.sala).trim()){ toast("Completá escuela y sala para guardar la plantilla"); (String(pr.escuela).trim() ? $("#prSala") : $("#prEsc")).focus(); return; }
+  const anio = plAnio(), id = "PL-" + plKey(pr.escuela, pr.sala).replace(/\|/g, "_").replace(/ /g, "-") + "-" + anio, ya = plants.items.find(p => p.id === id);
+  const go = () => {
+    const p = {id, escuela:String(pr.escuela).trim(), sala:String(pr.sala).trim(), anio, usos: ya ? ya.usos || 0 : 0, ts:Date.now(), sucursal:cfg.suc || "",
+               por:cfg.turno ? cfg.turno.cajero : "", items:JSON.parse(JSON.stringify(pr.items))};
+    plants.items = plants.items.filter(x => x.id !== id).concat(p); guardar("plantillas", plants);
+    pr.plant = id; prGuardar(); encolar("plantilla", id); renderDatalists(); renderPresu();
+    toast(ya ? "📚 Plantilla actualizada" : "📚 Plantilla guardada: la ven todas las sucursales");
+  };
+  ya && ya.id !== pr.plant ? dobleToque(e.currentTarget, "¿Reemplazar la que ya hay?", go) : go();
+};
+/* ＋ Otra lista: mismo cliente, teléfono y escuela; quedan unidas (🔗) */
+$("#prOtra").onclick = () => {
+  if(prVacio(pr)){ toast("Primero armá la primera lista"); return; }
+  if(!pr.grupo){ pr.grupo = pr.id; prGuardar(); }
+  const b = pr, n = prNuevo(); Object.assign(n, {cliente:b.cliente, tel:b.tel, escuela:b.escuela, grupo:b.grupo});
+  prAbrir(n); prGuardar(); $("#prSala").focus(); toast("🔗 Otra lista para " + (b.cliente.trim() || "el mismo cliente"));
+};
+/* 🔎 buscar en todas las sucursales (hoja Presupuestos) */
+async function prBuscar(){
+  const q = $("#prBus").value.trim();
+  if(q.length < 3){ toast("Escribí al menos 3 letras o números"); $("#prBus").focus(); return; }
+  if(DEMO){ toast("En la demo no hay planilla"); return; }
+  try{ const r = await api("presupuestos", {q, _vis:1});
+    if(r && r.error){ toast(/desconocida/.test(r.error) ? "Falta actualizar el script de la planilla (v3.56)" : r.error, 5000); return; }
+    prRem = (r && r.presupuestos) || []; }
+  catch(e){ toast(ERR_CONEXION[e.tipo] || "No se pudo buscar", 5000); return; }
+  const ul = $("#prRemoto"); ul.hidden = false;
+  ul.innerHTML = prRem.map((x,i) => `<li data-r="${i}"><span class="n">${esc(x.cliente || "Sin nombre")}${x.vendido ? " ✓" : ""}</span><span class="t">${money(x.lista)}</span><span></span>
+    <span class="sub">🏪 ${esc(x.sucursal ? SUC_LBL(x.sucursal) : "")} · ${new Date(x.mod).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})}${x.tel ? " · 📞 "+esc(x.tel) : ""}${x.escuela ? " · "+esc(x.escuela) : ""}${x.sala ? " "+esc(x.sala) : ""}${(+x.n||1)>1 ? " · ×"+x.n : ""}${x.vendido ? " · vendido" : ""}</span></li>`).join("")
+    || `<li class="sub" style="cursor:default">No hay presupuestos con «${esc(q)}».</li>`;
+}
+$("#prBusBtn").onclick = prBuscar;
+$("#prBus").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); e.stopPropagation(); prBuscar(); } });
+$("#prRemoto").addEventListener("click", e => {
+  const li = e.target.closest("li[data-r]"); if(!li) return; const x = prRem[+li.dataset.r]; if(!x) return;
+  const loc = presus.find(y => y.id === x.id);
+  prAbrir(loc && loc.mod >= x.mod ? loc : {...prNuevo(), ...x, vendido: x.vendido ? (x.vendidoTs || Date.now()) : 0});
+  toast("📝 Presupuesto abierto" + (x.sucursal && x.sucursal !== cfg.suc ? " · es de " + SUC_LBL(x.sucursal) : ""));
+});
+
 /* pasa a la venta: se suma a lo que haya en la venta actual */
 /* lista, efectivo o transferencia: los precios de cada línea bajan el % elegido y el cobro arranca en ese medio */
 $("#prVentaBar").addEventListener("click", e => {
   const b = e.target.closest("[data-pv]"); if(!b || !prListo()) return;
   const o = prOpciones(pr).find(x => x.k === b.dataset.pv); if(!o) return;
   if(!$("#cobro").hidden) closeCobro();
-  const lineas = pr.items.map(l => ({cod:l.cod, nombre:l.nombre, cat:l.cat, cant:l.cant, precio:Math.round(l.precio*(1 - o.d/100)), open:false,
+  const lineas = pr.items.map(l => ({cod:l.cod, nombre:l.nombre, cat:l.cat, cant:l.cant * (+pr.n || 1), precio:Math.round(l.precio*(1 - o.d/100)), open:false,
     ...(l.combo ? {combo:escalones(l.combo).map(t => ({q:t.q, p:Math.round(t.p*(1 - o.d/100))}))} : {})}));
   const dif = o.total - lineas.reduce((a,l) => a + subt(l), 0), u = [...lineas].reverse().find(l => l.cant === 1);
   if(o.d && u) u.precio += dif;                                     // el total queda igual al presupuestado
@@ -3854,6 +3976,11 @@ function payload(op){
   if(op.tipo==="gasto"){ const g=gastos.find(x=>x.id===op.id); return g && {...g, tipo:"gasto"}; }
   if(op.tipo==="gastoAnul") return {tipo:"gastoAnul", id:op.id};
   if(op.tipo==="faltante"){ const f=faltantes.find(x=>x.id===op.id); return f && {...f, tipo:"faltante"}; }
+  if(op.tipo==="presupuesto"){ const x = presus.find(y => y.id === op.id); if(!x) return; const o = prOpciones(x), t = k => (o.find(z => z.k === k) || {}).total || "";   // v3.60
+    return {tipo:"presupuesto", id:x.id, creado:x.creado, mod:x.mod, sucursal:x.suc || cfg.suc, cajero:x.cajero || (cfg.turno ? cfg.turno.cajero : ""), cliente:x.cliente, tel:x.tel || "",
+            escuela:x.escuela || "", sala:x.sala || "", n:+x.n || 1, nota:x.nota, plant:x.plant || "", grupo:x.grupo || "", lista:o[0].total, efe:t("efe"), tra:t("tra"),
+            descEfe:x.descEfe, descTra:x.descTra, vence:x.vence || "", vendido:x.vendido || 0, items:x.items}; }
+  if(op.tipo==="plantilla"){ const p = plants.items.find(y => y.id === op.id); return p && {...p, tipo:"plantilla"}; }
   if(op.tipo==="faltanteEstado"){ const x=flEst[op.id]; return x && {tipo:"faltanteEstado", ids:op.id, estado:x.estado, sucursal:cfg.suc, quien:cfg.turno ? cfg.turno.cajero : ""}; }
   if(op.tipo==="ccModificar"){ const m=ccMods.find(x=>x.modId===op.id); return m && {...m, tipo:"ccModificar"}; }
 }
