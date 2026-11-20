@@ -73,6 +73,10 @@ th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:6px
 td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
 td.r,th.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .empty{color:var(--muted);padding:18px 8px;text-align:center}
+/* v3.58 · código escaneado que no está en el catálogo */
+.results li.sincargar{display:block;cursor:default;text-align:left;padding:12px 14px;border:2px solid var(--warn,#d9a400);border-radius:10px;background:var(--surface);line-height:1.45}
+.results li.sincargar b{display:block;font-size:15px;margin-bottom:2px}
+
 .mon{text-align:right;font-variant-numeric:tabular-nums}
 
 /* ---------- 3. Estructura: barra lateral + contenido ---------- */
@@ -1222,7 +1226,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-12 v3.57";   // v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-19 v3.58";   // v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1773,6 +1777,7 @@ function buscarListas(texto){
 }
 function search(){
   const txt = parseQ(q.value).text, todos = buscar(txt);
+  if(sinCargar && norm(txt).trim()) sinCargar = "";   // v3.58: al escribir, se va el aviso
   if(norm(txt).trim() !== listaTxt){ listaTxt = norm(txt).trim(); listaPedida = ""; }
   const quiereListas = listaTxt.length >= 3 && (!todos.length || listaPedida === listaTxt);
   if(quiereListas && !LST.items && !LST.error) cargarListas();
@@ -1784,6 +1789,7 @@ function search(){
 }
 function renderResults(){
   const ul = $("#results");
+  if(sinCargar){ ul.innerHTML = `<li class="sincargar" role="status"><b>❓ El código ${esc(sinCargar)} no está cargado</b>Buscalo por nombre o usá una categoría de arriba. Ya se le avisó a Roman: no hace falta hacer nada más.</li>`; return; }
   if(!q.value.trim()){ ul.innerHTML=""; return; }
   const buscandoL = listaTxt.length >= 3 && (!foundTotal || listaPedida === listaTxt) && LST.cargando && !found.some(p => p._lista);
   if(!found.length){ ul.innerHTML = buscandoL ? `<li class="empty" style="display:block">⏳ No está en el catálogo. Buscando en las listas de proveedores…</li>`
@@ -1825,7 +1831,7 @@ function agregar(p, qty){
   const ex = !p._open && cart.find(l => l.cod === p.cod && l.nombre === p.nombre);
   if(ex) ex.cant += qty;
   else cart.push({cod:p.cod, nombre:p.nombre, cat:p.cat, cant:qty, precio:p._open?0:p.precio, open:p._open, ...(ccEdit ? {edit:true} : {}), ...(p.combo ? {combo:p.combo} : {})});
-  q.value=""; found=[]; renderResults(); renderCart();
+  q.value=""; found=[]; sinCargar=""; renderResults(); renderCart();
   if(!ex && p._open){ const ins=document.querySelectorAll("#lines input.price"); ins[ins.length-1].focus(); } else focusQ();
 }
 const total = () => Math.round(cart.reduce((a,b) => a + subt(b), 0));
@@ -1866,13 +1872,64 @@ $("#lines").addEventListener("click", e => {
   const bl = e.target.closest("[data-bell]"); if(bl){ const l = cart[+bl.dataset.bell]; avisarPrecio({cod:l.cod, nombre:l.nombre, precio:l.precio}); return; }
   const b=e.target.closest(".x"); if(!b) return; cart.splice(+b.dataset.i,1); renderCart(); focusQ(); });
 
+/* v3.58 · LECTOR DE CÓDIGOS. El lector "tipea" muy rápido (menos de 40 ms por tecla) y termina con Enter.
+   · En la búsqueda: un código escaneado agrega SOLO el producto exacto (nunca uno parecido). Si no está cargado,
+     se manda solo un aviso a Roman (una vez por código y por día en esta PC) y la venta sigue: el cajero no escribe nada.
+   · En un campo de números (precio, cantidad, paga con, montos): no se toma, el campo vuelve a como estaba y,
+     en Venta, el código pasa a la búsqueda. Así un EAN (779…) nunca queda como precio o como "paga con". */
+const SCAN = {chars:"", last:0, el:null, antes:null}, SCAN_GAP = 40, SCAN_MIN = 6;
+let qScan = false, sinCargar = "";
+const campoNum = el => !!(el && el.matches && el.matches("input.mon, input.qty, input.price, input[inputmode=numeric], input[inputmode=decimal]"));
+document.addEventListener("keydown", e => {
+  const ahora = performance.now();
+  if(e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey){
+    if(e.repeat || ahora - SCAN.last > SCAN_GAP){ SCAN.chars = ""; SCAN.el = e.target; SCAN.antes = e.target && "value" in e.target ? e.target.value : null; }
+    SCAN.chars += e.key; SCAN.last = ahora; return;
+  }
+  if(e.key !== "Enter"){ if(e.key !== "Shift") SCAN.chars = ""; return; }
+  const esScan = SCAN.chars.length >= SCAN_MIN && ahora - SCAN.last < SCAN_GAP * 2, cod = SCAN.chars.trim(); SCAN.chars = "";
+  if(!esScan) return;
+  const el = e.target;
+  if(el === q){ qScan = true; return; }                        // lo resuelve la búsqueda (solo exacto)
+  if(!campoNum(el)) return;                                    // otros buscadores (catálogo, presupuesto, etiquetas) siguen igual
+  e.preventDefault(); e.stopImmediatePropagation();
+  if(SCAN.el === el && SCAN.antes !== null){ el._largo = 0; el.value = SCAN.antes; el.dispatchEvent(new Event("input", {bubbles:true})); }
+  scanFuera(cod);
+}, true);
+/* números imposibles (10 cifras seguidas o más) en campos de números: se borran. CUIT/DNI queda afuera */
+document.addEventListener("input", e => {
+  const el = e.target; if(!campoNum(el) || el.id === "ncCuit") return;
+  const ahora = performance.now();
+  if(ahora - (el._largo || 0) < 400){ el._largo = ahora; el.value = ""; return; }   // lo que sigue llegando del mismo código también se borra
+  if(/\d{10,}/.test(el.value.replace(/[.\s$]/g, ""))){ el._largo = ahora; el.value = ""; toast("⚠️ Número demasiado largo: ¿escaneaste un código? Se borró el campo", 4000); }
+}, true);
+function scanFuera(cod){
+  if(!$("#cobro").hidden){ avisarCobro("Escaneaste un producto mientras cobrabas: tocá Esc para agregarlo"); return; }
+  if(!$("#tab-venta").hidden){ q.value = cod; search(); agregarEscaneado(cod, 1); return; }
+  toast("🔫 Eso fue un código de barras: no va en este campo. Quedó como estaba", 4000);
+}
+function agregarEscaneado(texto, qty){
+  const t = norm(texto).trim(), p = t && pool.find(x => x._codes.includes(t));
+  if(p){ sinCargar = ""; agregar(p, qty); return; }
+  sinCargar = texto.trim(); q.value = ""; renderResults(); focusQ(); avisarCodigo(sinCargar);
+}
+function avisarCodigo(cod){   // va por la misma cola que 🔔 precio mal: si no hay internet, sale cuando vuelva
+  const t = new Date(), hoy = ymd(t);
+  if(errores.some(x => x.clase === "precio" && x.cod === cod && x.fecha === hoy && x.nombre === "❓ Código sin cargar")) return;   // ya avisado hoy
+  const x = {clase:"precio", cod, nombre:"❓ Código sin cargar", precio:0, correcto:"",
+    id:"E-"+cfg.suc.slice(0,3)+(cfg.pc||"")+"-"+t.getTime().toString(36), fecha:hoy, hora:hm(t), ts:t.getTime(),
+    sucursal:cfg.suc, pc:cfg.pc||"", cajero:cfg.turno ? cfg.turno.cajero : "", texto:"Escaneado en la caja y no está en el catálogo (aviso automático)", version:VERSION};
+  errores.push(x); guardar("errores", errores); encolar("error", x.id);
+}
 q.addEventListener("input", search);
 q.addEventListener("keydown", e => {
   if(["ArrowDown","ArrowUp","Enter","Escape","Delete"].includes(e.key)) e.stopPropagation();
   if(e.key==="ArrowDown"){ e.preventDefault(); if(found.length){ sel=(sel+1)%found.length; renderResults(); } }
   else if(e.key==="ArrowUp"){ e.preventDefault(); if(found.length){ sel=(sel-1+found.length)%found.length; renderResults(); } }
-  else if(e.key==="Enter"){ e.preventDefault(); if(q.value.trim()){ if(found[sel]) agregar(found[sel], parseQ(q.value).qty); } else abrirCobro(); }
-  else if(e.key==="Escape"){ q.value=""; search(); }
+  else if(e.key==="Enter"){ e.preventDefault();
+    if(qScan){ qScan = false; const x = parseQ(q.value); agregarEscaneado(x.text, x.qty); return; }                        // v3.58: escaneado = solo exacto
+    if(q.value.trim()){ if(found[sel]) agregar(found[sel], parseQ(q.value).qty); } else abrirCobro(); }
+  else if(e.key==="Escape"){ q.value=""; sinCargar=""; search(); }
   else if(e.key==="Delete" && !q.value){ cart.pop(); renderCart(); }
 });
 
