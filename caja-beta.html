@@ -508,6 +508,8 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .pr-bus{display:flex;gap:8px;padding:0 10px 10px}   /* v3.60 */
 .pr-bus input{flex:1;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);color:var(--ink);font:inherit}
 .pr-plant{background:var(--accent-soft);color:var(--ink)}
+.pr-est{background:var(--ok-soft);color:var(--ink)}.pr-est.no{background:var(--bad-soft)}   /* v3.66 */
+.pr-form select{width:100%}
 .form2:has(.pr-hint){align-items:start}
 .pr-falta{border-color:var(--bad)!important;background:var(--bad-soft)!important}   /* v3.62 */
 .pr-hint{display:block;margin-top:3px;font-size:11px;font-weight:400;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* v3.61 */
@@ -747,6 +749,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
         <label>Sala / grado <input id="prSala" list="prSalaL" autocomplete="off" spellcheck="false" placeholder="Ej: Sala de 4"><small class="pr-hint">Sala 3 = 1ª sección · 4 = 2ª · 5 = 3ª</small></label>
         <label>Nota <input id="prNota" autocomplete="off" placeholder="Ej: colores, retira el sábado"></label>
         <label>Listas iguales <input id="prN" inputmode="numeric" autocomplete="off" value="1"></label>
+        <label>Retira en <select id="prRet"><option value="FALCON">Falcon</option><option value="NACION">Nación</option><option value="MORENO">Moreno</option><option value="SOMISA">Somisa</option></select></label>
       </div>
       <datalist id="prEscL"></datalist><datalist id="prCliL"></datalist><datalist id="prSalaL"></datalist>
       <div class="pr-aviso pr-plant" id="prPlant" hidden></div>
@@ -771,6 +774,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 
     <div class="card">
       <div class="order-h"><div class="badge y">📝</div><div><b>Presupuesto</b><span id="prCount">Sin productos</span></div><button class="btn sm" id="prOtra" title="Otra lista para el mismo cliente">＋ Otra lista</button><button class="btn sm" id="prGuardarB" title="Guardar en esta PC y en la planilla">💾 Guardar</button><button class="btn sm" id="prNuevo">＋ Nuevo</button></div>
+      <div class="pr-aviso pr-est" id="prEst" hidden></div>
       <div class="pr-aviso" id="prAviso" hidden></div>
       <ul class="lines" id="prLines"></ul>
       <div class="empty" id="prEmpty">🔍 Buscá productos a la izquierda.<br><small>Se guarda en esta PC y en la planilla: lo encuentran todas las sucursales.</small></div>
@@ -785,6 +789,12 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
         <button class="btn" id="prPrint">🖨️ Imprimir</button>
         <button class="btn" id="prPlantG">📚 Guardar plantilla</button>
       </div>
+      <div class="bar2">
+        <button class="btn" id="prSena">💰 Señar</button>
+        <button class="btn" id="prNotaP">🧾 Nota de pedido</button>
+        <button class="btn" id="prNoAc">❌ No aceptó</button>
+      </div>
+      <div class="pr-aviso" id="prGrp" hidden></div>
       <div class="bar2" id="prVentaBar"></div>
     </div>
   </div>
@@ -1241,7 +1251,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-20 v3.65";   // v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-20 v3.66";   // v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1858,11 +1868,11 @@ addEventListener("resize", altoCarrito); addEventListener("scroll", altoCarrito,
 function renderCart(){
   $("#lines").innerHTML = (cart.length ? `<div class="hd"><span>Producto</span><span style="text-align:center">Cant.</span><span style="text-align:right">Subtotal</span><span></span></div>` : "") +
     cart.map((l,i) => `<li><span class="n" title="${esc(l.nombre)}${l.cod === "LISTA" ? " · de lista de proveedores (no está en el catálogo)" : ""}${l.combo ? " · combo " + escalones(l.combo).map(t => t.q + " x " + money(t.p)).join(" / ") : ""}">${l.cod === "LISTA" ? "📋 " : ""}${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span>${l.open || l.edit ? `<input class="price${l.precio>0?"":" need"}" data-i="${i}" value="${l.precio||""}" placeholder="precio" inputmode="decimal" aria-label="Precio">` : `<small class="pu">${money(l.precio)} c/u</small>`}${l.open || ES_SERVICIO(l) || l.cod === "LISTA" ? "" : ` <button class="bell${enRevision(l.cod) ? " on" : ""}" data-bell="${i}" type="button" title="${enRevision(l.cod) ? "Precio en revisión" : "Avisar que el precio está mal"}">🔔</button>`}</span>
-    <span class="step"><button class="mn" data-dec="${i}" type="button" tabindex="-1" aria-label="Uno menos">−</button><input class="qty" data-i="${i}" value="${l.cant}" inputmode="decimal" aria-label="Cantidad"><button class="mn" data-inc="${i}" type="button" tabindex="-1" aria-label="Uno más">+</button></span>
+    ${ES_SENA(l) ? `<span class="step"></span>` : `<span class="step"><button class="mn" data-dec="${i}" type="button" tabindex="-1" aria-label="Uno menos">−</button><input class="qty" data-i="${i}" value="${l.cant}" inputmode="decimal" aria-label="Cantidad"><button class="mn" data-inc="${i}" type="button" tabindex="-1" aria-label="Uno más">+</button></span>`}
     <span class="s">${money(subt(l))}</span><button class="x" data-i="${i}" aria-label="Quitar">✕</button></li>`).join("");
   $("#tTotal").textContent = money(total());
-  const u = cart.reduce((a,b)=>a+b.cant,0);
-  $("#tItems").textContent = cart.length ? `${cart.length} producto${cart.length>1?"s":""} · ${u} u.` : "Sin productos";
+  const prods = cart.filter(l => !ES_SENA(l)), u = prods.reduce((a,b)=>a+b.cant,0);   // v3.66: la seña no cuenta como producto
+  $("#tItems").textContent = prods.length ? `${prods.length} producto${prods.length>1?"s":""} · ${u} u.` : cart.length ? "Seña" : "Sin productos";
   const hoyN = sales.filter(s => s.fecha===ymd(new Date()) && s.sucursal===cfg.suc && (s.pc||"")===(cfg.pc||"")).length + 1;
   $("#tBadge").textContent = (cfg.pc ? cfg.pc+"-" : "") + hoyN;
   $("#lines").scrollTop = $("#lines").scrollHeight;
@@ -2122,7 +2132,8 @@ $("#pagaCon").addEventListener("input", updVuelto);
 
 function abrirCobro(){
   if(!cart.length){ toast("La venta está vacía"); return; }
-  const bad = cart.findIndex(l => !(l.precio>0) || !(l.cant>0));
+  const bad = cart.findIndex(l => !(l.precio>0 || (ES_SENA(l) && l.precio < 0)) || !(l.cant>0));   // v3.66: "− Seña" en negativo
+  if(!(total() > 0)){ toast("La seña cubre todo el total: revisá las líneas"); return; }
   if(bad >= 0){ toast("Falta precio o cantidad en una línea"); const li=document.querySelectorAll("#lines li")[bad]; (li.querySelector("input.need")||li.querySelector("input.qty")).focus(); return; }
   $("#cobro").hidden=false; $("#barVenta").hidden=true; $("#cobroErr").hidden=true; $("#vact").classList.add("cobrando");
   $("#tab-venta").classList.add("cobrando"); q.disabled = true; cbTeclas = 0;
@@ -2161,7 +2172,8 @@ function setMedio(m){
    No cuentan SUBE, copias/anillados ni kiosco. El cajero puede quitarlo (D). Todo queda registrado en la venta.
    ===================================================================== */
 const ES_SERVICIO = l => /^(SUBE|FOTOCOPIAS|ANILLADO)$/i.test(l.cat || "") || /^IMP-/.test(l.cod || "") || /fotocop|impresi/i.test(l.cat || "");   // precio que pone el cajero o el cotizador
-const SIN_DESC = l => ES_SERVICIO(l) || /kiosco/i.test(l.cat || "") || CATS_SIN_DESC.has(String(l.cat || "").toUpperCase());   // no llevan descuento: SUBE, copias/anillados, kiosco y botones con Descuento = NO
+const ES_SENA = l => /^se[ñn]a$/i.test(l.cat || "");                                     // v3.66: la seña no lleva descuento ni cuenta como producto
+const SIN_DESC = l => ES_SENA(l) || ES_SERVICIO(l) || /kiosco/i.test(l.cat || "") || CATS_SIN_DESC.has(String(l.cat || "").toUpperCase());   // no llevan descuento: SUBE, copias/anillados, kiosco y botones con Descuento = NO
 const DESC_L = {manual:"🏷️ Descuento", efectivo:"💵 Efectivo", transferencia:"🏦 Transferencia", monto:"🧾 Por monto", unidades:"📦 Por cantidad", cliente:"👤", libre:"✋"};
 let descOn = true, descBloq = false, descCli = null;   // descBloq: venta de un presupuesto con descuento · descCli: cliente o libre elegido
 function reglas(){
@@ -2577,7 +2589,7 @@ function updVuelto(){ const tot=aCobrar(), p=toNum($("#pagaCon").value);
   $("#vuelto").textContent = p ? (p>=tot ? money(p-tot) : "falta "+money(tot-p)) : "—"; }
 function confirmar(){
   if(!medio) return;
-  if(cart.some(l => !(l.precio > 0) || !(l.cant > 0))){ $("#cobroErr").textContent = "Falta precio o cantidad en una línea."; $("#cobroErr").hidden = false; return; }
+  if(cart.some(l => !(l.precio > 0 || (ES_SENA(l) && l.precio < 0)) || !(l.cant > 0))){ /* v3.66: "− Seña" va en negativo */ $("#cobroErr").textContent = "Falta precio o cantidad en una línea."; $("#cobroErr").hidden = false; return; }
   const tot = aCobrar(), p = toNum($("#pagaCon").value), d = descAplicado() ? mejorDesc(medio) : null;
   if(medio==="efectivo" && p && p<tot){ $("#cobroErr").textContent="El monto recibido es menor al total."; $("#cobroErr").hidden=false; return; }
   if(medio==="efectivo" && p > Math.max(tot * 20, 200000)){ $("#pagaCon").value = ""; updVuelto(); $("#pagaCon").focus();
@@ -2592,6 +2604,7 @@ function confirmar(){
     total: tot, medio, pagaCon: medio==="efectivo" && p ? p : null, anulada: false, ...(medio === "ctacte" ? {cliente: ccCli} : {}), ...(d ? {desc:d.monto, descPct:d.pct, descTipo:d.tipo, descMotivo:d.motivo} : {})
   };
   sales.push(s); guardar("sales", sales); encolar("venta", s.id);
+  prTrasVenta(s, cart);                                                                     // v3.66: seña cobrada / listas entregadas
   ultimaId = s.id; cart = []; resetDesc(); ccCli = null; closeCobro(); renderCart(); focusQ();
 }
 
@@ -3139,9 +3152,13 @@ async function imprimirEtiquetas(){
 const PRESU_MAX = 80;
 let presus = leer("presus", []), pr = null, pFound = [], pSel = 0;
 const cfgDesc = () => (cat && cat.config) || {};      // descuentos por defecto: hoja Configuración de la planilla
-let plants = leer("plantillas", {t:0, items:[]}), prRem = [], prSyncT = null, cliSug = null;   // v3.60 · v3.65: cliSug
+let plants = leer("plantillas", {t:0, items:[]}), prRem = [], prSyncT = null, cliSug = null;
+const RETIRA = ["FALCON","NACION","MORENO","SOMISA"];                                      // v3.66: dónde retira el cliente
+const MEDIO_TXT = {efectivo:"Efectivo", postnet:"Postnet / QR", transf:"Transferencia", ctacte:"Cta. cte."};
+const EST = {"":"📝 Presupuestado", "Señado":"💰 Señado", "Entregado":"✅ Entregado", "No aceptó":"❌ No aceptó"};   // v3.60 · v3.65: cliSug
 const prNuevo = () => ({id:"P-"+Date.now().toString(36), creado:Date.now(), mod:Date.now(), cliente:"", nota:"", vence:"", items:[], vendido:0,
   tel:"", escuela:"", sala:"", n:1, plant:"", grupo:"", suc:cfg.suc || "", cajero:cfg.turno ? cfg.turno.cajero : "",
+  retira: RETIRA.includes(cfg.suc) ? cfg.suc : "FALCON", estado:"", sena:null,                                       // v3.66
   descEfe: +cfgDesc().descEfe || 0, descTra: +cfgDesc().descTra || 0});
 /* precios del presupuesto: lista (tarjetas) y, si hay descuento, efectivo y transferencia. Redondeo ↑ como el catálogo */
 function prOpciones(x){
@@ -3197,6 +3214,8 @@ function renderPresu(){
   ["tel","escuela","sala","plant","grupo"].forEach(k => { if(pr[k] == null) pr[k] = ""; }); if(!(+pr.n >= 1)) pr.n = 1;   // v3.60: presupuestos de antes
   [["#prTel","tel"],["#prEsc","escuela"],["#prSala","sala"]].forEach(([id,k]) => { if(document.activeElement !== $(id)) $(id).value = pr[k]; });
   if(document.activeElement !== $("#prN")) $("#prN").value = pr.n;
+  if(!RETIRA.includes(pr.retira)) pr.retira = RETIRA.includes(pr.suc) ? pr.suc : "FALCON"; if(pr.estado == null) pr.estado = pr.vendido ? "Entregado" : "";   // v3.66: presupuestos de antes
+  $("#prRet").value = pr.retira;
   $("#prVence").value = pr.vence; $("#prSinFecha").hidden = !pr.vence;
   if(pr.descEfe == null){ pr.descEfe = +cfgDesc().descEfe || 0; pr.descTra = +cfgDesc().descTra || 0; }   // presupuestos de antes
   if(document.activeElement !== $("#prDE")) $("#prDE").value = pr.descEfe || "";
@@ -3210,15 +3229,16 @@ function renderPresu(){
   renderPrecios();
   const u = pr.items.reduce((a,b) => a+b.cant, 0);
   $("#prCount").textContent = pr.items.length ? `${pr.items.length} producto${pr.items.length>1?"s":""} · ${u} u.` + ((+pr.n || 1) > 1 ? ` · ×${pr.n} listas` : "") + (pr.vendido ? " · ✓ ya pasado a la venta" : "") : "Sin productos";
-  const ch = prCambios();
+  const ch = pr.sena ? [] : prCambios();                                                    // v3.66: señado = precio congelado
   $("#prAviso").hidden = !ch.length;
+  renderEstado();
   renderPlant(); renderCli();
   if(ch.length) $("#prAviso").innerHTML = `<span>⚠️ ${ch.length} precio${ch.length>1?"s cambiaron":" cambió"} desde el ${new Date(pr.creado).toLocaleDateString("es-AR")}</span><button class="btn sm" id="prAct">Actualizar precios</button>`;
   renderGuardados();
 }
 function renderGuardados(){
   $("#prGN").textContent = presus.length;
-  $("#prGuard").innerHTML = presus.map((x,i) => `<li data-i="${i}" class="${pr && x.id===pr.id ? "act" : ""}"><span class="n">${esc(x.cliente || "Sin nombre")}${x.vendido ? " ✓" : ""}</span><span class="t">${money(prTotal(x))}</span><button class="x" data-del="${i}" aria-label="Borrar">✕</button>
+  $("#prGuard").innerHTML = presus.map((x,i) => `<li data-i="${i}" class="${pr && x.id===pr.id ? "act" : ""}"><span class="n">${esc(x.cliente || "Sin nombre")}${x.estado && EST[x.estado] ? " " + EST[x.estado].split(" ")[0] : x.vendido ? " ✓" : ""}</span><span class="t">${money(prTotal(x))}</span><button class="x" data-del="${i}" aria-label="Borrar">✕</button>
     <span class="sub">${new Date(x.mod).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})} ${hm(new Date(x.mod))} · ${x.items.length} ítem${x.items.length===1?"":"s"}${x.tel ? " · 📞 "+esc(x.tel) : ""}${x.escuela ? " · "+esc(x.escuela) : ""}${x.sala ? " "+esc(x.sala) : ""}${(+x.n||1)>1 ? " · ×"+x.n : ""}${x.grupo ? " · 🔗" : ""}${x.nota ? " · "+esc(x.nota) : ""}${x.vendido ? " · vendido" : ""}</span></li>`).join("")
     || `<li class="sub" style="cursor:default">Todavía no hay presupuestos guardados.</li>`;
 }
@@ -3268,7 +3288,8 @@ $("#prLines").addEventListener("keydown", e => { if(e.key==="Enter"||e.key==="Es
 $("#prLines").addEventListener("click", e => { const b = e.target.closest(".x"); if(!b) return; pr.items.splice(+b.dataset.i,1); prGuardar(); renderPresu(); $("#pq").focus(); });
 $("#prCli").addEventListener("input", () => { pr.cliente = $("#prCli").value; prGuardar(); });
 $("#prNota").addEventListener("input", () => { pr.nota = $("#prNota").value; prGuardar(); });
-$("#prTel").addEventListener("input", () => { pr.tel = $("#prTel").value; prGuardar(); });                          // v3.60
+$("#prTel").addEventListener("input", () => { pr.tel = $("#prTel").value; prGuardar(); });
+$("#prRet").addEventListener("change", () => { pr.retira = $("#prRet").value; prGuardar(); renderEstado(); });   // v3.66                          // v3.60
 $("#prEsc").addEventListener("input", () => { pr.escuela = $("#prEsc").value; prGuardar(); renderPlant(); });
 $("#prSala").addEventListener("input", () => { pr.sala = $("#prSala").value; prGuardar(); renderPlant(); });
 $("#prN").addEventListener("input", () => { pr.n = Math.max(1, Math.min(50, Math.round(toNum($("#prN").value)) || 1)); renderPrecios(); prGuardar(); renderPresu(); });
@@ -3559,7 +3580,7 @@ async function prBuscar(){
     prRem = (r && r.presupuestos) || []; }
   catch(e){ toast(ERR_CONEXION[e.tipo] || "No se pudo buscar", 5000); return; }
   const ul = $("#prRemoto"); ul.hidden = false;
-  ul.innerHTML = prRem.map((x,i) => `<li data-r="${i}"><span class="n">${esc(x.cliente || "Sin nombre")}${x.vendido ? " ✓" : ""}</span><span class="t">${money(x.lista)}</span><span></span>
+  ul.innerHTML = prRem.map((x,i) => `<li data-r="${i}"><span class="n">${esc(x.cliente || "Sin nombre")}${x.estado && EST[x.estado] ? " " + EST[x.estado].split(" ")[0] : x.vendido ? " ✓" : ""}</span><span class="t">${money(x.lista)}</span><span></span>
     <span class="sub">🏪 ${esc(x.sucursal ? SUC_LBL(x.sucursal) : "")} · ${new Date(x.mod).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})}${x.tel ? " · 📞 "+esc(x.tel) : ""}${x.escuela ? " · "+esc(x.escuela) : ""}${x.sala ? " "+esc(x.sala) : ""}${(+x.n||1)>1 ? " · ×"+x.n : ""}${x.vendido ? " · vendido" : ""}</span></li>`).join("")
     || `<li class="sub" style="cursor:default">No hay presupuestos con «${esc(q)}».</li>`;
 }
@@ -3572,19 +3593,90 @@ $("#prRemoto").addEventListener("click", e => {
   toast("📝 Presupuesto abierto" + (x.sucursal && x.sucursal !== cfg.suc ? " · es de " + SUC_LBL(x.sucursal) : ""));
 });
 
+/* ---------- v3.66 · 💰 SEÑA · ESTADOS · 🧾 NOTA DE PEDIDO ----------
+   Seña: se cobra como una venta más (línea "Seña", categoría SEÑA, sin descuento, cualquier medio): entra al cierre y al cruce con el banco.
+   Al cobrarla el presupuesto queda 💰 Señado y su precio congelado. Al retirar, "Pasar a la venta" suma todas las listas del cliente
+   y resta la seña (línea en negativo): el % por medio se elige ahí, según cómo paga el saldo. Al cobrar → ✅ Entregado. */
+const senaDef = () => +((cat && cat.config && cat.config.sena) || 0) || 10000;
+const prDelGrupo = x => { const g = x.grupo ? presus.filter(y => y.grupo === x.grupo && !y.vendido && y.estado !== "No aceptó" && y.items.length) : [];
+  return [x, ...g.filter(y => y.id !== x.id)].filter(y => y.items.length && !y.vendido); };
+function prEncolar(id){ if(DEMO) return; if(queue.some(q => q.tipo === "presupuesto" && q.id === id)) flush(); else encolar("presupuesto", id); }
+function prMarcar(id, cambios){
+  const y = presus.find(z => z.id === id); if(!y) return;
+  Object.assign(y, cambios, {mod: Date.now()}); if(pr && pr.id === id) Object.assign(pr, cambios, {mod: y.mod});
+  guardar("presus", presus); prEncolar(id); if(pr) renderPresu();
+}
+function prTrasVenta(s, lineas){
+  lineas.forEach(l => { if(l.presuSena) prMarcar(l.presuSena, {estado:"Señado", sena:{monto:Math.round(l.precio), medio:s.medio, ts:s.ts, venta:s.id}}); });
+  [...new Set(lineas.filter(l => l.presu).map(l => l.presu))].forEach(id => prMarcar(id, {estado:"Entregado"}));
+}
+function renderEstado(){
+  if(!pr) return;
+  const e = pr.estado || "", b = $("#prEst"), grp = prDelGrupo(pr);
+  b.hidden = !e; b.classList.toggle("no", e === "No aceptó");
+  if(e) b.innerHTML = `<span><b>${EST[e] || e}</b>${pr.sena ? ` · ${money(pr.sena.monto)} ${esc(MEDIO_TXT[pr.sena.medio] || pr.sena.medio)} el ${new Date(pr.sena.ts).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})} · precio congelado` : ""} · retira en ${esc(SUC_LBL(pr.retira))}</span>`;
+  $("#prSena").hidden = !!(pr.sena || pr.vendido || e === "No aceptó");
+  $("#prNoAc").hidden = !!(pr.sena || pr.vendido || e === "No aceptó");
+  $("#prSena").textContent = `💰 Señar ${money(senaDef())}`;
+  const g = $("#prGrp"), otras = grp.length - 1, senaT = grp.reduce((a,x) => a + (x.sena ? +x.sena.monto || 0 : 0), 0);
+  g.hidden = !(otras > 0 || senaT > 0) || !!pr.vendido;
+  if(!g.hidden) g.innerHTML = `<span>${otras > 0 ? `🔗 Pasa a la venta junto con ${otras} lista${otras > 1 ? "s" : ""} más de ${esc(pr.cliente || "este cliente")} (total lista ${money(grp.reduce((a,x) => a + prTotal(x), 0))})` : ""}${otras > 0 && senaT ? " · " : ""}${senaT ? `se descuenta la seña: −${money(senaT)}` : ""}</span>`;
+}
+$("#prSena").onclick = () => {
+  if(!prListo() || !prCompleto("señar")) return;
+  if(cart.length){ toast("Terminá o poné en espera (F6) la venta en curso antes de cobrar la seña", 5000); return; }
+  prGuardar(); if(!$("#cobro").hidden) closeCobro();
+  cart.push({cod:"SENA", nombre:`Seña lista ${pr.escuela ? pr.escuela + " " : ""}${pr.sala || ""} · ${pr.cliente.trim()}`.replace(/\s+/g, " "), cat:"SEÑA", cant:1, precio:senaDef(), open:true, presuSena:pr.id});
+  showTab("venta"); renderCart(); toast("💰 Cobrá la seña con el medio que pagó (transferencia: con el comprobante). Se puede cambiar el monto", 6000);
+};
+$("#prNoAc").onclick = e => dobleToque(e.currentTarget, "¿Seguro?", () => { pr.estado = "No aceptó"; prGuardar(); renderPresu(); toast("❌ Marcado como no aceptado"); });
+/* 🧾 nota de pedido: para quien arma (letra grande, casillas, 🎨 en lo que va por color: se mira la foto del WhatsApp) */
+const VA_COLOR = n => /colou?r|surtid|pastel|fluo|metaliz|glitter|v\/c|varios/i.test(n || "");
+$("#prNotaP").onclick = () => {
+  if(!prListo()) return;
+  const N = +pr.n || 1, colores = pr.items.filter(l => VA_COLOR(l.nombre)).length;
+  const filas = pr.items.map(l => `<tr><td class="ck">☐</td><td class="q">${l.cant * N}${N > 1 ? `<small>${l.cant} × ${N}</small>` : ""}</td><td>${esc(l.nombre)}</td><td class="co">${VA_COLOR(l.nombre) ? "🎨 ver foto" : ""}</td></tr>`).join("");
+  imprimir(`<style>@page{size:A4;margin:12mm}.np{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#111;font-size:15px}
+    .np-h{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:5px solid #111;padding-bottom:8px;margin-bottom:10px}
+    .np-id{font-size:30px;font-weight:900;letter-spacing:.02em}.np-h small{display:block;font-size:13px;color:#444}
+    .np-dat{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;font-size:16px;margin-bottom:10px}.np-dat b{font-size:19px}
+    .np-av{border:2px solid #111;padding:6px 10px;margin:8px 0;font-size:15px;font-weight:700}
+    .np table{width:100%;border-collapse:collapse}.np th{text-align:left;font-size:11px;text-transform:uppercase;color:#444;border-bottom:2px solid #111;padding:6px 4px}
+    .np td{border-bottom:1px solid #bbb;padding:8px 4px;vertical-align:middle}.np .ck{width:28px;font-size:22px}.np .q{width:70px;font-size:20px;font-weight:800;text-align:center}
+    .np .q small{display:block;font-size:10px;font-weight:400;color:#555}.np .co{width:110px;font-weight:700;white-space:nowrap}
+    .np-f{display:flex;gap:28px;margin-top:22px;font-size:14px}.np-f span{flex:1;border-top:1px solid #111;padding-top:4px}</style>
+    <div class="np"><div class="np-h"><div><div class="np-id">${esc(pr.id)}</div><small>NOTA DE PEDIDO · ${esc(NEGOCIO)} · ${new Date().toLocaleDateString("es-AR")}</small></div>
+      <div style="text-align:right;font-size:18px"><b>RETIRA EN ${esc(SUC_LBL(pr.retira || "FALCON").toUpperCase())}</b><small>${pr.sena ? `Seña ${money(pr.sena.monto)} · ${esc(MEDIO_TXT[pr.sena.medio] || pr.sena.medio)}` : "SIN SEÑA"}</small></div></div>
+    <div class="np-dat"><span>Cliente: <b>${esc(pr.cliente)}</b></span><span>Tel: <b>${esc(pr.tel || "")}</b></span>
+      <span>Escuela: <b>${esc(pr.escuela || "")}</b></span><span>Sala/grado: <b>${esc(pr.sala || "")}</b></span>
+      ${N > 1 ? `<span style="grid-column:1/-1">Listas iguales: <b>${N}</b> (las cantidades ya están multiplicadas)</span>` : ""}
+      ${pr.nota ? `<span style="grid-column:1/-1">Nota: <b>${esc(pr.nota)}</b></span>` : ""}</div>
+    ${colores ? `<div class="np-av">🎨 ${colores} producto${colores > 1 ? "s van" : " va"} por color: mirá la foto que mandó el cliente por WhatsApp.</div>` : ""}
+    <table><tr><th></th><th style="text-align:center">Cant.</th><th>Producto</th><th>Color</th></tr>${filas}</table>
+    <div class="np-f"><span>Armó</span><span>Controló</span><span>Faltó</span></div></div>`, "Nota de pedido " + pr.id);
+};
+
 /* pasa a la venta: se suma a lo que haya en la venta actual */
 /* lista, efectivo o transferencia: los precios de cada línea bajan el % elegido y el cobro arranca en ese medio */
 $("#prVentaBar").addEventListener("click", e => {
   const b = e.target.closest("[data-pv]"); if(!b || !prListo()) return;
   const o = prOpciones(pr).find(x => x.k === b.dataset.pv); if(!o) return;
   if(!$("#cobro").hidden) closeCobro();
-  const lineas = pr.items.map(l => ({cod:l.cod, nombre:l.nombre, cat:l.cat, cant:l.cant * (+pr.n || 1), precio:Math.round(l.precio*(1 - o.d/100)), open:false,
-    ...(l.combo ? {combo:escalones(l.combo).map(t => ({q:t.q, p:Math.round(t.p*(1 - o.d/100))}))} : {})}));
-  const dif = o.total - lineas.reduce((a,l) => a + subt(l), 0), u = [...lineas].reverse().find(l => l.cant === 1);
-  if(o.d && u) u.precio += dif;                                     // el total queda igual al presupuestado
-  cart.push(...lineas); medioPreset = o.k === "lista" ? null : o.medio; if(o.d) descBloq = true;   // ya tiene descuento: no se suma otro
-  pr.vendido = Date.now(); prGuardar();
-  prAbrir(null); showTab("venta"); renderCart(); toast(`📝 Presupuesto pasado a la venta · ${o.l}`);
+  prGuardar(); const todas = prDelGrupo(pr), senas = [];                                  // v3.66: 🔗 todas las listas del cliente que falta vender
+  todas.forEach(x => {
+    const ox = prOpciones(x).find(z => z.k === o.k) || prOpciones(x)[0];
+    const lineas = x.items.map(l => ({cod:l.cod, nombre:l.nombre, cat:l.cat, cant:l.cant * (+x.n || 1), precio:Math.round(l.precio*(1 - ox.d/100)), open:false, presu:x.id,
+      ...(l.combo ? {combo:escalones(l.combo).map(t => ({q:t.q, p:Math.round(t.p*(1 - ox.d/100))}))} : {})}));
+    const dif = ox.total - lineas.reduce((a,l) => a + subt(l), 0), u = [...lineas].reverse().find(l => l.cant === 1);
+    if(ox.d && u) u.precio += dif;                                   // el total queda igual al presupuestado
+    cart.push(...lineas);
+    if(x.sena && x.sena.monto > 0) senas.push({cod:"SENA", nombre:`− Seña ${x.escuela ? x.escuela + " " : ""}${x.sala || ""} · ${x.cliente}`.replace(/\s+/g, " ").trim(), cat:"SEÑA", cant:1, precio:-Math.round(x.sena.monto), open:false, presu:x.id});
+    const y = presus.find(z => z.id === x.id); if(y){ y.vendido = Date.now(); y.mod = Date.now(); }
+  });
+  cart.push(...senas); medioPreset = o.k === "lista" ? null : o.medio; if(o.d) descBloq = true;   // ya tiene descuento: no se suma otro
+  guardar("presus", presus); todas.forEach(x => prEncolar(x.id));
+  prAbrir(null); showTab("venta"); renderCart();
+  toast(`📝 ${todas.length > 1 ? todas.length + " listas pasadas" : "Presupuesto pasado"} a la venta · ${o.l}${senas.length ? " · seña descontada" : ""}`);
 });
 
 /* =====================================================================
@@ -4075,7 +4167,9 @@ function payload(op){
   if(op.tipo==="presupuesto"){ const x = presus.find(y => y.id === op.id); if(!x) return; const o = prOpciones(x), t = k => (o.find(z => z.k === k) || {}).total || "";   // v3.60
     return {tipo:"presupuesto", id:x.id, creado:x.creado, mod:x.mod, sucursal:x.suc || cfg.suc, cajero:x.cajero || (cfg.turno ? cfg.turno.cajero : ""), cliente:x.cliente, tel:x.tel || "",
             escuela:x.escuela || "", sala:x.sala || "", n:+x.n || 1, nota:x.nota, plant:x.plant || "", grupo:x.grupo || "", lista:o[0].total, efe:t("efe"), tra:t("tra"),
-            descEfe:x.descEfe, descTra:x.descTra, vence:x.vence || "", vendido:x.vendido || 0, items:x.items}; }
+            descEfe:x.descEfe, descTra:x.descTra, vence:x.vence || "", vendido:x.vendido || 0, items:x.items,
+            estado:x.estado || "", retira:x.retira || "", sena:x.sena ? x.sena.monto : "", senaMedio:x.sena ? MEDIO_TXT[x.sena.medio] || x.sena.medio : "",
+            senaTs:x.sena ? x.sena.ts : "", senaVenta:x.sena ? x.sena.venta : ""}; }   // v3.66
   if(op.tipo==="plantilla"){ const p = plants.items.find(y => y.id === op.id); return p && {...p, tipo:"plantilla"}; }
   if(op.tipo==="faltanteEstado"){ const x=flEst[op.id]; return x && {tipo:"faltanteEstado", ids:op.id, estado:x.estado, sucursal:cfg.suc, quien:cfg.turno ? cfg.turno.cajero : ""}; }
   if(op.tipo==="ccModificar"){ const m=ccMods.find(x=>x.modId===op.id); return m && {...m, tipo:"ccModificar"}; }
