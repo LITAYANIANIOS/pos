@@ -448,8 +448,16 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .cli-libre .full{grid-column:1/-1}
 #tTotal s{font-size:.55em;color:var(--muted);font-weight:500;margin-right:6px}
 .efe{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px}
-.dos{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px}   /* v3.67 */
-.dos .medios{margin:0}.dos .medios button{padding:6px 10px;font-size:13px}.dos-on{margin-top:8px}
+.dos{margin-top:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px 10px;align-items:center}   /* v3.69 */
+.dos-h{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.dos-h button{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:2px 9px;cursor:pointer;font-size:14px}
+.dos .lab{font-size:12px;color:var(--muted)}.dos .medios{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dos .medios button{padding:8px 10px}
+.dos .res{font-size:20px;font-weight:800}.dos-nota{grid-column:1/-1;font-size:12px;color:var(--warn-ink,#8a5a00)}
+.dos-on{width:100%;margin-top:8px;padding:11px 12px;border:1.5px dashed var(--muted);border-radius:var(--r-sm);background:transparent;cursor:pointer;font-weight:600;display:flex;justify-content:space-between;align-items:center;color:inherit}
+.dos-on:hover{border-style:solid;background:var(--surface)}
+.dos button[data-m1="efectivo"],.dos button[data-m2="efectivo"]{--mc:#448361}.dos button[data-m1="postnet"],.dos button[data-m2="postnet"]{--mc:#337ea9}.dos button[data-m1="transf"],.dos button[data-m2="transf"]{--mc:#9065b0}
+.dos .medios button[aria-pressed="true"]{background:var(--mc);border-color:var(--mc);color:#fff}
+#cobro.con-dos .note{display:none}
 .efe input{font-size:20px;width:160px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);text-align:right}
 .vuelto{font-size:22px;font-weight:700}
 .err{color:var(--bad);font-size:13px;margin-top:10px;font-weight:600}
@@ -728,11 +736,14 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
           <span>Vuelto <b class="vuelto" id="vuelto">—</b></span>
         </div>
         <div class="dos" id="dos" hidden>
-          <label>En <b id="dosM1">—</b> <input id="parte1" class="mon" inputmode="numeric" autocomplete="off" placeholder="monto"></label>
-          <span>Resto <b class="vuelto" id="dosResto">—</b> en</span>
-          <div class="medios" id="medios2"></div>
+          <div class="dos-h"><span>Dos medios</span><button id="dosX" type="button" aria-label="Volver a un solo medio" title="Un solo medio (+)">✕</button></div>
+          <span class="lab">1.º medio</span><div class="medios" id="medios1"></div>
+          <span class="lab">Paga</span><input id="parte1" class="mon" inputmode="numeric" autocomplete="off" placeholder="cuánto paga con este medio">
+          <span class="lab">2.º medio</span><div class="medios" id="medios2"></div>
+          <span class="lab">Resto</span><b class="res" id="dosResto">—</b>
+          <div class="dos-nota" id="dosNota"></div>
         </div>
-        <button class="link dos-on" id="bDos" type="button">➕ Pagar con dos medios <kbd>+</kbd></button>
+        <button class="dos-on" id="bDos" type="button"><span>⇄ Dividir en dos medios</span><kbd>+</kbd></button>
         <div class="note"><kbd>Tab</kbd> cambia el medio · <kbd>Enter</kbd> confirma</div>
         <div class="err" id="cobroErr" hidden></div>
         <div class="bar2">
@@ -1259,7 +1270,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-24 v3.68";   // v3.68: presupuestos − / + con el mouse · "No aceptó" se puede deshacer · nota de pedido con ✔ está / ✖ falta, Armó/Controló con nombre y fecha de impresión (REIMPRESIÓN) · v3.67: 💳 pago en dos medios (＋ o "Dos medios" al cobrar; descuento = el menor de los dos; sin cta. cte.) · v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-24 v3.69";   // v3.69: dos medios más claro (botón "Dividir en dos medios", el recuadro reemplaza la grilla: Confirmar siempre a la vista, aviso del descuento menor) · v3.68: presupuestos − / + con el mouse · "No aceptó" se puede deshacer · nota de pedido con ✔ está / ✖ falta, Armó/Controló con nombre y fecha de impresión (REIMPRESIÓN) · v3.67: 💳 pago en dos medios (＋ o "Dos medios" al cobrar; descuento = el menor de los dos; sin cta. cte.) · v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -2189,18 +2200,24 @@ function dosOn(){
   setMedio(medio);
 }
 function dosOff(){ medio2 = null; $("#parte1").value = ""; renderDos(); }
-function renderDos(){
-  const on = !!medio2; $("#dos").hidden = !on; $("#bDos").textContent = on ? "✕ Un solo medio" : "➕ Pagar con dos medios"; $("#bDos").insertAdjacentHTML("beforeend", " <kbd>+</kbd>");
+function renderDos(){   // v3.69: con dos medios el recuadro reemplaza la grilla (Confirmar queda a la vista)
+  const on = !!medio2; $("#dos").hidden = !on; $("#bDos").hidden = on; $("#medios").hidden = on; $("#cobro").classList.toggle("con-dos", on);
   if(medio && !$("#cobro").hidden) $("#efe").hidden = medio !== "efectivo" || on;
   if(!on) return;
-  $("#dosM1").textContent = medioL(medio);
-  $("#medios2").innerHTML = MEDIOS.filter(x => x.k !== "ctacte" && x.k !== medio).map(x => `<button data-m2="${x.k}" type="button" aria-pressed="${x.k === medio2}">${x.l}</button>`).join("");
+  const ch = (k, sel, at) => MEDIOS.filter(x => x.k !== "ctacte").map(x => `<button ${at}="${x.k}" type="button" aria-pressed="${x.k === sel}">${x.l.replace(" / QR", "")}</button>`).join("");
+  $("#medios1").innerHTML = ch(1, medio, "data-m1"); $("#medios2").innerHTML = ch(2, medio2, "data-m2");
+  const d = mejorDescCobro();
+  $("#dosNota").textContent = descOn && d ? `Con dos medios va el descuento menor: ${d.tipo} ${d.pct}% (−${money(d.monto)})` : "Con dos medios va el descuento menor de los dos: en este caso, sin descuento";
   updDos();
 }
 function updDos(){ if(!medio2) return; const tot = aCobrar(), p1 = toNum($("#parte1").value);
   $("#dosResto").textContent = p1 > 0 ? (p1 < tot ? money(tot - p1) : "el monto supera el total") : money(tot); }
 $("#bDos").onclick = () => { medio2 ? (dosOff(), setMedio(medio)) : dosOn(); };
-$("#medios2").addEventListener("click", e => { const b = e.target.closest("[data-m2]"); if(!b) return; medio2 = b.dataset.m2; renderDesc(); cbTitulo(); renderDos(); $("#parte1").focus(); });
+$("#dosX").onclick = () => { dosOff(); setMedio(medio); };
+$("#medios1").addEventListener("click", e => { const b = e.target.closest("[data-m1]"); if(b) setMedio(b.dataset.m1); });
+$("#medios2").addEventListener("click", e => { const b = e.target.closest("[data-m2]"); if(!b) return;
+  if(b.dataset.m2 === medio){ medio = medio2; } medio2 = b.dataset.m2;                     // eligió abajo el mismo de arriba: se dan vuelta
+  renderDesc(); cbTitulo(); setMedio(medio); });
 $("#parte1").addEventListener("input", () => { $("#cobroErr").hidden = true; updDos(); });
 /* =====================================================================
    DESCUENTOS (hojas Descuentos y Clientes de la planilla). Se aplica SOLO el más alto, nunca se suman.
