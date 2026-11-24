@@ -448,6 +448,18 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .cli-libre .full{grid-column:1/-1}
 #tTotal s{font-size:.55em;color:var(--muted);font-weight:500;margin-right:6px}
 .efe{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px}
+.lines li.sena-l{background:color-mix(in srgb,#cb912f 12%,transparent);border:1.5px dashed #cb912f;border-radius:8px;font-weight:700}   /* v3.71: seña bien a la vista */
+.lines li.sena-l .n::before{content:"💰 "}
+.dos{margin-top:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px 10px;align-items:center}   /* v3.69 */
+.dos-h{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.dos-h button{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:2px 9px;cursor:pointer;font-size:14px}
+.dos .lab{font-size:12px;color:var(--muted)}.dos .medios{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.dos .medios button{padding:8px 10px}
+.dos .res{font-size:20px;font-weight:800}.dos-nota{grid-column:1/-1;font-size:12px;color:var(--warn-ink,#8a5a00)}
+.dos-on{width:100%;margin-top:8px;padding:11px 12px;border:1.5px dashed var(--muted);border-radius:var(--r-sm);background:transparent;cursor:pointer;font-weight:600;display:flex;justify-content:space-between;align-items:center;color:inherit}
+.dos-on:hover{border-style:solid;background:var(--surface)}
+.dos button[data-m1="efectivo"],.dos button[data-m2="efectivo"]{--mc:#448361}.dos button[data-m1="postnet"],.dos button[data-m2="postnet"]{--mc:#337ea9}.dos button[data-m1="transf"],.dos button[data-m2="transf"]{--mc:#9065b0}
+.dos .medios button[aria-pressed="true"]{background:var(--mc);border-color:var(--mc);color:#fff}
+#cobro.con-dos .note{display:none}
 .efe input{font-size:20px;width:160px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);text-align:right}
 .vuelto{font-size:22px;font-weight:700}
 .err{color:var(--bad);font-size:13px;margin-top:10px;font-weight:600}
@@ -508,6 +520,8 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .pr-bus{display:flex;gap:8px;padding:0 10px 10px}   /* v3.60 */
 .pr-bus input{flex:1;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);color:var(--ink);font:inherit}
 .pr-plant{background:var(--accent-soft);color:var(--ink)}
+.pr-est{background:var(--ok-soft);color:var(--ink)}.pr-est.no{background:var(--bad-soft)}   /* v3.66 */
+.pr-form select{width:100%}
 .form2:has(.pr-hint){align-items:start}
 .pr-falta{border-color:var(--bad)!important;background:var(--bad-soft)!important}   /* v3.62 */
 .pr-hint{display:block;margin-top:3px;font-size:11px;font-weight:400;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* v3.61 */
@@ -723,6 +737,15 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
           <label>Paga con <input id="pagaCon" class="mon" inputmode="numeric" autocomplete="off" placeholder="justo"></label>
           <span>Vuelto <b class="vuelto" id="vuelto">—</b></span>
         </div>
+        <div class="dos" id="dos" hidden>
+          <div class="dos-h"><span>Dos medios</span><button id="dosX" type="button" aria-label="Volver a un solo medio" title="Un solo medio (+)">✕</button></div>
+          <span class="lab">1.º medio</span><div class="medios" id="medios1"></div>
+          <span class="lab">Paga</span><input id="parte1" class="mon" inputmode="numeric" autocomplete="off" placeholder="cuánto paga con este medio">
+          <span class="lab">2.º medio</span><div class="medios" id="medios2"></div>
+          <span class="lab">Resto</span><b class="res" id="dosResto">—</b>
+          <div class="dos-nota" id="dosNota"></div>
+        </div>
+        <button class="dos-on" id="bDos" type="button"><span>⇄ Dividir en dos medios</span><kbd>+</kbd></button>
         <div class="note"><kbd>Tab</kbd> cambia el medio · <kbd>Enter</kbd> confirma</div>
         <div class="err" id="cobroErr" hidden></div>
         <div class="bar2">
@@ -747,6 +770,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
         <label>Sala / grado <input id="prSala" list="prSalaL" autocomplete="off" spellcheck="false" placeholder="Ej: Sala de 4"><small class="pr-hint">Sala 3 = 1ª sección · 4 = 2ª · 5 = 3ª</small></label>
         <label>Nota <input id="prNota" autocomplete="off" placeholder="Ej: colores, retira el sábado"></label>
         <label>Listas iguales <input id="prN" inputmode="numeric" autocomplete="off" value="1"></label>
+        <label>Retira en <select id="prRet"><option value="FALCON">Falcon</option><option value="NACION">Nación</option><option value="MORENO">Moreno</option><option value="SOMISA">Somisa</option></select></label>
       </div>
       <datalist id="prEscL"></datalist><datalist id="prCliL"></datalist><datalist id="prSalaL"></datalist>
       <div class="pr-aviso pr-plant" id="prPlant" hidden></div>
@@ -771,6 +795,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 
     <div class="card">
       <div class="order-h"><div class="badge y">📝</div><div><b>Presupuesto</b><span id="prCount">Sin productos</span></div><button class="btn sm" id="prOtra" title="Otra lista para el mismo cliente">＋ Otra lista</button><button class="btn sm" id="prGuardarB" title="Guardar en esta PC y en la planilla">💾 Guardar</button><button class="btn sm" id="prNuevo">＋ Nuevo</button></div>
+      <div class="pr-aviso pr-est" id="prEst" hidden></div>
       <div class="pr-aviso" id="prAviso" hidden></div>
       <ul class="lines" id="prLines"></ul>
       <div class="empty" id="prEmpty">🔍 Buscá productos a la izquierda.<br><small>Se guarda en esta PC y en la planilla: lo encuentran todas las sucursales.</small></div>
@@ -785,6 +810,12 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
         <button class="btn" id="prPrint">🖨️ Imprimir</button>
         <button class="btn" id="prPlantG">📚 Guardar plantilla</button>
       </div>
+      <div class="bar2">
+        <button class="btn" id="prSena">💰 Señar</button>
+        <button class="btn" id="prNotaP">🧾 Nota de pedido</button>
+        <button class="btn" id="prNoAc">❌ No aceptó</button>
+      </div>
+      <div class="pr-aviso" id="prGrp" hidden></div>
       <div class="bar2" id="prVentaBar"></div>
     </div>
   </div>
@@ -1241,7 +1272,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-20 v3.65";   // v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-24 v3.73";   // v3.73: arreglo · el presupuesto queda "vendido" recién al COBRAR (antes, al pasarlo a la venta: si no se cobraba, desaparecía) · v3.72: dos medios con descuento PROPORCIONAL (cada parte con el % de su medio) · v3.71: la seña se ve aparte en ticket, comprobante A4, WhatsApp y carrito ("Seña ya pagada el … · medio", "Total a pagar hoy") · v3.70: presupuesto → un solo "Pasar a la venta"; el % de la lista se aplica según el medio que se elige al cobrar (lo agregado usa las reglas de la caja) · v3.69: dos medios más claro (botón "Dividir en dos medios", el recuadro reemplaza la grilla: Confirmar siempre a la vista, aviso del descuento menor) · v3.68: presupuestos − / + con el mouse · "No aceptó" se puede deshacer · nota de pedido con ✔ está / ✖ falta, Armó/Controló con nombre y fecha de impresión (REIMPRESIÓN) · v3.67: 💳 pago en dos medios (＋ o "Dos medios" al cobrar; descuento = el menor de los dos; sin cta. cte.) · v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1302,7 +1333,12 @@ const pad = n => String(n).padStart(2,"0");
 const ymd = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 const hm  = d => pad(d.getHours())+":"+pad(d.getMinutes());
 const fechaAR = f => { const t = String(f ?? ""); return /^\d{4}-\d{2}-\d{2}/.test(t) ? t.slice(0,10).split("-").reverse().join("/") : t; };
-const medioL = k => (MEDIOS.find(m => m.k === k) || {l:k}).l;
+const medioL = k => k === "mixto" ? "Dos medios" : (MEDIOS.find(m => m.k === k) || {l:k}).l;
+/* v3.67 · 💳 pago en dos medios: la venta queda con medio "mixto" y pagos [{m, monto}, {m, monto}] (cada parte va a su medio en el cierre) */
+const pagosDe = s => s.pagos && s.pagos.length ? s.pagos : [{m:s.medio, monto:s.total}];
+const medioVenta = s => s.pagos && s.pagos.length ? s.pagos.map(x => `${medioL(x.m)} ${money(x.monto)}`).join(" + ") : medioL(s.medio);
+const usaMedio = (s, k) => pagosDe(s).some(x => x.m === k);
+const pagosTxt = s => s.pagos && s.pagos.length ? s.pagos.map(x => `${medioL(x.m)} ${Math.round(x.monto)}`).join(" + ") : "";   // para la planilla (columna Pagos)
 const inicioHoy = () => { const d=new Date(); d.setHours(0,0,0,0); return d.getTime(); };
 const nro = s => (s.pc ? s.pc+"-" : "") + s.n;
 /* COMBOS (columna Combo del Catálogo): uno o varios escalones separados por "/" o ",": "3x20000/10x63000" = 3 por $20.000 o 10 por $63.000.
@@ -1857,12 +1893,12 @@ function altoCarrito(){
 addEventListener("resize", altoCarrito); addEventListener("scroll", altoCarrito, {passive:true});
 function renderCart(){
   $("#lines").innerHTML = (cart.length ? `<div class="hd"><span>Producto</span><span style="text-align:center">Cant.</span><span style="text-align:right">Subtotal</span><span></span></div>` : "") +
-    cart.map((l,i) => `<li><span class="n" title="${esc(l.nombre)}${l.cod === "LISTA" ? " · de lista de proveedores (no está en el catálogo)" : ""}${l.combo ? " · combo " + escalones(l.combo).map(t => t.q + " x " + money(t.p)).join(" / ") : ""}">${l.cod === "LISTA" ? "📋 " : ""}${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span>${l.open || l.edit ? `<input class="price${l.precio>0?"":" need"}" data-i="${i}" value="${l.precio||""}" placeholder="precio" inputmode="decimal" aria-label="Precio">` : `<small class="pu">${money(l.precio)} c/u</small>`}${l.open || ES_SERVICIO(l) || l.cod === "LISTA" ? "" : ` <button class="bell${enRevision(l.cod) ? " on" : ""}" data-bell="${i}" type="button" title="${enRevision(l.cod) ? "Precio en revisión" : "Avisar que el precio está mal"}">🔔</button>`}</span>
-    <span class="step"><button class="mn" data-dec="${i}" type="button" tabindex="-1" aria-label="Uno menos">−</button><input class="qty" data-i="${i}" value="${l.cant}" inputmode="decimal" aria-label="Cantidad"><button class="mn" data-inc="${i}" type="button" tabindex="-1" aria-label="Uno más">+</button></span>
+    cart.map((l,i) => `<li${ES_SENA(l) ? ' class="sena-l"' : ""}><span class="n" title="${esc(l.nombre)}${l.cod === "LISTA" ? " · de lista de proveedores (no está en el catálogo)" : ""}${l.combo ? " · combo " + escalones(l.combo).map(t => t.q + " x " + money(t.p)).join(" / ") : ""}">${l.cod === "LISTA" ? "📋 " : ""}${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span>${l.open || l.edit ? `<input class="price${l.precio>0?"":" need"}" data-i="${i}" value="${l.precio||""}" placeholder="precio" inputmode="decimal" aria-label="Precio">` : `<small class="pu">${money(l.precio)} c/u</small>`}${l.open || ES_SERVICIO(l) || l.cod === "LISTA" ? "" : ` <button class="bell${enRevision(l.cod) ? " on" : ""}" data-bell="${i}" type="button" title="${enRevision(l.cod) ? "Precio en revisión" : "Avisar que el precio está mal"}">🔔</button>`}</span>
+    ${ES_SENA(l) ? `<span class="step"></span>` : `<span class="step"><button class="mn" data-dec="${i}" type="button" tabindex="-1" aria-label="Uno menos">−</button><input class="qty" data-i="${i}" value="${l.cant}" inputmode="decimal" aria-label="Cantidad"><button class="mn" data-inc="${i}" type="button" tabindex="-1" aria-label="Uno más">+</button></span>`}
     <span class="s">${money(subt(l))}</span><button class="x" data-i="${i}" aria-label="Quitar">✕</button></li>`).join("");
   $("#tTotal").textContent = money(total());
-  const u = cart.reduce((a,b)=>a+b.cant,0);
-  $("#tItems").textContent = cart.length ? `${cart.length} producto${cart.length>1?"s":""} · ${u} u.` : "Sin productos";
+  const prods = cart.filter(l => !ES_SENA(l)), u = prods.reduce((a,b)=>a+b.cant,0);   // v3.66: la seña no cuenta como producto
+  $("#tItems").textContent = prods.length ? `${prods.length} producto${prods.length>1?"s":""} · ${u} u.` : cart.length ? "Seña" : "Sin productos";
   const hoyN = sales.filter(s => s.fecha===ymd(new Date()) && s.sucursal===cfg.suc && (s.pc||"")===(cfg.pc||"")).length + 1;
   $("#tBadge").textContent = (cfg.pc ? cfg.pc+"-" : "") + hoyN;
   $("#lines").scrollTop = $("#lines").scrollHeight;
@@ -1967,7 +2003,7 @@ function renderUltima(){   // la última venta queda a la vista con vuelto y bot
   $("#tEmpty").hidden = cart.length > 0;
   if(box.hidden) return;
   const vuelto = s.medio==="efectivo" && s.pagaCon > s.total ? ` · vuelto ${money(s.pagaCon - s.total)}` : "";
-  box.innerHTML = `<span>✓ Última venta ${nro(s)} · ${money(s.total)} · ${esc(medioL(s.medio))}${vuelto}</span><button class="btn sm soft" data-tk="${esc(s.id)}">Ticket <kbd>F4</kbd></button>`;
+  box.innerHTML = `<span>✓ Última venta ${nro(s)} · ${money(s.total)} · ${esc(medioVenta(s))}${vuelto}</span><button class="btn sm soft" data-tk="${esc(s.id)}">Ticket <kbd>F4</kbd></button>`;
 }
 $("#ultima").addEventListener("click", e => { const b=e.target.closest("[data-tk]"); if(b) abrirTicket(b.dataset.tk); });
 
@@ -2122,19 +2158,20 @@ $("#pagaCon").addEventListener("input", updVuelto);
 
 function abrirCobro(){
   if(!cart.length){ toast("La venta está vacía"); return; }
-  const bad = cart.findIndex(l => !(l.precio>0) || !(l.cant>0));
+  const bad = cart.findIndex(l => !(l.precio>0 || (ES_SENA(l) && l.precio < 0)) || !(l.cant>0));   // v3.66: "− Seña" en negativo
+  if(!(total() > 0)){ toast("La seña cubre todo el total: revisá las líneas"); return; }
   if(bad >= 0){ toast("Falta precio o cantidad en una línea"); const li=document.querySelectorAll("#lines li")[bad]; (li.querySelector("input.need")||li.querySelector("input.qty")).focus(); return; }
   $("#cobro").hidden=false; $("#barVenta").hidden=true; $("#cobroErr").hidden=true; $("#vact").classList.add("cobrando");
   $("#tab-venta").classList.add("cobrando"); q.disabled = true; cbTeclas = 0;
   setMedio(medioPreset || "efectivo"); medioPreset = null;
   $("#vact").scrollTop = $("#vact").scrollHeight;
 }
-function closeCobro(){ $("#cobro").hidden=true; $("#barVenta").hidden=false; $("#vact").classList.remove("cobrando"); $("#tab-venta").classList.remove("cobrando"); q.disabled = false; medio=null; renderDesc(); }
+function closeCobro(){ dosOff(); $("#cobro").hidden=true; $("#barVenta").hidden=false; $("#vact").classList.remove("cobrando"); $("#tab-venta").classList.remove("cobrando"); q.disabled = false; medio=null; renderDesc(); }
 /* v3.52 · el cajero quiso hacer otra cosa mientras cobraba: se sacude la venta y el título dice qué hacer (sin sonido: las cajas no tienen parlantes) */
 let cbTeclas = 0, cbAntes = null, cbDig = 0, cbAvisoT = null;
 function cbTitulo(){
   const m = MEDIOS.find(x => x.k === medio), tot = cart.length ? aCobrar() : 0;
-  $("#cobroTit").textContent = `💳 Cobrando ${money(tot)} · ${m ? m.l : "elegí el medio"}`;
+  $("#cobroTit").textContent = `💳 Cobrando ${money(tot)} · ${m ? m.l + (medio2 ? " + " + medioL(medio2) : "") : "elegí el medio"}`;
   $("#cbVeloTot").textContent = `💳 Estás cobrando ${money(tot)}`;
   const c = getComputedStyle(document.querySelector(`#medios button[data-m="${medio}"]`) || document.body).getPropertyValue("--mc").trim();
   ["#vact", "#cbVelo"].forEach(s => $(s).style.setProperty("--cb", c || "var(--accent)"));
@@ -2149,11 +2186,41 @@ $("#cbVelo").addEventListener("mousedown", e => { e.preventDefault(); avisarCobr
 function setMedio(m){
   if(ccEdit && m !== "ctacte"){ toast("Una venta a cuenta se modifica a cuenta (Cta. cte.)"); m = "ctacte"; }
   if(m === "ctacte" && !ccCli){ abrirElegirCC(() => setMedio("ctacte")); return; }
+  if(medio2 && m === "ctacte") dosOff();                                // v3.67: cta. cte. no se combina
+  if(medio2 && m === medio2) medio2 = medio;                           // tocó el segundo medio arriba: se dan vuelta
   medio = m;
   document.querySelectorAll("#medios button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === m));
-  $("#efe").hidden = m !== "efectivo"; $("#cobroErr").hidden = true; renderDesc(); updVuelto(); cbTitulo();
-  if(m==="efectivo"){ $("#pagaCon").value=""; updVuelto(); $("#pagaCon").focus(); } else $("#bConfirmar").focus();
+  $("#efe").hidden = m !== "efectivo" || !!medio2; renderDos(); $("#cobroErr").hidden = true; renderDesc(); updVuelto(); cbTitulo();
+  if(medio2) $("#parte1").focus(); else if(m==="efectivo"){ $("#pagaCon").value=""; updVuelto(); $("#pagaCon").focus(); } else $("#bConfirmar").focus();
 }
+/* v3.67 · ➕ dos medios: arriba el primero (y cuánto paga con él), abajo el segundo; el resto se calcula solo */
+function dosOn(){
+  if(ccEdit || medio === "ctacte"){ toast("Cta. cte. no se combina con otro medio"); return; }
+  if(!DEMO && !(parseFloat((cat && cat.version) || 0) >= 3.6)){ toast("Para cobrar con dos medios falta actualizar el script de la planilla (v3.60)", 6000); return; }   // si no, el cierre lo contaría todo como efectivo
+  if(!medio) medio = "efectivo";
+  medio2 = medio === "transf" ? "efectivo" : "transf"; $("#parte1").value = "";
+  setMedio(medio);
+}
+function dosOff(){ medio2 = null; $("#parte1").value = ""; renderDos(); }
+function renderDos(){   // v3.69: con dos medios el recuadro reemplaza la grilla (Confirmar queda a la vista)
+  const on = !!medio2; $("#dos").hidden = !on; $("#bDos").hidden = on; $("#medios").hidden = on; $("#cobro").classList.toggle("con-dos", on);
+  if(medio && !$("#cobro").hidden) $("#efe").hidden = medio !== "efectivo" || on;
+  if(!on) return;
+  const ch = (k, sel, at) => MEDIOS.filter(x => x.k !== "ctacte").map(x => `<button ${at}="${x.k}" type="button" aria-pressed="${x.k === sel}">${x.l.replace(" / QR", "")}</button>`).join("");
+  $("#medios1").innerHTML = ch(1, medio, "data-m1"); $("#medios2").innerHTML = ch(2, medio2, "data-m2");
+  updDos();
+}
+function updDos(){ if(!medio2) return; const c = dosCalc(), p1 = toNum($("#parte1").value);   // v3.72
+  $("#dosResto").textContent = c.ok ? money(c.p2) : p1 > 0 ? `tiene que ser menos de ${money(c.max1)}` : "—";
+  $("#dosNota").textContent = !descOn ? "Sin descuento" : c.ok ? (c.desc > 0 ? `Descuento repartido: ${medioL(medio)} ${pctTxt(c.r1)}% sobre ${money(c.L1)} · ${medioL(medio2)} ${pctTxt(c.r2)}% sobre ${money(c.L2)} (−${money(c.desc)})` : "Sin descuento")
+    : `Escribí cuánto paga en ${medioL(medio)}: el descuento se reparte según lo que paga con cada medio`; }
+$("#bDos").onclick = () => { medio2 ? (dosOff(), setMedio(medio)) : dosOn(); };
+$("#dosX").onclick = () => { dosOff(); setMedio(medio); };
+$("#medios1").addEventListener("click", e => { const b = e.target.closest("[data-m1]"); if(b) setMedio(b.dataset.m1); });
+$("#medios2").addEventListener("click", e => { const b = e.target.closest("[data-m2]"); if(!b) return;
+  if(b.dataset.m2 === medio){ medio = medio2; } medio2 = b.dataset.m2;                     // eligió abajo el mismo de arriba: se dan vuelta
+  renderDesc(); cbTitulo(); setMedio(medio); });
+$("#parte1").addEventListener("input", () => { $("#cobroErr").hidden = true; renderDesc(); cbTitulo(); updDos(); });   // v3.72: el total cambia con el reparto
 /* =====================================================================
    DESCUENTOS (hojas Descuentos y Clientes de la planilla). Se aplica SOLO el más alto, nunca se suman.
    · Efectivo: al cobrar en efectivo, desde $X    · Monto: toda la compra, desde $X (escalas)
@@ -2161,8 +2228,9 @@ function setMedio(m){
    No cuentan SUBE, copias/anillados ni kiosco. El cajero puede quitarlo (D). Todo queda registrado en la venta.
    ===================================================================== */
 const ES_SERVICIO = l => /^(SUBE|FOTOCOPIAS|ANILLADO)$/i.test(l.cat || "") || /^IMP-/.test(l.cod || "") || /fotocop|impresi/i.test(l.cat || "");   // precio que pone el cajero o el cotizador
-const SIN_DESC = l => ES_SERVICIO(l) || /kiosco/i.test(l.cat || "") || CATS_SIN_DESC.has(String(l.cat || "").toUpperCase());   // no llevan descuento: SUBE, copias/anillados, kiosco y botones con Descuento = NO
-const DESC_L = {manual:"🏷️ Descuento", efectivo:"💵 Efectivo", transferencia:"🏦 Transferencia", monto:"🧾 Por monto", unidades:"📦 Por cantidad", cliente:"👤", libre:"✋"};
+const ES_SENA = l => /^se[ñn]a$/i.test(l.cat || "");                                     // v3.66: la seña no lleva descuento ni cuenta como producto
+const SIN_DESC = l => ES_SENA(l) || ES_SERVICIO(l) || /kiosco/i.test(l.cat || "") || CATS_SIN_DESC.has(String(l.cat || "").toUpperCase());   // no llevan descuento: SUBE, copias/anillados, kiosco y botones con Descuento = NO
+const DESC_L = {dos:"⇄ Dos medios", lista:"📚 Lista escolar", manual:"🏷️ Descuento", efectivo:"💵 Efectivo", transferencia:"🏦 Transferencia", monto:"🧾 Por monto", unidades:"📦 Por cantidad", cliente:"👤", libre:"✋"};
 let descOn = true, descBloq = false, descCli = null;   // descBloq: venta de un presupuesto con descuento · descCli: cliente o libre elegido
 function reglas(){
   const d = cat && cat.descuentos;
@@ -2184,7 +2252,7 @@ function descLinea(l, pct){
 }
 function candidatos(m){
   if(descBloq || !cart.length) return [];
-  const R = reglas(), el = cart.filter(l => !SIN_DESC(l));
+  const R = reglas(), el = cart.filter(l => !SIN_DESC(l) && !l.pd);                        // v3.70: las líneas de un presupuesto (pd) llevan su propio %
   const base = el.reduce((a,l) => a + subt(l), 0), uds = el.reduce((a,l) => a + (+l.cant || 0), 0), out = [];
   const add = (tipo, pct, motivo) => { if(!(pct > 0 && base > 0)) return; const monto = r10(el.reduce((a,l) => a + descLinea(l, pct), 0));
     if(monto > 0) out.push({tipo, pct, motivo: motivo || "", monto, tope: el.some(l => descLinea(l, pct) < baseDesc(l)*pct/100 - 1)}); };   // base (con combos) decide el escalón; el monto, solo lo suelto
@@ -2193,10 +2261,41 @@ function candidatos(m){
   add("monto", escala(R.monto, base));
   add("unidades", escala(R.unidades, uds));
   if(descCli) add(descCli.tipo, descCli.pct, descCli.motivo);
-  return out.sort((a,b) => b.monto - a.monto);
+  out.sort((a,b) => b.monto - a.monto);
+  const pm = descPresu(m);                                                                  // v3.70: % del presupuesto según el medio (se suma a lo de la caja)
+  if(!pm.monto) return out;
+  if(!out.length) return [{tipo:"lista", pct:pm.pct, motivo:"", monto:pm.monto, tope:false}];
+  return out.map(d => ({...d, monto: d.monto + pm.monto, motivo: (d.motivo ? d.motivo + " · " : "") + `+ lista escolar ${pm.pct}%`}));
 }
 const mejorDesc = m => candidatos(m)[0] || null;
-const descAplicado = () => descOn ? (mejorDesc(medio) || {monto:0}).monto : 0;
+/* v3.70 · presupuesto en la venta: cada lista pasa a precio de lista con pd = {efectivo: %, transf: %} del presupuesto (congelado si está señado).
+   Al cobrar, el % que corresponde al medio se aplica por lista con el mismo redondeo que el presupuesto. Postnet: sin descuento. */
+function descPresu(m){
+  const g = {}; cart.forEach(l => { if(!l.pd || ES_SENA(l)) return; const k = l.presu || "x"; (g[k] = g[k] || {pd:l.pd, base:0}).base += subt(l); });
+  let monto = 0, pct = 0;
+  Object.values(g).forEach(x => { const d = +x.pd[m] || 0; if(!(d > 0) || !(x.base > 0)) return; pct = Math.max(pct, d);
+    monto += x.base - Math.min(x.base, Math.ceil(x.base * (1 - d/100) / REDONDEO) * REDONDEO); });
+  return {monto: Math.round(monto), pct};
+}
+let medio2 = null;                                                   // v3.67: segundo medio (null = un solo medio)
+/* v3.72 · dos medios PROPORCIONAL: lo que paga con el 1.º medio (ya con su descuento) cubre una parte del precio de lista; el resto de lista
+   va al 2.º medio con su descuento. El % de cada medio sale de su mejor descuento sobre TODA la compra (los escalones miran el total). */
+function dosCalc(){
+  const S = -cart.filter(l => ES_SENA(l)).reduce((x,l) => x + subt(l), 0), T = total() + S;   // T: productos a precio de lista · S: seña ya pagada (se descuenta del 2.º medio)
+  const p1 = Math.round(toNum($("#parte1").value)), a = mejorDesc(medio), b = mejorDesc(medio2);
+  const r1 = descOn && a && T > 0 ? a.monto / T : 0, r2 = descOn && b && T > 0 ? b.monto / T : 0, max1 = Math.round((1 - r1) * (T - S / (1 - r2)));
+  if(!(p1 > 0 && p1 < max1)) return {ok:false, T, max1, a, b};
+  const L1 = Math.min(T, p1 / (1 - r1)), L2 = T - L1, p2 = r10(L2 * (1 - r2) - S);
+  return {ok:true, T, p1, p2, L1:Math.round(L1), L2:Math.round(L2), r1, r2, a, b, desc: total() - p1 - p2};
+}
+const pctTxt = r => Math.round(r * 1000) / 10;
+const mejorDescCobro = () => { const a = mejorDesc(medio); if(!medio2) return a;
+  const c = dosCalc();
+  if(!c.ok){ const b = mejorDesc(medio2); return !a || !b ? null : (a.monto <= b.monto ? a : b); }   // sin monto todavía: muestra el menor
+  if(!(c.desc > 0)) return null;
+  return {tipo:"dos", pct: pctTxt(c.desc / c.T), monto: c.desc, tope:false,
+    motivo: `${medioL(medio)} ${pctTxt(c.r1)}% s/ ${money(c.L1)} + ${medioL(medio2)} ${pctTxt(c.r2)}% s/ ${money(c.L2)}`}; };
+const descAplicado = () => descOn ? (mejorDescCobro() || {monto:0}).monto : 0;
 const aCobrar = () => total() - descAplicado();
 const descNombre = d => d.tipo === "cliente" || d.tipo === "libre" ? `${DESC_L[d.tipo]} ${d.motivo}` : DESC_L[d.tipo] || "Descuento";
 const RAPIDO_SIN_PIN = 20;                                           // 10 y 20 %: cualquier cajero · 30 %: con PIN del encargado
@@ -2209,7 +2308,7 @@ function descTxt(){
   return t.length ? t.join(" · ") : "ninguno cargado";
 }
 function renderDesc(){
-  const box = $("#descBox"), tot = total(), d = mejorDesc(medio), on = !!(d && descOn), t = aCobrar();
+  const box = $("#descBox"), tot = total(), d = mejorDescCobro(), on = !!(d && descOn), t = aCobrar();
   box.hidden = !cart.length;
   if(cart.length){
     const ef = medio && medio !== "efectivo" ? mejorDesc("efectivo") : null;
@@ -2250,7 +2349,7 @@ function renderUpsell(){
   box.innerHTML = l.length ? `<b class="t">💡 Ofrecele al cliente</b>` + ver.map(x => `<span>${x}</span>`).join("")
     + (l.length > 1 ? `<button class="link ups-mas" id="upsMas" type="button">${upsTodas ? "ver menos" : "+" + (l.length - 1) + " más"}</button>` : "") : "";
 }
-function toggleDesc(){ if(!mejorDesc(medio)) return; descOn = !descOn; renderDesc(); updVuelto(); if(medio) cbTitulo(); if(medio === "efectivo") $("#pagaCon").focus(); }
+function toggleDesc(){ if(!mejorDescCobro()) return; descOn = !descOn; renderDesc(); updVuelto(); if(medio) cbTitulo(); if(medio === "efectivo") $("#pagaCon").focus(); }
 $("#descBox").addEventListener("click", e => {
   if(e.target.closest("#descTg")){ e.preventDefault(); toggleDesc(); }
   if(e.target.closest("#cliBtn")){ e.preventDefault(); abrirClientes(); }
@@ -2573,14 +2672,16 @@ $("#libOk").onclick = async () => {
 };
 $("#cliOverlay").addEventListener("keydown", e => { e.stopPropagation(); if(e.key === "Escape"){ e.preventDefault(); cerrarClientes(); } if(e.key === "Enter" && e.target.id === "libPin"){ e.preventDefault(); $("#libOk").click(); } });
 const resetDesc = () => { descOn = true; descBloq = false; descCli = null; };
-function updVuelto(){ const tot=aCobrar(), p=toNum($("#pagaCon").value);
+function updVuelto(){ updDos(); const tot=aCobrar(), p=toNum($("#pagaCon").value);
   $("#vuelto").textContent = p ? (p>=tot ? money(p-tot) : "falta "+money(tot-p)) : "—"; }
 function confirmar(){
   if(!medio) return;
-  if(cart.some(l => !(l.precio > 0) || !(l.cant > 0))){ $("#cobroErr").textContent = "Falta precio o cantidad en una línea."; $("#cobroErr").hidden = false; return; }
-  const tot = aCobrar(), p = toNum($("#pagaCon").value), d = descAplicado() ? mejorDesc(medio) : null;
-  if(medio==="efectivo" && p && p<tot){ $("#cobroErr").textContent="El monto recibido es menor al total."; $("#cobroErr").hidden=false; return; }
-  if(medio==="efectivo" && p > Math.max(tot * 20, 200000)){ $("#pagaCon").value = ""; updVuelto(); $("#pagaCon").focus();
+  if(cart.some(l => !(l.precio > 0 || (ES_SENA(l) && l.precio < 0)) || !(l.cant > 0))){ /* v3.66: "− Seña" va en negativo */ $("#cobroErr").textContent = "Falta precio o cantidad en una línea."; $("#cobroErr").hidden = false; return; }
+  const tot = aCobrar(), p = toNum($("#pagaCon").value), d = descAplicado() ? mejorDescCobro() : null;
+  const p1 = Math.round(toNum($("#parte1").value)), dos = medio2 ? [{m:medio, monto:p1}, {m:medio2, monto:tot - p1}] : null;   // v3.67
+  if(dos && !dosCalc().ok){ $("#cobroErr").textContent = `Escribí cuánto paga en ${medioL(medio)} (menos que ${money(dosCalc().max1)}); el resto va en ${medioL(medio2)}.`; $("#cobroErr").hidden = false; $("#parte1").focus(); return; }
+  if(!medio2 && medio==="efectivo" && p && p<tot){ $("#cobroErr").textContent="El monto recibido es menor al total."; $("#cobroErr").hidden=false; return; }
+  if(!medio2 && medio==="efectivo" && p > Math.max(tot * 20, 200000)){ $("#pagaCon").value = ""; updVuelto(); $("#pagaCon").focus();
     $("#cobroErr").textContent = `¿Paga con ${money(p)}? Parece un código de barras: se borró. Para agregar un producto, Esc.`; $("#cobroErr").hidden = false; avisarCobro("Revisá \"Paga con\""); return; }
   if(ccEdit) return confirmarMod(tot, d);
   const t = new Date(), fecha = ymd(t);
@@ -2589,9 +2690,10 @@ function confirmar(){
     fecha, hora: hm(t), ts: t.getTime(), sucursal: cfg.suc, pc: cfg.pc || "", cajero: cfg.turno.cajero,
     n: sales.filter(x => x.fecha===fecha && x.sucursal===cfg.suc && (x.pc||"")===(cfg.pc||"")).length + 1,
     items: cart.map(l => ({cod:l.cod, nombre:l.nombre, cat:l.cat, cant:l.cant, precio:l.precio, ...(conCombo(l) ? {combo:l.combo, sub:subt(l)} : {})})),
-    total: tot, medio, pagaCon: medio==="efectivo" && p ? p : null, anulada: false, ...(medio === "ctacte" ? {cliente: ccCli} : {}), ...(d ? {desc:d.monto, descPct:d.pct, descTipo:d.tipo, descMotivo:d.motivo} : {})
+    total: tot, medio: dos ? "mixto" : medio, ...(dos ? {pagos: dos} : {}), pagaCon: !dos && medio==="efectivo" && p ? p : null, anulada: false, ...(medio === "ctacte" ? {cliente: ccCli} : {}), ...(d ? {desc:d.monto, descPct:d.pct, descTipo:d.tipo, descMotivo:d.motivo} : {})
   };
   sales.push(s); guardar("sales", sales); encolar("venta", s.id);
+  prTrasVenta(s, cart);                                                                     // v3.66: seña cobrada / listas entregadas
   ultimaId = s.id; cart = []; resetDesc(); ccCli = null; closeCobro(); renderCart(); focusQ();
 }
 
@@ -2615,17 +2717,21 @@ document.head.insertAdjacentHTML("beforeend", "<style>"+TK_CSS+"</style>");
 /* v3.52: lo que el cliente se ahorró = descuento + diferencia de los combos (precio de lista − precio del combo) */
 const subI = i => i.combo == null && i.sub != null ? i.sub : subt(i);                                  // v3.57: venta de la otra PC = su subtotal guardado
 const comboI = i => i.combo == null && i.sub != null ? i.sub < i.cant * i.precio - 0.5 : conCombo(i);
+const esSenaI = i => /^se[ñn]a$/i.test(i.cat || "");                                     // v3.71: la seña va aparte en los comprobantes
+const prodsV = s => s.items.filter(i => !esSenaI(i)), senasV = s => s.items.filter(esSenaI);
 const ahorroVenta = s => Math.round((s.desc || 0) + s.items.reduce((a, i) => a + (i.combo || (i.combo == null && i.sub != null) ? Math.max(0, i.cant * i.precio - (i.sub ?? subt(i))) : 0), 0));
+const descPctTxt = s => s.descTipo === "dos" ? "" : s.descPct + "%";                     // v3.72: dos medios ya dice el % de cada parte
 const descVenta = s => ({manual:"especial", efectivo:"efectivo", transferencia:"transferencia", monto:"por monto", unidades:"por cantidad"})[s.descTipo || "efectivo"] || s.descMotivo || "";
 function ticketHTML(s){
-  const lineas = s.items.map(i => `<div class="tk-l"><span>${i.cant!=1 ? i.cant+" × " : ""}${esc(i.nombre)}${comboI(i) ? " (combo)" : ""}</span><span>${money(subI(i))}</span></div>`).join("");
+  const lineas = prodsV(s).map(i => `<div class="tk-l"><span>${i.cant!=1 ? i.cant+" × " : ""}${esc(i.nombre)}${comboI(i) ? " (combo)" : ""}</span><span>${money(subI(i))}</span></div>`).join("");
+  const sn = senasV(s), senaH = sn.length ? `<div style="margin:6px 8px;border:2px dashed #111;border-radius:6px;padding:6px 8px">${sn.map(i => `<div class="tk-l" style="padding:2px 0;font-weight:700"><span>💰 ${esc(i.nombre)}</span><span>−${money(-subI(i))}</span></div>`).join("")}</div>` : "";
   const vuelto = s.medio==="efectivo" && s.pagaCon ? `<div class="tk-l"><span>Paga con</span><span>${money(s.pagaCon)}</span></div><div class="tk-l"><span>Vuelto</span><span>${money(s.pagaCon - s.total)}</span></div>` : "";
   return `<div class="tk"><div class="tk-h"><b>${esc(NEGOCIO)}</b><small>Sucursal ${esc(s.sucursal)}</small></div>
     <div class="tk-m"><span>${fechaAR(s.fecha)} ${s.hora}</span><span>N° ${esc(nro(s))}</span></div>
-    <div class="tk-i">${lineas}</div>${s.desc ? `<div class="tk-l"><span>Descuento ${esc(descVenta(s))} ${s.descPct}%</span><span>−${money(s.desc)}</span></div>` : ""}
-    <div class="tk-t"><span>Total</span><span>${money(s.total)}</span></div>
+    <div class="tk-i">${lineas}</div>${s.desc ? `<div class="tk-l"><span>Descuento ${esc(descVenta(s))} ${descPctTxt(s)}</span><span>−${money(s.desc)}</span></div>` : ""}
+    ${senaH}<div class="tk-t"><span>${sn.length ? "Total a pagar hoy" : "Total"}</span><span>${money(s.total)}</span></div>
     ${ahorroVenta(s) ? `<div style="margin:0 8px 8px;border:2px solid #111;border-radius:6px;padding:6px;text-align:center;font-weight:700">🎉 ¡Ahorraste ${money(ahorroVenta(s))}!</div>` : ""}
-    <div class="tk-p"><div class="tk-l"><span>Pago</span><span>${esc(medioL(s.medio))}</span></div>${s.cliente ? `<div class="tk-l"><span>Cuenta de</span><span>${esc(s.cliente)}</span></div>` : ""}${vuelto}</div>
+    <div class="tk-p">${pagosDe(s).map(x => `<div class="tk-l"><span>Pago${s.pagos ? " " + esc(medioL(x.m)) : ""}</span><span>${s.pagos ? money(x.monto) : esc(medioL(s.medio))}</span></div>`).join("")}${s.cliente ? `<div class="tk-l"><span>Cuenta de</span><span>${esc(s.cliente)}</span></div>` : ""}${vuelto}</div>
     <div class="tk-f">¡Muchas gracias!<br>Comprobante no válido como factura</div></div>`;
 }
 /* ---------- v3.52 · TICKET A4 (se imprime en hoja común). Datos de las sucursales: completar acá (son públicos, nada sensible) ---------- */
@@ -2640,7 +2746,7 @@ const TK_INFO = {
   },
   encuesta: ""              // link general (encuesta). Si la sucursal tiene "resena" (link de reseña de Google), se usa ese → QR en el ticket
 };
-const TK_A4_CSS = `.a4{font-family:ui-sans-serif,"Segoe UI",Helvetica,Arial,sans-serif;color:#111;background:#fff;box-sizing:border-box;min-height:270mm;display:flex;flex-direction:column;font-size:12.5px}
+const TK_A4_CSS = `.a4 .sena{border:2px dashed #111;border-radius:6px;padding:6px 8px!important;margin:6px 0;font-weight:800;font-size:14px;gap:10px}.a4 .sena span:last-child,.a4 .tot .t span:last-child{white-space:nowrap}.a4 .tot.con-sena{width:92mm}.a4{font-family:ui-sans-serif,"Segoe UI",Helvetica,Arial,sans-serif;color:#111;background:#fff;box-sizing:border-box;min-height:270mm;display:flex;flex-direction:column;font-size:12.5px}
 .a4 *{box-sizing:border-box}
 .a4-h{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:10px}
 .a4-h b{font-size:30px;letter-spacing:.02em;text-transform:uppercase;line-height:1}
@@ -2666,17 +2772,19 @@ function tkQR(suc){   // SVG del QR de reseñas de la sucursal (o de la encuesta
   try{ const q = qrcode(0, "M"); q.addData(url); q.make(); return q.createSvgTag({cellSize:4, margin:0}).replace(/width="\d+px" height="\d+px"/, 'width="100%"'); }catch(e){ return ""; }
 }
 function ticketA4HTML(s){
-  const filas = s.items.map(i => `<tr><td>${i.cant}</td><td>${esc(i.nombre)}${comboI(i) && !/combo/i.test(i.nombre) ? " <b>(combo)</b>" : ""}</td><td class="r">${money(i.precio)}</td><td class="r">${money(subI(i))}</td></tr>`).join("");
-  const lista = s.items.reduce((a, i) => a + i.cant * i.precio, 0), ah = ahorroVenta(s), combos = ah - (s.desc || 0);
+  const sn = senasV(s);                                                                      // v3.71
+  const filas = prodsV(s).map(i => `<tr><td>${i.cant}</td><td>${esc(i.nombre)}${comboI(i) && !/combo/i.test(i.nombre) ? " <b>(combo)</b>" : ""}</td><td class="r">${money(i.precio)}</td><td class="r">${money(subI(i))}</td></tr>`).join("");
+  const lista = prodsV(s).reduce((a, i) => a + i.cant * i.precio, 0), ah = ahorroVenta(s), combos = ah - (s.desc || 0);
   const suc = Object.entries(TK_INFO.sucursales).filter(([, x]) => x.dir || x.hor || x.tel)
     .map(([k, x]) => `<div class="suc${k === s.sucursal ? " yo" : ""}"><b>${esc(SUC_LBL(k))}</b>${x.dir ? " · " + esc(x.dir) : ""}${x.hor ? "<br>" + esc(x.hor) : ""}${x.tel ? " · WhatsApp " + esc(x.tel) : ""}</div>`).join("");
   return `<div class="a4">
     <div class="a4-h"><div><b>${esc(NEGOCIO)}</b><small>Sucursal ${esc(SUC_LBL(s.sucursal))}${TK_INFO.sucursales[s.sucursal] ? " · " + esc(TK_INFO.sucursales[s.sucursal].dir) + ", " + esc(TK_INFO.ciudad) : ""}</small><small style="letter-spacing:.04em;text-transform:none;margin-top:3px">${esc(TK_INFO.razon)} · CUIT ${esc(TK_INFO.cuit)}</small></div>
       <div class="m">${fechaAR(s.fecha)} · ${s.hora} h<br>Comprobante N° ${esc(nro(s))}<br>Te atendió ${esc(String(s.cajero || "").split(" ")[0])}</div></div>
     <table><tr><th style="width:12mm">Cant.</th><th>Producto</th><th class="r">Precio</th><th class="r">Subtotal</th></tr>${filas}</table>
-    <div class="tot">${ah ? `<div><span>Precio de lista</span><span>${money(lista)}</span></div>` : ""}${combos > 0 ? `<div><span>Combos</span><span>−${money(combos)}</span></div>` : ""}${s.desc ? `<div><span>Descuento ${esc(descVenta(s))} ${s.descPct}%</span><span>−${money(s.desc)}</span></div>` : ""}
-      <div class="t"><span>Total</span><span>${money(s.total)}</span></div>
-      <div><span>Pago</span><span>${esc(medioL(s.medio))}</span></div>${s.cliente ? `<div><span>Cuenta de</span><span>${esc(s.cliente)}</span></div>` : ""}${s.medio === "efectivo" && s.pagaCon ? `<div><span>Paga con</span><span>${money(s.pagaCon)}</span></div><div><span>Vuelto</span><span>${money(s.pagaCon - s.total)}</span></div>` : ""}</div>
+    <div class="tot${sn.length ? " con-sena" : ""}">${ah ? `<div><span>Precio de lista</span><span>${money(lista)}</span></div>` : ""}${combos > 0 ? `<div><span>Combos</span><span>−${money(combos)}</span></div>` : ""}${s.desc ? `<div><span>Descuento ${esc(descVenta(s))} ${descPctTxt(s)}</span><span>−${money(s.desc)}</span></div>` : ""}
+      ${sn.length ? `<div><span>Productos${s.desc ? " (con descuento)" : ""}</span><span>${money(s.total - sn.reduce((a, i) => a + subI(i), 0))}</span></div>` + sn.map(i => `<div class="sena"><span>💰 ${esc(i.nombre)}</span><span>−${money(-subI(i))}</span></div>`).join("") : ""}
+      <div class="t"><span>${sn.length ? "Total a pagar hoy" : "Total"}</span><span>${money(s.total)}</span></div>
+      ${pagosDe(s).map(x => `<div><span>Pago${s.pagos ? " " + esc(medioL(x.m)) : ""}</span><span>${s.pagos ? money(x.monto) : esc(medioL(s.medio))}</span></div>`).join("")}${s.cliente ? `<div><span>Cuenta de</span><span>${esc(s.cliente)}</span></div>` : ""}${s.medio === "efectivo" && s.pagaCon ? `<div><span>Paga con</span><span>${money(s.pagaCon)}</span></div><div><span>Vuelto</span><span>${money(s.pagaCon - s.total)}</span></div>` : ""}</div>
     ${ah ? `<div class="ahorro">🎉 ¡Ahorraste ${money(ah)}!</div>` : ""}
     <div class="leg">Comprobante no válido como factura. Si necesitás factura, pedila en caja.</div>
     <div class="a4-pie">
@@ -2699,11 +2807,12 @@ function imprimir(cuerpo, titulo, css){   // iframe oculto: no lo bloquean como 
 }
 function ticketTexto(s){
   const L = [`*${NEGOCIO.toUpperCase()}*`, `${fechaAR(s.fecha)} ${s.hora} · N° ${nro(s)}`, ""];
-  s.items.forEach(i => L.push(`${i.cant!=1 ? i.cant+" × " : ""}${i.nombre}${comboI(i) ? " 🏷️ combo" : ""} — ${money(subI(i))}`));
-  if(s.desc) L.push(`Descuento ${descVenta(s)} ${s.descPct}% — −${money(s.desc)}`);
-  L.push("", `*TOTAL: ${money(s.total)}*`);
+  prodsV(s).forEach(i => L.push(`${i.cant!=1 ? i.cant+" × " : ""}${i.nombre}${comboI(i) ? " 🏷️ combo" : ""} — ${money(subI(i))}`));
+  if(s.desc) L.push(`Descuento ${descVenta(s)} ${descPctTxt(s)} — −${money(s.desc)}`);
+  senasV(s).forEach(i => L.push("", `💰 *${i.nombre}: −${money(-subI(i))}*`));
+  L.push("", `*${senasV(s).length ? "TOTAL A PAGAR HOY" : "TOTAL"}: ${money(s.total)}*`);
   if(ahorroVenta(s)) L.push(`🎉 ¡Ahorraste ${money(ahorroVenta(s))}!`);
-  L.push( `Pago: ${medioL(s.medio)}` + (s.cliente ? ` · cuenta de ${s.cliente}` : ""), "", "¡Muchas gracias! 🙌", "_Comprobante no válido como factura_");
+  L.push( `Pago: ${medioVenta(s)}` + (s.cliente ? ` · cuenta de ${s.cliente}` : ""), "", "¡Muchas gracias! 🙌", "_Comprobante no válido como factura_");
   return L.join("\n");
 }
 $("#tkClose").onclick = cerrarTicket;
@@ -2749,13 +2858,14 @@ document.addEventListener("keydown", e => {
   if(cobrando){
     if(e.key==="Escape"){ e.preventDefault(); closeCobro(); focusQ(); return; }
     if(e.key==="Enter"){ e.preventDefault();
-      if(Date.now() - cbDig < 300 && document.activeElement !== $("#pagaCon")){ cbDig = 0; avisarCobro("Escaneaste un producto mientras cobrabas: tocá Esc para agregarlo"); return; }   // lector de códigos
+      if(Date.now() - cbDig < 300 && document.activeElement !== $("#pagaCon") && document.activeElement !== $("#parte1")){ cbDig = 0; avisarCobro("Escaneaste un producto mientras cobrabas: tocá Esc para agregarlo"); return; }   // lector de códigos
       confirmar(); return; }
     if(e.key==="Tab"){ e.preventDefault(); const i = MEDIOS.findIndex(x => x.k === medio), n = MEDIOS.length;
       setMedio(MEDIOS[(i + (e.shiftKey ? n-1 : 1)) % n].k); return; }
     if(e.target.closest && e.target.closest("#lines, textarea, #ccOverlay, #cliOverlay")) return;   // escribiendo en una línea u otro campo: las letras no cambian el medio
     if(e.ctrlKey || e.altKey || e.metaKey || e.key.length !== 1) return;
-    if(/\d/.test(e.key)){ if(document.activeElement !== $("#pagaCon")){ e.preventDefault(); cbDig = Date.now(); if(medio !== "efectivo") avisarCobro("Estás cobrando: los números van en \"Paga con\" (efectivo). Para agregar productos, Esc"); } return; }
+    if(e.key === "+"){ e.preventDefault(); $("#bDos").click(); return; }                    // v3.67: dos medios
+    if(/\d/.test(e.key)){ if(document.activeElement !== $("#pagaCon") && document.activeElement !== $("#parte1")){ e.preventDefault(); cbDig = Date.now(); if(medio !== "efectivo") avisarCobro("Estás cobrando: los números van en \"Paga con\" (efectivo). Para agregar productos, Esc"); } return; }
     if(!/\p{L}/u.test(e.key)) return;
     e.preventDefault();
     const ahora = Date.now(), seguidas = ahora - cbTeclas < 700; cbTeclas = ahora;   // letras seguidas = está escribiendo un producto, no eligiendo medio
@@ -3139,9 +3249,13 @@ async function imprimirEtiquetas(){
 const PRESU_MAX = 80;
 let presus = leer("presus", []), pr = null, pFound = [], pSel = 0;
 const cfgDesc = () => (cat && cat.config) || {};      // descuentos por defecto: hoja Configuración de la planilla
-let plants = leer("plantillas", {t:0, items:[]}), prRem = [], prSyncT = null, cliSug = null;   // v3.60 · v3.65: cliSug
+let plants = leer("plantillas", {t:0, items:[]}), prRem = [], prSyncT = null, cliSug = null;
+const RETIRA = ["FALCON","NACION","MORENO","SOMISA"];                                      // v3.66: dónde retira el cliente
+const MEDIO_TXT = {efectivo:"Efectivo", postnet:"Postnet / QR", transf:"Transferencia", ctacte:"Cta. cte.", mixto:"Dos medios"};
+const EST = {"":"📝 Presupuestado", "Señado":"💰 Señado", "Entregado":"✅ Entregado", "No aceptó":"❌ No aceptó"};   // v3.60 · v3.65: cliSug
 const prNuevo = () => ({id:"P-"+Date.now().toString(36), creado:Date.now(), mod:Date.now(), cliente:"", nota:"", vence:"", items:[], vendido:0,
   tel:"", escuela:"", sala:"", n:1, plant:"", grupo:"", suc:cfg.suc || "", cajero:cfg.turno ? cfg.turno.cajero : "",
+  retira: RETIRA.includes(cfg.suc) ? cfg.suc : "FALCON", estado:"", sena:null,                                       // v3.66
   descEfe: +cfgDesc().descEfe || 0, descTra: +cfgDesc().descTra || 0});
 /* precios del presupuesto: lista (tarjetas) y, si hay descuento, efectivo y transferencia. Redondeo ↑ como el catálogo */
 function prOpciones(x){
@@ -3156,8 +3270,7 @@ function renderPrecios(){
   $("#prTot").textContent = money(op[0].total); $("#prTotL").textContent = op[0].l + (op[0].det ? " · " + op[0].det.toLowerCase() : "");
   $("#prEfe").textContent = por("efe") ? money(por("efe").total) : "—";
   $("#prTra").textContent = por("tra") ? money(por("tra").total) : "—";
-  $("#prVentaBar").innerHTML = op.length === 1 ? `<button class="btn primary" data-pv="lista">🛒 Pasar a la venta</button>`
-    : op.map(o => `<button class="btn${o.k==="lista" ? "" : " primary"}" data-pv="${o.k}">🛒 ${{lista:"Lista", efe:"Efectivo", tra:"Transferencia"}[o.k]}<small>${money(o.total)}</small></button>`).join("");
+  $("#prVentaBar").innerHTML = `<button class="btn primary" data-pv="lista">🛒 Pasar a la venta<small>el medio de pago se elige al cobrar${op.length > 1 ? " (con su descuento)" : ""}</small></button>`;   // v3.70
 }
 const prTotal = x => Math.round(x.items.reduce((a,l) => a + subt(l), 0) * (+x.n || 1));
 const prUna = x => Math.round(x.items.reduce((a,l) => a + subt(l), 0));               // v3.60: total de UNA lista
@@ -3197,28 +3310,31 @@ function renderPresu(){
   ["tel","escuela","sala","plant","grupo"].forEach(k => { if(pr[k] == null) pr[k] = ""; }); if(!(+pr.n >= 1)) pr.n = 1;   // v3.60: presupuestos de antes
   [["#prTel","tel"],["#prEsc","escuela"],["#prSala","sala"]].forEach(([id,k]) => { if(document.activeElement !== $(id)) $(id).value = pr[k]; });
   if(document.activeElement !== $("#prN")) $("#prN").value = pr.n;
+  if(!RETIRA.includes(pr.retira)) pr.retira = RETIRA.includes(pr.suc) ? pr.suc : "FALCON"; if(pr.estado == null) pr.estado = pr.vendido ? "Entregado" : "";   // v3.66: presupuestos de antes
+  $("#prRet").value = pr.retira;
   $("#prVence").value = pr.vence; $("#prSinFecha").hidden = !pr.vence;
   if(pr.descEfe == null){ pr.descEfe = +cfgDesc().descEfe || 0; pr.descTra = +cfgDesc().descTra || 0; }   // presupuestos de antes
   if(document.activeElement !== $("#prDE")) $("#prDE").value = pr.descEfe || "";
   if(document.activeElement !== $("#prDT")) $("#prDT").value = pr.descTra || "";
   $("#prLines").innerHTML = (pr.items.length ? `<div class="hd"><span>Producto</span><span style="text-align:right">Cant.</span><span style="text-align:right">Precio</span><span style="text-align:right">Subtotal</span><span></span></div>` : "") +
     pr.items.map((l,i) => `<li><span class="n" title="${esc(l.nombre)}">${l.libre ? "✏️ " : ""}${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span></span>
-    <input class="qty" data-i="${i}" value="${l.cant}" inputmode="decimal" aria-label="Cantidad">
+    <span class="step"><button class="mn" data-dec="${i}" type="button" tabindex="-1" aria-label="Uno menos">−</button><input class="qty" data-i="${i}" value="${l.cant}" inputmode="decimal" aria-label="Cantidad"><button class="mn" data-inc="${i}" type="button" tabindex="-1" aria-label="Uno más">+</button></span>
     ${l.libre || l.abierto ? `<input class="price${l.precio>0?"":" need"}" data-i="${i}" value="${l.precio||""}" placeholder="precio" inputmode="decimal" aria-label="Precio">` : `<span class="p">${money(l.precio)}</span>`}
     <span class="s">${money(subt(l))}</span><button class="x" data-i="${i}" aria-label="Quitar">✕</button></li>`).join("");
   $("#prEmpty").hidden = pr.items.length > 0;
   renderPrecios();
   const u = pr.items.reduce((a,b) => a+b.cant, 0);
   $("#prCount").textContent = pr.items.length ? `${pr.items.length} producto${pr.items.length>1?"s":""} · ${u} u.` + ((+pr.n || 1) > 1 ? ` · ×${pr.n} listas` : "") + (pr.vendido ? " · ✓ ya pasado a la venta" : "") : "Sin productos";
-  const ch = prCambios();
+  const ch = pr.sena ? [] : prCambios();                                                    // v3.66: señado = precio congelado
   $("#prAviso").hidden = !ch.length;
+  renderEstado();
   renderPlant(); renderCli();
   if(ch.length) $("#prAviso").innerHTML = `<span>⚠️ ${ch.length} precio${ch.length>1?"s cambiaron":" cambió"} desde el ${new Date(pr.creado).toLocaleDateString("es-AR")}</span><button class="btn sm" id="prAct">Actualizar precios</button>`;
   renderGuardados();
 }
 function renderGuardados(){
   $("#prGN").textContent = presus.length;
-  $("#prGuard").innerHTML = presus.map((x,i) => `<li data-i="${i}" class="${pr && x.id===pr.id ? "act" : ""}"><span class="n">${esc(x.cliente || "Sin nombre")}${x.vendido ? " ✓" : ""}</span><span class="t">${money(prTotal(x))}</span><button class="x" data-del="${i}" aria-label="Borrar">✕</button>
+  $("#prGuard").innerHTML = presus.map((x,i) => `<li data-i="${i}" class="${pr && x.id===pr.id ? "act" : ""}"><span class="n">${esc(x.cliente || "Sin nombre")}${x.estado && EST[x.estado] ? " " + EST[x.estado].split(" ")[0] : x.vendido ? " ✓" : ""}</span><span class="t">${money(prTotal(x))}</span><button class="x" data-del="${i}" aria-label="Borrar">✕</button>
     <span class="sub">${new Date(x.mod).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})} ${hm(new Date(x.mod))} · ${x.items.length} ítem${x.items.length===1?"":"s"}${x.tel ? " · 📞 "+esc(x.tel) : ""}${x.escuela ? " · "+esc(x.escuela) : ""}${x.sala ? " "+esc(x.sala) : ""}${(+x.n||1)>1 ? " · ×"+x.n : ""}${x.grupo ? " · 🔗" : ""}${x.nota ? " · "+esc(x.nota) : ""}${x.vendido ? " · vendido" : ""}</span></li>`).join("")
     || `<li class="sub" style="cursor:default">Todavía no hay presupuestos guardados.</li>`;
 }
@@ -3265,10 +3381,16 @@ $("#prLines").addEventListener("input", e => {
   prGuardar();
 });
 $("#prLines").addEventListener("keydown", e => { if(e.key==="Enter"||e.key==="Escape"){ e.preventDefault(); e.stopPropagation(); renderPresu(); $("#pq").focus(); } });
-$("#prLines").addEventListener("click", e => { const b = e.target.closest(".x"); if(!b) return; pr.items.splice(+b.dataset.i,1); prGuardar(); renderPresu(); $("#pq").focus(); });
+$("#prLines").addEventListener("click", e => {
+  const st = e.target.closest("[data-inc],[data-dec]");                                    // v3.68: − / + con el mouse
+  if(st){ const i = +(st.dataset.inc ?? st.dataset.dec), l = pr.items[i]; if(!l) return;
+    if(st.dataset.dec != null && l.cant <= 1){ toast("Para sacarlo, tocá ✕"); return; }
+    l.cant = Math.max(1, (+l.cant || 0) + (st.dataset.inc != null ? 1 : -1)); prGuardar(); renderPresu(); return; }
+  const b = e.target.closest(".x"); if(!b) return; pr.items.splice(+b.dataset.i,1); prGuardar(); renderPresu(); $("#pq").focus(); });
 $("#prCli").addEventListener("input", () => { pr.cliente = $("#prCli").value; prGuardar(); });
 $("#prNota").addEventListener("input", () => { pr.nota = $("#prNota").value; prGuardar(); });
-$("#prTel").addEventListener("input", () => { pr.tel = $("#prTel").value; prGuardar(); });                          // v3.60
+$("#prTel").addEventListener("input", () => { pr.tel = $("#prTel").value; prGuardar(); });
+$("#prRet").addEventListener("change", () => { pr.retira = $("#prRet").value; prGuardar(); renderEstado(); });   // v3.66                          // v3.60
 $("#prEsc").addEventListener("input", () => { pr.escuela = $("#prEsc").value; prGuardar(); renderPlant(); });
 $("#prSala").addEventListener("input", () => { pr.sala = $("#prSala").value; prGuardar(); renderPlant(); });
 $("#prN").addEventListener("input", () => { pr.n = Math.max(1, Math.min(50, Math.round(toNum($("#prN").value)) || 1)); renderPrecios(); prGuardar(); renderPresu(); });
@@ -3559,7 +3681,7 @@ async function prBuscar(){
     prRem = (r && r.presupuestos) || []; }
   catch(e){ toast(ERR_CONEXION[e.tipo] || "No se pudo buscar", 5000); return; }
   const ul = $("#prRemoto"); ul.hidden = false;
-  ul.innerHTML = prRem.map((x,i) => `<li data-r="${i}"><span class="n">${esc(x.cliente || "Sin nombre")}${x.vendido ? " ✓" : ""}</span><span class="t">${money(x.lista)}</span><span></span>
+  ul.innerHTML = prRem.map((x,i) => `<li data-r="${i}"><span class="n">${esc(x.cliente || "Sin nombre")}${x.estado && EST[x.estado] ? " " + EST[x.estado].split(" ")[0] : x.vendido ? " ✓" : ""}</span><span class="t">${money(x.lista)}</span><span></span>
     <span class="sub">🏪 ${esc(x.sucursal ? SUC_LBL(x.sucursal) : "")} · ${new Date(x.mod).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})}${x.tel ? " · 📞 "+esc(x.tel) : ""}${x.escuela ? " · "+esc(x.escuela) : ""}${x.sala ? " "+esc(x.sala) : ""}${(+x.n||1)>1 ? " · ×"+x.n : ""}${x.vendido ? " · vendido" : ""}</span></li>`).join("")
     || `<li class="sub" style="cursor:default">No hay presupuestos con «${esc(q)}».</li>`;
 }
@@ -3572,19 +3694,98 @@ $("#prRemoto").addEventListener("click", e => {
   toast("📝 Presupuesto abierto" + (x.sucursal && x.sucursal !== cfg.suc ? " · es de " + SUC_LBL(x.sucursal) : ""));
 });
 
+/* ---------- v3.66 · 💰 SEÑA · ESTADOS · 🧾 NOTA DE PEDIDO ----------
+   Seña: se cobra como una venta más (línea "Seña", categoría SEÑA, sin descuento, cualquier medio): entra al cierre y al cruce con el banco.
+   Al cobrarla el presupuesto queda 💰 Señado y su precio congelado. Al retirar, "Pasar a la venta" suma todas las listas del cliente
+   y resta la seña (línea en negativo): el % por medio se elige ahí, según cómo paga el saldo. Al cobrar → ✅ Entregado. */
+const senaDef = () => +((cat && cat.config && cat.config.sena) || 0) || 10000;
+const prDelGrupo = x => { const g = x.grupo ? presus.filter(y => y.grupo === x.grupo && !y.vendido && y.estado !== "No aceptó" && y.items.length) : [];
+  return [x, ...g.filter(y => y.id !== x.id)].filter(y => y.items.length && !y.vendido); };
+function prEncolar(id){ if(DEMO) return; if(queue.some(q => q.tipo === "presupuesto" && q.id === id)) flush(); else encolar("presupuesto", id); }
+function prMarcar(id, cambios){
+  const y = presus.find(z => z.id === id); if(!y) return;
+  Object.assign(y, cambios, {mod: Date.now()}); if(pr && pr.id === id) Object.assign(pr, cambios, {mod: y.mod});
+  guardar("presus", presus); prEncolar(id); if(pr) renderPresu();
+}
+function prTrasVenta(s, lineas){
+  lineas.forEach(l => { if(l.presuSena) prMarcar(l.presuSena, {estado:"Señado", sena:{monto:Math.round(l.precio), medio:s.medio, ts:s.ts, venta:s.id}}); });
+  [...new Set(lineas.filter(l => l.presu).map(l => l.presu))].forEach(id => prMarcar(id, {estado:"Entregado", vendido: s.ts || Date.now()}));   // v3.73: vendido recién al cobrar
+}
+function renderEstado(){
+  if(!pr) return;
+  const e = pr.estado || "", b = $("#prEst"), grp = prDelGrupo(pr);
+  b.hidden = !e; b.classList.toggle("no", e === "No aceptó");
+  if(e) b.innerHTML = `<span><b>${EST[e] || e}</b>${pr.sena ? ` · ${money(pr.sena.monto)} ${esc(MEDIO_TXT[pr.sena.medio] || pr.sena.medio)} el ${new Date(pr.sena.ts).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})} · precio congelado` : ""} · retira en ${esc(SUC_LBL(pr.retira))}</span>`;
+  $("#prSena").hidden = !!(pr.sena || pr.vendido || e === "No aceptó");
+  $("#prNoAc").hidden = !!(pr.sena || pr.vendido);                                          // v3.68: "No aceptó" se puede deshacer
+  $("#prNoAc").textContent = e === "No aceptó" ? "↩ Volver a presupuestado" : "❌ No aceptó";
+  $("#prSena").textContent = `💰 Señar ${money(senaDef())}`;
+  const g = $("#prGrp"), otras = grp.length - 1, senaT = grp.reduce((a,x) => a + (x.sena ? +x.sena.monto || 0 : 0), 0);
+  g.hidden = !(otras > 0 || senaT > 0) || !!pr.vendido;
+  if(!g.hidden) g.innerHTML = `<span>${otras > 0 ? `🔗 Pasa a la venta junto con ${otras} lista${otras > 1 ? "s" : ""} más de ${esc(pr.cliente || "este cliente")} (total lista ${money(grp.reduce((a,x) => a + prTotal(x), 0))})` : ""}${otras > 0 && senaT ? " · " : ""}${senaT ? `se descuenta la seña: −${money(senaT)}` : ""}</span>`;
+}
+$("#prSena").onclick = () => {
+  if(!prListo() || !prCompleto("señar")) return;
+  if(cart.length){ toast("Terminá o poné en espera (F6) la venta en curso antes de cobrar la seña", 5000); return; }
+  prGuardar(); if(!$("#cobro").hidden) closeCobro();
+  cart.push({cod:"SENA", nombre:`Seña lista ${pr.escuela ? pr.escuela + " " : ""}${pr.sala || ""} · ${pr.cliente.trim()}`.replace(/\s+/g, " "), cat:"SEÑA", cant:1, precio:senaDef(), open:true, presuSena:pr.id});
+  showTab("venta"); renderCart(); toast("💰 Cobrá la seña con el medio que pagó (transferencia: con el comprobante). Se puede cambiar el monto", 6000);
+};
+$("#prNoAc").onclick = e => {
+  if(pr.estado === "No aceptó"){ pr.estado = ""; prGuardar(); renderPresu(); toast("↩ Volvió a 📝 Presupuestado"); return; }   // v3.68: se marcó por error
+  dobleToque(e.currentTarget, "¿Seguro?", () => { pr.estado = "No aceptó"; prGuardar(); renderPresu(); toast("❌ Marcado como no aceptado · se puede deshacer"); });
+};
+/* 🧾 nota de pedido: para quien arma (letra grande, casillas, 🎨 en lo que va por color: se mira la foto del WhatsApp) */
+const VA_COLOR = n => /colou?r|surtid|pastel|fluo|metaliz|glitter|v\/c|varios/i.test(n || "");
+$("#prNotaP").onclick = () => {
+  if(!prListo()) return;
+  const N = +pr.n || 1, colores = pr.items.filter(l => VA_COLOR(l.nombre)).length;
+  const ahora = Date.now(), reimp = (pr.notaN || 0) > 0;                                     // v3.68: fecha de impresión y REIMPRESIÓN
+  const y = presus.find(z => z.id === pr.id); [pr, y].forEach(o => { if(o){ o.notaN = (o.notaN || 0) + 1; o.notaTs = ahora; } }); guardar("presus", presus);
+  const fh = new Date(ahora).toLocaleString("es-AR", {day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit", hourCycle:"h23"});
+  const filas = pr.items.map(l => `<tr><td class="ck">☐</td><td class="ck">☐</td><td class="q">${l.cant * N}${N > 1 ? `<small>${l.cant} × ${N}</small>` : ""}</td><td>${esc(l.nombre)}</td><td class="co">${VA_COLOR(l.nombre) ? "🎨 ver foto" : ""}</td></tr>`).join("");
+  imprimir(`<style>@page{size:A4;margin:12mm}.np{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#111;font-size:15px}
+    .np-h{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:5px solid #111;padding-bottom:8px;margin-bottom:10px}
+    .np-id{font-size:30px;font-weight:900;letter-spacing:.02em}.np-h small{display:block;font-size:13px;color:#444}
+    .np-dat{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;font-size:16px;margin-bottom:10px}.np-dat b{font-size:19px}
+    .np-av{border:2px solid #111;padding:6px 10px;margin:8px 0;font-size:15px;font-weight:700}
+    .np table{width:100%;border-collapse:collapse}.np th{text-align:left;font-size:11px;text-transform:uppercase;color:#444;border-bottom:2px solid #111;padding:6px 4px}
+    .np td{border-bottom:1px solid #bbb;padding:8px 4px;vertical-align:middle}.np .ck{width:34px;font-size:22px;text-align:center}.np-re{display:inline-block;border:2px solid #111;padding:1px 6px;margin-left:8px;font-size:13px;font-weight:900}.np .q{width:70px;font-size:20px;font-weight:800;text-align:center}
+    .np .q small{display:block;font-size:10px;font-weight:400;color:#555}.np .co{width:110px;font-weight:700;white-space:nowrap}
+    .np-f{display:flex;gap:28px;margin-top:26px;font-size:15px}.np-f span{flex:1;border-bottom:1px solid #111;padding-bottom:4px}</style>
+    <div class="np"><div class="np-h"><div><div class="np-id">${esc(pr.id)}</div><small>NOTA DE PEDIDO · ${esc(NEGOCIO)} · impresa el ${fh}${reimp ? `<span class="np-re">REIMPRESIÓN</span>` : ""}</small></div>
+      <div style="text-align:right;font-size:18px"><b>RETIRA EN ${esc(SUC_LBL(pr.retira || "FALCON").toUpperCase())}</b><small>${pr.sena ? `Seña ${money(pr.sena.monto)} · ${esc(MEDIO_TXT[pr.sena.medio] || pr.sena.medio)}` : "SIN SEÑA"}</small></div></div>
+    <div class="np-dat"><span>Cliente: <b>${esc(pr.cliente)}</b></span><span>Tel: <b>${esc(pr.tel || "")}</b></span>
+      <span>Escuela: <b>${esc(pr.escuela || "")}</b></span><span>Sala/grado: <b>${esc(pr.sala || "")}</b></span>
+      ${N > 1 ? `<span style="grid-column:1/-1">Listas iguales: <b>${N}</b> (las cantidades ya están multiplicadas)</span>` : ""}
+      ${pr.nota ? `<span style="grid-column:1/-1">Nota: <b>${esc(pr.nota)}</b></span>` : ""}</div>
+    ${colores ? `<div class="np-av">🎨 ${colores} producto${colores > 1 ? "s van" : " va"} por color: mirá la foto que mandó el cliente por WhatsApp.</div>` : ""}
+    <div style="font-size:13px;margin:4px 0 6px">Tildá <b>✔</b> lo que pusiste y <b>✖</b> lo que falta. Si algo se pasó a otro pedido, anotá al lado <b>"pasado a P-…"</b>.</div>
+    <table><tr><th style="text-align:center">✔ Está</th><th style="text-align:center">✖ Falta</th><th style="text-align:center">Cant.</th><th>Producto</th><th>Color</th></tr>${filas}</table>
+    <div class="np-f"><span>Armó (nombre):</span><span>Controló (nombre):</span></div></div>`, "Nota de pedido " + pr.id);
+};
+
 /* pasa a la venta: se suma a lo que haya en la venta actual */
 /* lista, efectivo o transferencia: los precios de cada línea bajan el % elegido y el cobro arranca en ese medio */
 $("#prVentaBar").addEventListener("click", e => {
   const b = e.target.closest("[data-pv]"); if(!b || !prListo()) return;
-  const o = prOpciones(pr).find(x => x.k === b.dataset.pv); if(!o) return;
+  const o = prOpciones(pr)[0];                                                              // v3.70: siempre a precio de lista
   if(!$("#cobro").hidden) closeCobro();
-  const lineas = pr.items.map(l => ({cod:l.cod, nombre:l.nombre, cat:l.cat, cant:l.cant * (+pr.n || 1), precio:Math.round(l.precio*(1 - o.d/100)), open:false,
-    ...(l.combo ? {combo:escalones(l.combo).map(t => ({q:t.q, p:Math.round(t.p*(1 - o.d/100))}))} : {})}));
-  const dif = o.total - lineas.reduce((a,l) => a + subt(l), 0), u = [...lineas].reverse().find(l => l.cant === 1);
-  if(o.d && u) u.precio += dif;                                     // el total queda igual al presupuestado
-  cart.push(...lineas); medioPreset = o.k === "lista" ? null : o.medio; if(o.d) descBloq = true;   // ya tiene descuento: no se suma otro
-  pr.vendido = Date.now(); prGuardar();
-  prAbrir(null); showTab("venta"); renderCart(); toast(`📝 Presupuesto pasado a la venta · ${o.l}`);
+  if(pr.vendido){ if(!confirm("Este presupuesto ya figura como vendido. ¿Pasarlo a la venta otra vez?")) return; pr.vendido = 0; const y0 = presus.find(z => z.id === pr.id); if(y0) y0.vendido = 0; }   // v3.73: los marcados por error (v3.66–3.72)
+  prGuardar(); const enCarro = new Set(cart.filter(l => l.presu).map(l => l.presu));       // v3.73: no se suma dos veces la misma lista
+  const todas = prDelGrupo(pr).filter(x => !enCarro.has(x.id)), senas = [];
+  if(!todas.length){ prAbrir(null); showTab("venta"); renderCart(); toast("Esa lista ya está en la venta"); return; }                                  // v3.66: 🔗 todas las listas del cliente que falta vender
+  todas.forEach(x => {
+    const pd = {efectivo: +x.descEfe || 0, transf: +x.descTra || 0};                         // v3.70: el % viaja con cada línea y se aplica al cobrar
+    cart.push(...x.items.map(l => ({cod:l.cod, nombre:l.nombre, cat:l.cat, cant:l.cant * (+x.n || 1), precio:Math.round(l.precio), open:false, presu:x.id, pd,
+      ...(l.combo ? {combo:l.combo} : {})})));
+    if(x.sena && x.sena.monto > 0) senas.push({cod:"SENA", nombre:`Seña ya pagada${x.sena.ts ? " el " + new Date(x.sena.ts).toLocaleDateString("es-AR", {day:"2-digit", month:"2-digit"}) : ""}${x.sena.medio ? " · " + (MEDIO_TXT[x.sena.medio] || x.sena.medio) : ""}${x.escuela || x.sala ? " (" + [x.escuela, x.sala].filter(Boolean).join(" ") + ")" : ""}`, cat:"SEÑA", cant:1, precio:-Math.round(x.sena.monto), open:false, presu:x.id});
+    const y = presus.find(z => z.id === x.id); if(y) y.mod = Date.now();                   // v3.73: vendido se marca al cobrar (prTrasVenta)
+  });
+  cart.push(...senas); medioPreset = null;                                                   // v3.70: el medio se elige en el cobro
+  guardar("presus", presus); todas.forEach(x => prEncolar(x.id));
+  prAbrir(null); showTab("venta"); renderCart();
+  toast(`📝 ${todas.length > 1 ? todas.length + " listas pasadas" : "Presupuesto pasado"} a la venta${senas.length ? " · seña descontada" : ""} · el descuento sale al elegir el medio`, 5000);
 });
 
 /* =====================================================================
@@ -3727,16 +3928,16 @@ $("#filtros").addEventListener("click", e => { const b=e.target.closest("button"
 function renderVentas(){
   const hoy = ymd(new Date()), pend = new Set(queue.map(o => o.id)), c = corte();
   const todas = [...sales.filter(s => s.fecha===hoy && s.sucursal===cfg.suc && (s.pc||"")===(cfg.pc||"")), ...remotas.filter(s => s.fecha===hoy)].sort((a,b) => b.ts-a.ts);
-  const cuenta = k => todas.filter(s => k==="todas" || s.medio===k).length;
+  const cuenta = k => todas.filter(s => k==="todas" || usaMedio(s, k)).length;
   $("#filtros").innerHTML = [["todas","Todas"], ...MEDIOS.map(m => [m.k, m.l])].map(([k,l]) => `<button data-f="${k}" aria-pressed="${k===filtro}">${l} · ${cuenta(k)}</button>`).join("");
-  const lista = todas.filter(s => filtro==="todas" || s.medio===filtro);
+  const lista = todas.filter(s => filtro==="todas" || usaMedio(s, filtro));
   const estado = s => s.anulada ? `<span class="pill bad">Anulada</span>` : s.remota ? `<span class="pill">otra PC</span>` : pend.has(s.id) ? `<span class="pill warn">Sin enviar</span>` : cfg.url ? `<span class="pill ok">Enviada</span>` : "";
   $("#gridV").innerHTML = lista.map(s => {
     const its = s.items.slice(0,4).map(i => `<div class="l"><span>${i.cant!=1 ? i.cant+" × " : ""}${esc(i.nombre)}</span><span>${money(i.sub != null ? i.sub : subt(i))}</span></div>`).join("");
     const mas = s.items.length > 4 ? `<div class="mas">+${s.items.length-4} más</div>` : "";
     return `<div class="card vcard${s.anulada?" anul":""}">
-      <div class="order-h" style="padding:0;border:0"><div class="badge">${esc(nro(s))}</div><div><b>${esc(medioL(s.medio))}</b>${s.medioOrig ? `<span class="antes">antes ${esc(medioL(s.medioOrig))}</span>` : ""}<span>${s.hora} · ${esc(s.cajero)}${s.cliente ? " · 📒 " + esc(s.cliente) : ""}</span></div>${estado(s)}</div>
-      <div class="its">${its}${mas}${s.desc ? `<div class="l"><span>Descuento ${esc(descVenta(s))} ${s.descPct}%</span><span>−${money(s.desc)}</span></div>` : ""}</div>
+      <div class="order-h" style="padding:0;border:0"><div class="badge">${esc(nro(s))}</div><div><b>${esc(medioVenta(s))}</b>${s.medioOrig ? `<span class="antes">antes ${esc(medioL(s.medioOrig))}</span>` : ""}<span>${s.hora} · ${esc(s.cajero)}${s.cliente ? " · 📒 " + esc(s.cliente) : ""}</span></div>${estado(s)}</div>
+      <div class="its">${its}${mas}${s.desc ? `<div class="l"><span>Descuento ${esc(descVenta(s))} ${descPctTxt(s)}</span><span>−${money(s.desc)}</span></div>` : ""}</div>
       <div class="vt"><span>Total</span><b>${money(s.total)}</b></div>
       <div class="bar2">${s.remota ? `<span class="pc-tag">PC ${esc(s.pc || "?")}</span>` : ""}<button class="btn soft sm" data-tk="${esc(s.id)}">Ticket</button>${s.anulada || s.ts <= c ? "" : `${s.remota ? "" : `<button class="btn sm" data-md="${esc(s.id)}">Cambiar medio</button>`}<button class="btn danger sm" data-an="${esc(s.id)}">Anular</button>`}</div>
     </div>`; }).join("") || `<div class="empty">🌱 Todavía no hay ventas hoy.</div>`;
@@ -3757,6 +3958,7 @@ let mdId = null, mdSel = null;
 function abrirMedio(id){
   const s = sales.find(x => x.id === id); if(!s || s.anulada || s.ts <= corte()) return;
   if(s.medio === "ctacte"){ toast("Venta a cuenta corriente: para cobrarla de otra forma, anulala y cargala de nuevo", 6000); return; }
+  if(s.pagos){ toast("Venta pagada con dos medios: para cambiarla, anulala y cargala de nuevo", 6000); return; }   // v3.67
   if(s.desc && /^(efectivo|transferencia)$/.test(s.descTipo || "efectivo")){ toast("Esta venta tuvo descuento por medio de pago: para cobrarla con otro medio, anulala y cargala de nuevo", 6000); return; }
   mdId = id; mdSel = s.medio;
   $("#mdInfo").textContent = `Venta ${nro(s)} · ${s.hora} · ${money(s.total)} · cobrada como ${medioL(s.medio)}`;
@@ -3812,7 +4014,7 @@ const opcional = s => $(s).value.trim() === "" ? null : toNum($(s).value);
 
 function baseLocal(){
   const desde = Math.max(corte(), inicioHoy()), v = sales.filter(s => s.sucursal===cfg.suc && !s.anulada && s.ts > desde);
-  const porMedio = {efectivo:0, postnet:0, transf:0, ctacte:0}; v.forEach(s => porMedio[s.medio] = (porMedio[s.medio] || 0) + s.total);
+  const porMedio = {efectivo:0, postnet:0, transf:0, ctacte:0}; v.forEach(s => pagosDe(s).forEach(x => porMedio[x.m] = (porMedio[x.m] || 0) + x.monto));   // v3.67: cada parte a su medio
   const sube = v.reduce((a,s) => a + s.items.filter(i => i.cat==="SUBE").reduce((x,i)=>x+subt(i),0), 0);
   return {desde, ventas:v.length, porMedio, sube, gastos: gastosCajaLocal(), cobros: cobrosLocal(desde), pcs:[], origen:"solo esta PC"};
 }
@@ -4060,7 +4262,7 @@ async function post(body){
 }
 function encolar(tipo, id, extra){ if(DEMO) return; queue.push({tipo, id, ...(extra || {})}); guardar("queue", queue); flush(); }
 function payload(op){
-  if(op.tipo==="venta"){ const s=sales.find(x=>x.id===op.id); return s && {...s, tipo:"venta", medio: medioL(s.medio)}; }
+  if(op.tipo==="venta"){ const s=sales.find(x=>x.id===op.id); return s && {...s, tipo:"venta", medio: s.pagos ? "Mixto" : medioL(s.medio), pagos: pagosTxt(s)}; }   // v3.67
   if(op.tipo==="anulacion"){ const s = sales.find(x=>x.id===op.id) || {}; return {tipo:"anulacion", id:op.id, cajero: op.cajero || s.anulPor || "", ts: op.ts || s.anulTs || 0}; }   // v3.56: quién y cuándo (S2)
   if(op.tipo==="medio"){ const s=sales.find(x=>x.id===op.id); return s && {tipo:"medio", id:s.id, medio: medioL(s.medio), cambio: s.cambio || ""}; }
   if(op.tipo==="cierre"){ const c=cierres.find(x=>x.id===op.id); return c && {...c, tipo:"cierre"}; }
@@ -4075,7 +4277,9 @@ function payload(op){
   if(op.tipo==="presupuesto"){ const x = presus.find(y => y.id === op.id); if(!x) return; const o = prOpciones(x), t = k => (o.find(z => z.k === k) || {}).total || "";   // v3.60
     return {tipo:"presupuesto", id:x.id, creado:x.creado, mod:x.mod, sucursal:x.suc || cfg.suc, cajero:x.cajero || (cfg.turno ? cfg.turno.cajero : ""), cliente:x.cliente, tel:x.tel || "",
             escuela:x.escuela || "", sala:x.sala || "", n:+x.n || 1, nota:x.nota, plant:x.plant || "", grupo:x.grupo || "", lista:o[0].total, efe:t("efe"), tra:t("tra"),
-            descEfe:x.descEfe, descTra:x.descTra, vence:x.vence || "", vendido:x.vendido || 0, items:x.items}; }
+            descEfe:x.descEfe, descTra:x.descTra, vence:x.vence || "", vendido:x.vendido || 0, items:x.items,
+            estado:x.estado || "", retira:x.retira || "", sena:x.sena ? x.sena.monto : "", senaMedio:x.sena ? MEDIO_TXT[x.sena.medio] || x.sena.medio : "",
+            senaTs:x.sena ? x.sena.ts : "", senaVenta:x.sena ? x.sena.venta : ""}; }   // v3.66
   if(op.tipo==="plantilla"){ const p = plants.items.find(y => y.id === op.id); return p && {...p, tipo:"plantilla"}; }
   if(op.tipo==="faltanteEstado"){ const x=flEst[op.id]; return x && {tipo:"faltanteEstado", ids:op.id, estado:x.estado, sucursal:cfg.suc, quien:cfg.turno ? cfg.turno.cajero : ""}; }
   if(op.tipo==="ccModificar"){ const m=ccMods.find(x=>x.modId===op.id); return m && {...m, tipo:"ccModificar"}; }
