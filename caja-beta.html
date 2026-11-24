@@ -448,6 +448,8 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .cli-libre .full{grid-column:1/-1}
 #tTotal s{font-size:.55em;color:var(--muted);font-weight:500;margin-right:6px}
 .efe{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px}
+.dos{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:12px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px}   /* v3.67 */
+.dos .medios{margin:0}.dos .medios button{padding:6px 10px;font-size:13px}.dos-on{margin-top:8px}
 .efe input{font-size:20px;width:160px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);text-align:right}
 .vuelto{font-size:22px;font-weight:700}
 .err{color:var(--bad);font-size:13px;margin-top:10px;font-weight:600}
@@ -725,6 +727,12 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
           <label>Paga con <input id="pagaCon" class="mon" inputmode="numeric" autocomplete="off" placeholder="justo"></label>
           <span>Vuelto <b class="vuelto" id="vuelto">—</b></span>
         </div>
+        <div class="dos" id="dos" hidden>
+          <label>En <b id="dosM1">—</b> <input id="parte1" class="mon" inputmode="numeric" autocomplete="off" placeholder="monto"></label>
+          <span>Resto <b class="vuelto" id="dosResto">—</b> en</span>
+          <div class="medios" id="medios2"></div>
+        </div>
+        <button class="link dos-on" id="bDos" type="button">➕ Pagar con dos medios <kbd>+</kbd></button>
         <div class="note"><kbd>Tab</kbd> cambia el medio · <kbd>Enter</kbd> confirma</div>
         <div class="err" id="cobroErr" hidden></div>
         <div class="bar2">
@@ -1251,7 +1259,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-20 v3.66";   // v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-24 v3.68";   // v3.68: presupuestos − / + con el mouse · "No aceptó" se puede deshacer · nota de pedido con ✔ está / ✖ falta, Armó/Controló con nombre y fecha de impresión (REIMPRESIÓN) · v3.67: 💳 pago en dos medios (＋ o "Dos medios" al cobrar; descuento = el menor de los dos; sin cta. cte.) · v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -1312,7 +1320,12 @@ const pad = n => String(n).padStart(2,"0");
 const ymd = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 const hm  = d => pad(d.getHours())+":"+pad(d.getMinutes());
 const fechaAR = f => { const t = String(f ?? ""); return /^\d{4}-\d{2}-\d{2}/.test(t) ? t.slice(0,10).split("-").reverse().join("/") : t; };
-const medioL = k => (MEDIOS.find(m => m.k === k) || {l:k}).l;
+const medioL = k => k === "mixto" ? "Dos medios" : (MEDIOS.find(m => m.k === k) || {l:k}).l;
+/* v3.67 · 💳 pago en dos medios: la venta queda con medio "mixto" y pagos [{m, monto}, {m, monto}] (cada parte va a su medio en el cierre) */
+const pagosDe = s => s.pagos && s.pagos.length ? s.pagos : [{m:s.medio, monto:s.total}];
+const medioVenta = s => s.pagos && s.pagos.length ? s.pagos.map(x => `${medioL(x.m)} ${money(x.monto)}`).join(" + ") : medioL(s.medio);
+const usaMedio = (s, k) => pagosDe(s).some(x => x.m === k);
+const pagosTxt = s => s.pagos && s.pagos.length ? s.pagos.map(x => `${medioL(x.m)} ${Math.round(x.monto)}`).join(" + ") : "";   // para la planilla (columna Pagos)
 const inicioHoy = () => { const d=new Date(); d.setHours(0,0,0,0); return d.getTime(); };
 const nro = s => (s.pc ? s.pc+"-" : "") + s.n;
 /* COMBOS (columna Combo del Catálogo): uno o varios escalones separados por "/" o ",": "3x20000/10x63000" = 3 por $20.000 o 10 por $63.000.
@@ -1977,7 +1990,7 @@ function renderUltima(){   // la última venta queda a la vista con vuelto y bot
   $("#tEmpty").hidden = cart.length > 0;
   if(box.hidden) return;
   const vuelto = s.medio==="efectivo" && s.pagaCon > s.total ? ` · vuelto ${money(s.pagaCon - s.total)}` : "";
-  box.innerHTML = `<span>✓ Última venta ${nro(s)} · ${money(s.total)} · ${esc(medioL(s.medio))}${vuelto}</span><button class="btn sm soft" data-tk="${esc(s.id)}">Ticket <kbd>F4</kbd></button>`;
+  box.innerHTML = `<span>✓ Última venta ${nro(s)} · ${money(s.total)} · ${esc(medioVenta(s))}${vuelto}</span><button class="btn sm soft" data-tk="${esc(s.id)}">Ticket <kbd>F4</kbd></button>`;
 }
 $("#ultima").addEventListener("click", e => { const b=e.target.closest("[data-tk]"); if(b) abrirTicket(b.dataset.tk); });
 
@@ -2140,12 +2153,12 @@ function abrirCobro(){
   setMedio(medioPreset || "efectivo"); medioPreset = null;
   $("#vact").scrollTop = $("#vact").scrollHeight;
 }
-function closeCobro(){ $("#cobro").hidden=true; $("#barVenta").hidden=false; $("#vact").classList.remove("cobrando"); $("#tab-venta").classList.remove("cobrando"); q.disabled = false; medio=null; renderDesc(); }
+function closeCobro(){ dosOff(); $("#cobro").hidden=true; $("#barVenta").hidden=false; $("#vact").classList.remove("cobrando"); $("#tab-venta").classList.remove("cobrando"); q.disabled = false; medio=null; renderDesc(); }
 /* v3.52 · el cajero quiso hacer otra cosa mientras cobraba: se sacude la venta y el título dice qué hacer (sin sonido: las cajas no tienen parlantes) */
 let cbTeclas = 0, cbAntes = null, cbDig = 0, cbAvisoT = null;
 function cbTitulo(){
   const m = MEDIOS.find(x => x.k === medio), tot = cart.length ? aCobrar() : 0;
-  $("#cobroTit").textContent = `💳 Cobrando ${money(tot)} · ${m ? m.l : "elegí el medio"}`;
+  $("#cobroTit").textContent = `💳 Cobrando ${money(tot)} · ${m ? m.l + (medio2 ? " + " + medioL(medio2) : "") : "elegí el medio"}`;
   $("#cbVeloTot").textContent = `💳 Estás cobrando ${money(tot)}`;
   const c = getComputedStyle(document.querySelector(`#medios button[data-m="${medio}"]`) || document.body).getPropertyValue("--mc").trim();
   ["#vact", "#cbVelo"].forEach(s => $(s).style.setProperty("--cb", c || "var(--accent)"));
@@ -2160,11 +2173,35 @@ $("#cbVelo").addEventListener("mousedown", e => { e.preventDefault(); avisarCobr
 function setMedio(m){
   if(ccEdit && m !== "ctacte"){ toast("Una venta a cuenta se modifica a cuenta (Cta. cte.)"); m = "ctacte"; }
   if(m === "ctacte" && !ccCli){ abrirElegirCC(() => setMedio("ctacte")); return; }
+  if(medio2 && m === "ctacte") dosOff();                                // v3.67: cta. cte. no se combina
+  if(medio2 && m === medio2) medio2 = medio;                           // tocó el segundo medio arriba: se dan vuelta
   medio = m;
   document.querySelectorAll("#medios button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === m));
-  $("#efe").hidden = m !== "efectivo"; $("#cobroErr").hidden = true; renderDesc(); updVuelto(); cbTitulo();
-  if(m==="efectivo"){ $("#pagaCon").value=""; updVuelto(); $("#pagaCon").focus(); } else $("#bConfirmar").focus();
+  $("#efe").hidden = m !== "efectivo" || !!medio2; renderDos(); $("#cobroErr").hidden = true; renderDesc(); updVuelto(); cbTitulo();
+  if(medio2) $("#parte1").focus(); else if(m==="efectivo"){ $("#pagaCon").value=""; updVuelto(); $("#pagaCon").focus(); } else $("#bConfirmar").focus();
 }
+/* v3.67 · ➕ dos medios: arriba el primero (y cuánto paga con él), abajo el segundo; el resto se calcula solo */
+function dosOn(){
+  if(ccEdit || medio === "ctacte"){ toast("Cta. cte. no se combina con otro medio"); return; }
+  if(!DEMO && !(parseFloat((cat && cat.version) || 0) >= 3.6)){ toast("Para cobrar con dos medios falta actualizar el script de la planilla (v3.60)", 6000); return; }   // si no, el cierre lo contaría todo como efectivo
+  if(!medio) medio = "efectivo";
+  medio2 = medio === "transf" ? "efectivo" : "transf"; $("#parte1").value = "";
+  setMedio(medio);
+}
+function dosOff(){ medio2 = null; $("#parte1").value = ""; renderDos(); }
+function renderDos(){
+  const on = !!medio2; $("#dos").hidden = !on; $("#bDos").textContent = on ? "✕ Un solo medio" : "➕ Pagar con dos medios"; $("#bDos").insertAdjacentHTML("beforeend", " <kbd>+</kbd>");
+  if(medio && !$("#cobro").hidden) $("#efe").hidden = medio !== "efectivo" || on;
+  if(!on) return;
+  $("#dosM1").textContent = medioL(medio);
+  $("#medios2").innerHTML = MEDIOS.filter(x => x.k !== "ctacte" && x.k !== medio).map(x => `<button data-m2="${x.k}" type="button" aria-pressed="${x.k === medio2}">${x.l}</button>`).join("");
+  updDos();
+}
+function updDos(){ if(!medio2) return; const tot = aCobrar(), p1 = toNum($("#parte1").value);
+  $("#dosResto").textContent = p1 > 0 ? (p1 < tot ? money(tot - p1) : "el monto supera el total") : money(tot); }
+$("#bDos").onclick = () => { medio2 ? (dosOff(), setMedio(medio)) : dosOn(); };
+$("#medios2").addEventListener("click", e => { const b = e.target.closest("[data-m2]"); if(!b) return; medio2 = b.dataset.m2; renderDesc(); cbTitulo(); renderDos(); $("#parte1").focus(); });
+$("#parte1").addEventListener("input", () => { $("#cobroErr").hidden = true; updDos(); });
 /* =====================================================================
    DESCUENTOS (hojas Descuentos y Clientes de la planilla). Se aplica SOLO el más alto, nunca se suman.
    · Efectivo: al cobrar en efectivo, desde $X    · Monto: toda la compra, desde $X (escalas)
@@ -2208,7 +2245,10 @@ function candidatos(m){
   return out.sort((a,b) => b.monto - a.monto);
 }
 const mejorDesc = m => candidatos(m)[0] || null;
-const descAplicado = () => descOn ? (mejorDesc(medio) || {monto:0}).monto : 0;
+let medio2 = null;                                                   // v3.67: segundo medio (null = un solo medio)
+const mejorDescCobro = () => { const a = mejorDesc(medio); if(!medio2) return a; const b = mejorDesc(medio2);   // dos medios: el MENOR de los dos
+  return !a || !b ? null : (a.monto <= b.monto ? a : b); };
+const descAplicado = () => descOn ? (mejorDescCobro() || {monto:0}).monto : 0;
 const aCobrar = () => total() - descAplicado();
 const descNombre = d => d.tipo === "cliente" || d.tipo === "libre" ? `${DESC_L[d.tipo]} ${d.motivo}` : DESC_L[d.tipo] || "Descuento";
 const RAPIDO_SIN_PIN = 20;                                           // 10 y 20 %: cualquier cajero · 30 %: con PIN del encargado
@@ -2221,7 +2261,7 @@ function descTxt(){
   return t.length ? t.join(" · ") : "ninguno cargado";
 }
 function renderDesc(){
-  const box = $("#descBox"), tot = total(), d = mejorDesc(medio), on = !!(d && descOn), t = aCobrar();
+  const box = $("#descBox"), tot = total(), d = mejorDescCobro(), on = !!(d && descOn), t = aCobrar();
   box.hidden = !cart.length;
   if(cart.length){
     const ef = medio && medio !== "efectivo" ? mejorDesc("efectivo") : null;
@@ -2262,7 +2302,7 @@ function renderUpsell(){
   box.innerHTML = l.length ? `<b class="t">💡 Ofrecele al cliente</b>` + ver.map(x => `<span>${x}</span>`).join("")
     + (l.length > 1 ? `<button class="link ups-mas" id="upsMas" type="button">${upsTodas ? "ver menos" : "+" + (l.length - 1) + " más"}</button>` : "") : "";
 }
-function toggleDesc(){ if(!mejorDesc(medio)) return; descOn = !descOn; renderDesc(); updVuelto(); if(medio) cbTitulo(); if(medio === "efectivo") $("#pagaCon").focus(); }
+function toggleDesc(){ if(!mejorDescCobro()) return; descOn = !descOn; renderDesc(); updVuelto(); if(medio) cbTitulo(); if(medio === "efectivo") $("#pagaCon").focus(); }
 $("#descBox").addEventListener("click", e => {
   if(e.target.closest("#descTg")){ e.preventDefault(); toggleDesc(); }
   if(e.target.closest("#cliBtn")){ e.preventDefault(); abrirClientes(); }
@@ -2585,14 +2625,16 @@ $("#libOk").onclick = async () => {
 };
 $("#cliOverlay").addEventListener("keydown", e => { e.stopPropagation(); if(e.key === "Escape"){ e.preventDefault(); cerrarClientes(); } if(e.key === "Enter" && e.target.id === "libPin"){ e.preventDefault(); $("#libOk").click(); } });
 const resetDesc = () => { descOn = true; descBloq = false; descCli = null; };
-function updVuelto(){ const tot=aCobrar(), p=toNum($("#pagaCon").value);
+function updVuelto(){ updDos(); const tot=aCobrar(), p=toNum($("#pagaCon").value);
   $("#vuelto").textContent = p ? (p>=tot ? money(p-tot) : "falta "+money(tot-p)) : "—"; }
 function confirmar(){
   if(!medio) return;
   if(cart.some(l => !(l.precio > 0 || (ES_SENA(l) && l.precio < 0)) || !(l.cant > 0))){ /* v3.66: "− Seña" va en negativo */ $("#cobroErr").textContent = "Falta precio o cantidad en una línea."; $("#cobroErr").hidden = false; return; }
-  const tot = aCobrar(), p = toNum($("#pagaCon").value), d = descAplicado() ? mejorDesc(medio) : null;
-  if(medio==="efectivo" && p && p<tot){ $("#cobroErr").textContent="El monto recibido es menor al total."; $("#cobroErr").hidden=false; return; }
-  if(medio==="efectivo" && p > Math.max(tot * 20, 200000)){ $("#pagaCon").value = ""; updVuelto(); $("#pagaCon").focus();
+  const tot = aCobrar(), p = toNum($("#pagaCon").value), d = descAplicado() ? mejorDescCobro() : null;
+  const p1 = Math.round(toNum($("#parte1").value)), dos = medio2 ? [{m:medio, monto:p1}, {m:medio2, monto:tot - p1}] : null;   // v3.67
+  if(dos && !(p1 > 0 && p1 < tot)){ $("#cobroErr").textContent = `Escribí cuánto paga en ${medioL(medio)} (menos que ${money(tot)}); el resto va en ${medioL(medio2)}.`; $("#cobroErr").hidden = false; $("#parte1").focus(); return; }
+  if(!medio2 && medio==="efectivo" && p && p<tot){ $("#cobroErr").textContent="El monto recibido es menor al total."; $("#cobroErr").hidden=false; return; }
+  if(!medio2 && medio==="efectivo" && p > Math.max(tot * 20, 200000)){ $("#pagaCon").value = ""; updVuelto(); $("#pagaCon").focus();
     $("#cobroErr").textContent = `¿Paga con ${money(p)}? Parece un código de barras: se borró. Para agregar un producto, Esc.`; $("#cobroErr").hidden = false; avisarCobro("Revisá \"Paga con\""); return; }
   if(ccEdit) return confirmarMod(tot, d);
   const t = new Date(), fecha = ymd(t);
@@ -2601,7 +2643,7 @@ function confirmar(){
     fecha, hora: hm(t), ts: t.getTime(), sucursal: cfg.suc, pc: cfg.pc || "", cajero: cfg.turno.cajero,
     n: sales.filter(x => x.fecha===fecha && x.sucursal===cfg.suc && (x.pc||"")===(cfg.pc||"")).length + 1,
     items: cart.map(l => ({cod:l.cod, nombre:l.nombre, cat:l.cat, cant:l.cant, precio:l.precio, ...(conCombo(l) ? {combo:l.combo, sub:subt(l)} : {})})),
-    total: tot, medio, pagaCon: medio==="efectivo" && p ? p : null, anulada: false, ...(medio === "ctacte" ? {cliente: ccCli} : {}), ...(d ? {desc:d.monto, descPct:d.pct, descTipo:d.tipo, descMotivo:d.motivo} : {})
+    total: tot, medio: dos ? "mixto" : medio, ...(dos ? {pagos: dos} : {}), pagaCon: !dos && medio==="efectivo" && p ? p : null, anulada: false, ...(medio === "ctacte" ? {cliente: ccCli} : {}), ...(d ? {desc:d.monto, descPct:d.pct, descTipo:d.tipo, descMotivo:d.motivo} : {})
   };
   sales.push(s); guardar("sales", sales); encolar("venta", s.id);
   prTrasVenta(s, cart);                                                                     // v3.66: seña cobrada / listas entregadas
@@ -2638,7 +2680,7 @@ function ticketHTML(s){
     <div class="tk-i">${lineas}</div>${s.desc ? `<div class="tk-l"><span>Descuento ${esc(descVenta(s))} ${s.descPct}%</span><span>−${money(s.desc)}</span></div>` : ""}
     <div class="tk-t"><span>Total</span><span>${money(s.total)}</span></div>
     ${ahorroVenta(s) ? `<div style="margin:0 8px 8px;border:2px solid #111;border-radius:6px;padding:6px;text-align:center;font-weight:700">🎉 ¡Ahorraste ${money(ahorroVenta(s))}!</div>` : ""}
-    <div class="tk-p"><div class="tk-l"><span>Pago</span><span>${esc(medioL(s.medio))}</span></div>${s.cliente ? `<div class="tk-l"><span>Cuenta de</span><span>${esc(s.cliente)}</span></div>` : ""}${vuelto}</div>
+    <div class="tk-p">${pagosDe(s).map(x => `<div class="tk-l"><span>Pago${s.pagos ? " " + esc(medioL(x.m)) : ""}</span><span>${s.pagos ? money(x.monto) : esc(medioL(s.medio))}</span></div>`).join("")}${s.cliente ? `<div class="tk-l"><span>Cuenta de</span><span>${esc(s.cliente)}</span></div>` : ""}${vuelto}</div>
     <div class="tk-f">¡Muchas gracias!<br>Comprobante no válido como factura</div></div>`;
 }
 /* ---------- v3.52 · TICKET A4 (se imprime en hoja común). Datos de las sucursales: completar acá (son públicos, nada sensible) ---------- */
@@ -2689,7 +2731,7 @@ function ticketA4HTML(s){
     <table><tr><th style="width:12mm">Cant.</th><th>Producto</th><th class="r">Precio</th><th class="r">Subtotal</th></tr>${filas}</table>
     <div class="tot">${ah ? `<div><span>Precio de lista</span><span>${money(lista)}</span></div>` : ""}${combos > 0 ? `<div><span>Combos</span><span>−${money(combos)}</span></div>` : ""}${s.desc ? `<div><span>Descuento ${esc(descVenta(s))} ${s.descPct}%</span><span>−${money(s.desc)}</span></div>` : ""}
       <div class="t"><span>Total</span><span>${money(s.total)}</span></div>
-      <div><span>Pago</span><span>${esc(medioL(s.medio))}</span></div>${s.cliente ? `<div><span>Cuenta de</span><span>${esc(s.cliente)}</span></div>` : ""}${s.medio === "efectivo" && s.pagaCon ? `<div><span>Paga con</span><span>${money(s.pagaCon)}</span></div><div><span>Vuelto</span><span>${money(s.pagaCon - s.total)}</span></div>` : ""}</div>
+      ${pagosDe(s).map(x => `<div><span>Pago${s.pagos ? " " + esc(medioL(x.m)) : ""}</span><span>${s.pagos ? money(x.monto) : esc(medioL(s.medio))}</span></div>`).join("")}${s.cliente ? `<div><span>Cuenta de</span><span>${esc(s.cliente)}</span></div>` : ""}${s.medio === "efectivo" && s.pagaCon ? `<div><span>Paga con</span><span>${money(s.pagaCon)}</span></div><div><span>Vuelto</span><span>${money(s.pagaCon - s.total)}</span></div>` : ""}</div>
     ${ah ? `<div class="ahorro">🎉 ¡Ahorraste ${money(ah)}!</div>` : ""}
     <div class="leg">Comprobante no válido como factura. Si necesitás factura, pedila en caja.</div>
     <div class="a4-pie">
@@ -2716,7 +2758,7 @@ function ticketTexto(s){
   if(s.desc) L.push(`Descuento ${descVenta(s)} ${s.descPct}% — −${money(s.desc)}`);
   L.push("", `*TOTAL: ${money(s.total)}*`);
   if(ahorroVenta(s)) L.push(`🎉 ¡Ahorraste ${money(ahorroVenta(s))}!`);
-  L.push( `Pago: ${medioL(s.medio)}` + (s.cliente ? ` · cuenta de ${s.cliente}` : ""), "", "¡Muchas gracias! 🙌", "_Comprobante no válido como factura_");
+  L.push( `Pago: ${medioVenta(s)}` + (s.cliente ? ` · cuenta de ${s.cliente}` : ""), "", "¡Muchas gracias! 🙌", "_Comprobante no válido como factura_");
   return L.join("\n");
 }
 $("#tkClose").onclick = cerrarTicket;
@@ -2762,13 +2804,14 @@ document.addEventListener("keydown", e => {
   if(cobrando){
     if(e.key==="Escape"){ e.preventDefault(); closeCobro(); focusQ(); return; }
     if(e.key==="Enter"){ e.preventDefault();
-      if(Date.now() - cbDig < 300 && document.activeElement !== $("#pagaCon")){ cbDig = 0; avisarCobro("Escaneaste un producto mientras cobrabas: tocá Esc para agregarlo"); return; }   // lector de códigos
+      if(Date.now() - cbDig < 300 && document.activeElement !== $("#pagaCon") && document.activeElement !== $("#parte1")){ cbDig = 0; avisarCobro("Escaneaste un producto mientras cobrabas: tocá Esc para agregarlo"); return; }   // lector de códigos
       confirmar(); return; }
     if(e.key==="Tab"){ e.preventDefault(); const i = MEDIOS.findIndex(x => x.k === medio), n = MEDIOS.length;
       setMedio(MEDIOS[(i + (e.shiftKey ? n-1 : 1)) % n].k); return; }
     if(e.target.closest && e.target.closest("#lines, textarea, #ccOverlay, #cliOverlay")) return;   // escribiendo en una línea u otro campo: las letras no cambian el medio
     if(e.ctrlKey || e.altKey || e.metaKey || e.key.length !== 1) return;
-    if(/\d/.test(e.key)){ if(document.activeElement !== $("#pagaCon")){ e.preventDefault(); cbDig = Date.now(); if(medio !== "efectivo") avisarCobro("Estás cobrando: los números van en \"Paga con\" (efectivo). Para agregar productos, Esc"); } return; }
+    if(e.key === "+"){ e.preventDefault(); $("#bDos").click(); return; }                    // v3.67: dos medios
+    if(/\d/.test(e.key)){ if(document.activeElement !== $("#pagaCon") && document.activeElement !== $("#parte1")){ e.preventDefault(); cbDig = Date.now(); if(medio !== "efectivo") avisarCobro("Estás cobrando: los números van en \"Paga con\" (efectivo). Para agregar productos, Esc"); } return; }
     if(!/\p{L}/u.test(e.key)) return;
     e.preventDefault();
     const ahora = Date.now(), seguidas = ahora - cbTeclas < 700; cbTeclas = ahora;   // letras seguidas = está escribiendo un producto, no eligiendo medio
@@ -3154,7 +3197,7 @@ let presus = leer("presus", []), pr = null, pFound = [], pSel = 0;
 const cfgDesc = () => (cat && cat.config) || {};      // descuentos por defecto: hoja Configuración de la planilla
 let plants = leer("plantillas", {t:0, items:[]}), prRem = [], prSyncT = null, cliSug = null;
 const RETIRA = ["FALCON","NACION","MORENO","SOMISA"];                                      // v3.66: dónde retira el cliente
-const MEDIO_TXT = {efectivo:"Efectivo", postnet:"Postnet / QR", transf:"Transferencia", ctacte:"Cta. cte."};
+const MEDIO_TXT = {efectivo:"Efectivo", postnet:"Postnet / QR", transf:"Transferencia", ctacte:"Cta. cte.", mixto:"Dos medios"};
 const EST = {"":"📝 Presupuestado", "Señado":"💰 Señado", "Entregado":"✅ Entregado", "No aceptó":"❌ No aceptó"};   // v3.60 · v3.65: cliSug
 const prNuevo = () => ({id:"P-"+Date.now().toString(36), creado:Date.now(), mod:Date.now(), cliente:"", nota:"", vence:"", items:[], vendido:0,
   tel:"", escuela:"", sala:"", n:1, plant:"", grupo:"", suc:cfg.suc || "", cajero:cfg.turno ? cfg.turno.cajero : "",
@@ -3222,7 +3265,7 @@ function renderPresu(){
   if(document.activeElement !== $("#prDT")) $("#prDT").value = pr.descTra || "";
   $("#prLines").innerHTML = (pr.items.length ? `<div class="hd"><span>Producto</span><span style="text-align:right">Cant.</span><span style="text-align:right">Precio</span><span style="text-align:right">Subtotal</span><span></span></div>` : "") +
     pr.items.map((l,i) => `<li><span class="n" title="${esc(l.nombre)}">${l.libre ? "✏️ " : ""}${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span></span>
-    <input class="qty" data-i="${i}" value="${l.cant}" inputmode="decimal" aria-label="Cantidad">
+    <span class="step"><button class="mn" data-dec="${i}" type="button" tabindex="-1" aria-label="Uno menos">−</button><input class="qty" data-i="${i}" value="${l.cant}" inputmode="decimal" aria-label="Cantidad"><button class="mn" data-inc="${i}" type="button" tabindex="-1" aria-label="Uno más">+</button></span>
     ${l.libre || l.abierto ? `<input class="price${l.precio>0?"":" need"}" data-i="${i}" value="${l.precio||""}" placeholder="precio" inputmode="decimal" aria-label="Precio">` : `<span class="p">${money(l.precio)}</span>`}
     <span class="s">${money(subt(l))}</span><button class="x" data-i="${i}" aria-label="Quitar">✕</button></li>`).join("");
   $("#prEmpty").hidden = pr.items.length > 0;
@@ -3285,7 +3328,12 @@ $("#prLines").addEventListener("input", e => {
   prGuardar();
 });
 $("#prLines").addEventListener("keydown", e => { if(e.key==="Enter"||e.key==="Escape"){ e.preventDefault(); e.stopPropagation(); renderPresu(); $("#pq").focus(); } });
-$("#prLines").addEventListener("click", e => { const b = e.target.closest(".x"); if(!b) return; pr.items.splice(+b.dataset.i,1); prGuardar(); renderPresu(); $("#pq").focus(); });
+$("#prLines").addEventListener("click", e => {
+  const st = e.target.closest("[data-inc],[data-dec]");                                    // v3.68: − / + con el mouse
+  if(st){ const i = +(st.dataset.inc ?? st.dataset.dec), l = pr.items[i]; if(!l) return;
+    if(st.dataset.dec != null && l.cant <= 1){ toast("Para sacarlo, tocá ✕"); return; }
+    l.cant = Math.max(1, (+l.cant || 0) + (st.dataset.inc != null ? 1 : -1)); prGuardar(); renderPresu(); return; }
+  const b = e.target.closest(".x"); if(!b) return; pr.items.splice(+b.dataset.i,1); prGuardar(); renderPresu(); $("#pq").focus(); });
 $("#prCli").addEventListener("input", () => { pr.cliente = $("#prCli").value; prGuardar(); });
 $("#prNota").addEventListener("input", () => { pr.nota = $("#prNota").value; prGuardar(); });
 $("#prTel").addEventListener("input", () => { pr.tel = $("#prTel").value; prGuardar(); });
@@ -3616,7 +3664,8 @@ function renderEstado(){
   b.hidden = !e; b.classList.toggle("no", e === "No aceptó");
   if(e) b.innerHTML = `<span><b>${EST[e] || e}</b>${pr.sena ? ` · ${money(pr.sena.monto)} ${esc(MEDIO_TXT[pr.sena.medio] || pr.sena.medio)} el ${new Date(pr.sena.ts).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})} · precio congelado` : ""} · retira en ${esc(SUC_LBL(pr.retira))}</span>`;
   $("#prSena").hidden = !!(pr.sena || pr.vendido || e === "No aceptó");
-  $("#prNoAc").hidden = !!(pr.sena || pr.vendido || e === "No aceptó");
+  $("#prNoAc").hidden = !!(pr.sena || pr.vendido);                                          // v3.68: "No aceptó" se puede deshacer
+  $("#prNoAc").textContent = e === "No aceptó" ? "↩ Volver a presupuestado" : "❌ No aceptó";
   $("#prSena").textContent = `💰 Señar ${money(senaDef())}`;
   const g = $("#prGrp"), otras = grp.length - 1, senaT = grp.reduce((a,x) => a + (x.sena ? +x.sena.monto || 0 : 0), 0);
   g.hidden = !(otras > 0 || senaT > 0) || !!pr.vendido;
@@ -3629,31 +3678,38 @@ $("#prSena").onclick = () => {
   cart.push({cod:"SENA", nombre:`Seña lista ${pr.escuela ? pr.escuela + " " : ""}${pr.sala || ""} · ${pr.cliente.trim()}`.replace(/\s+/g, " "), cat:"SEÑA", cant:1, precio:senaDef(), open:true, presuSena:pr.id});
   showTab("venta"); renderCart(); toast("💰 Cobrá la seña con el medio que pagó (transferencia: con el comprobante). Se puede cambiar el monto", 6000);
 };
-$("#prNoAc").onclick = e => dobleToque(e.currentTarget, "¿Seguro?", () => { pr.estado = "No aceptó"; prGuardar(); renderPresu(); toast("❌ Marcado como no aceptado"); });
+$("#prNoAc").onclick = e => {
+  if(pr.estado === "No aceptó"){ pr.estado = ""; prGuardar(); renderPresu(); toast("↩ Volvió a 📝 Presupuestado"); return; }   // v3.68: se marcó por error
+  dobleToque(e.currentTarget, "¿Seguro?", () => { pr.estado = "No aceptó"; prGuardar(); renderPresu(); toast("❌ Marcado como no aceptado · se puede deshacer"); });
+};
 /* 🧾 nota de pedido: para quien arma (letra grande, casillas, 🎨 en lo que va por color: se mira la foto del WhatsApp) */
 const VA_COLOR = n => /colou?r|surtid|pastel|fluo|metaliz|glitter|v\/c|varios/i.test(n || "");
 $("#prNotaP").onclick = () => {
   if(!prListo()) return;
   const N = +pr.n || 1, colores = pr.items.filter(l => VA_COLOR(l.nombre)).length;
-  const filas = pr.items.map(l => `<tr><td class="ck">☐</td><td class="q">${l.cant * N}${N > 1 ? `<small>${l.cant} × ${N}</small>` : ""}</td><td>${esc(l.nombre)}</td><td class="co">${VA_COLOR(l.nombre) ? "🎨 ver foto" : ""}</td></tr>`).join("");
+  const ahora = Date.now(), reimp = (pr.notaN || 0) > 0;                                     // v3.68: fecha de impresión y REIMPRESIÓN
+  const y = presus.find(z => z.id === pr.id); [pr, y].forEach(o => { if(o){ o.notaN = (o.notaN || 0) + 1; o.notaTs = ahora; } }); guardar("presus", presus);
+  const fh = new Date(ahora).toLocaleString("es-AR", {day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit", hourCycle:"h23"});
+  const filas = pr.items.map(l => `<tr><td class="ck">☐</td><td class="ck">☐</td><td class="q">${l.cant * N}${N > 1 ? `<small>${l.cant} × ${N}</small>` : ""}</td><td>${esc(l.nombre)}</td><td class="co">${VA_COLOR(l.nombre) ? "🎨 ver foto" : ""}</td></tr>`).join("");
   imprimir(`<style>@page{size:A4;margin:12mm}.np{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#111;font-size:15px}
     .np-h{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:5px solid #111;padding-bottom:8px;margin-bottom:10px}
     .np-id{font-size:30px;font-weight:900;letter-spacing:.02em}.np-h small{display:block;font-size:13px;color:#444}
     .np-dat{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;font-size:16px;margin-bottom:10px}.np-dat b{font-size:19px}
     .np-av{border:2px solid #111;padding:6px 10px;margin:8px 0;font-size:15px;font-weight:700}
     .np table{width:100%;border-collapse:collapse}.np th{text-align:left;font-size:11px;text-transform:uppercase;color:#444;border-bottom:2px solid #111;padding:6px 4px}
-    .np td{border-bottom:1px solid #bbb;padding:8px 4px;vertical-align:middle}.np .ck{width:28px;font-size:22px}.np .q{width:70px;font-size:20px;font-weight:800;text-align:center}
+    .np td{border-bottom:1px solid #bbb;padding:8px 4px;vertical-align:middle}.np .ck{width:34px;font-size:22px;text-align:center}.np-re{display:inline-block;border:2px solid #111;padding:1px 6px;margin-left:8px;font-size:13px;font-weight:900}.np .q{width:70px;font-size:20px;font-weight:800;text-align:center}
     .np .q small{display:block;font-size:10px;font-weight:400;color:#555}.np .co{width:110px;font-weight:700;white-space:nowrap}
-    .np-f{display:flex;gap:28px;margin-top:22px;font-size:14px}.np-f span{flex:1;border-top:1px solid #111;padding-top:4px}</style>
-    <div class="np"><div class="np-h"><div><div class="np-id">${esc(pr.id)}</div><small>NOTA DE PEDIDO · ${esc(NEGOCIO)} · ${new Date().toLocaleDateString("es-AR")}</small></div>
+    .np-f{display:flex;gap:28px;margin-top:26px;font-size:15px}.np-f span{flex:1;border-bottom:1px solid #111;padding-bottom:4px}</style>
+    <div class="np"><div class="np-h"><div><div class="np-id">${esc(pr.id)}</div><small>NOTA DE PEDIDO · ${esc(NEGOCIO)} · impresa el ${fh}${reimp ? `<span class="np-re">REIMPRESIÓN</span>` : ""}</small></div>
       <div style="text-align:right;font-size:18px"><b>RETIRA EN ${esc(SUC_LBL(pr.retira || "FALCON").toUpperCase())}</b><small>${pr.sena ? `Seña ${money(pr.sena.monto)} · ${esc(MEDIO_TXT[pr.sena.medio] || pr.sena.medio)}` : "SIN SEÑA"}</small></div></div>
     <div class="np-dat"><span>Cliente: <b>${esc(pr.cliente)}</b></span><span>Tel: <b>${esc(pr.tel || "")}</b></span>
       <span>Escuela: <b>${esc(pr.escuela || "")}</b></span><span>Sala/grado: <b>${esc(pr.sala || "")}</b></span>
       ${N > 1 ? `<span style="grid-column:1/-1">Listas iguales: <b>${N}</b> (las cantidades ya están multiplicadas)</span>` : ""}
       ${pr.nota ? `<span style="grid-column:1/-1">Nota: <b>${esc(pr.nota)}</b></span>` : ""}</div>
     ${colores ? `<div class="np-av">🎨 ${colores} producto${colores > 1 ? "s van" : " va"} por color: mirá la foto que mandó el cliente por WhatsApp.</div>` : ""}
-    <table><tr><th></th><th style="text-align:center">Cant.</th><th>Producto</th><th>Color</th></tr>${filas}</table>
-    <div class="np-f"><span>Armó</span><span>Controló</span><span>Faltó</span></div></div>`, "Nota de pedido " + pr.id);
+    <div style="font-size:13px;margin:4px 0 6px">Tildá <b>✔</b> lo que pusiste y <b>✖</b> lo que falta. Si algo se pasó a otro pedido, anotá al lado <b>"pasado a P-…"</b>.</div>
+    <table><tr><th style="text-align:center">✔ Está</th><th style="text-align:center">✖ Falta</th><th style="text-align:center">Cant.</th><th>Producto</th><th>Color</th></tr>${filas}</table>
+    <div class="np-f"><span>Armó (nombre):</span><span>Controló (nombre):</span></div></div>`, "Nota de pedido " + pr.id);
 };
 
 /* pasa a la venta: se suma a lo que haya en la venta actual */
@@ -3819,15 +3875,15 @@ $("#filtros").addEventListener("click", e => { const b=e.target.closest("button"
 function renderVentas(){
   const hoy = ymd(new Date()), pend = new Set(queue.map(o => o.id)), c = corte();
   const todas = [...sales.filter(s => s.fecha===hoy && s.sucursal===cfg.suc && (s.pc||"")===(cfg.pc||"")), ...remotas.filter(s => s.fecha===hoy)].sort((a,b) => b.ts-a.ts);
-  const cuenta = k => todas.filter(s => k==="todas" || s.medio===k).length;
+  const cuenta = k => todas.filter(s => k==="todas" || usaMedio(s, k)).length;
   $("#filtros").innerHTML = [["todas","Todas"], ...MEDIOS.map(m => [m.k, m.l])].map(([k,l]) => `<button data-f="${k}" aria-pressed="${k===filtro}">${l} · ${cuenta(k)}</button>`).join("");
-  const lista = todas.filter(s => filtro==="todas" || s.medio===filtro);
+  const lista = todas.filter(s => filtro==="todas" || usaMedio(s, filtro));
   const estado = s => s.anulada ? `<span class="pill bad">Anulada</span>` : s.remota ? `<span class="pill">otra PC</span>` : pend.has(s.id) ? `<span class="pill warn">Sin enviar</span>` : cfg.url ? `<span class="pill ok">Enviada</span>` : "";
   $("#gridV").innerHTML = lista.map(s => {
     const its = s.items.slice(0,4).map(i => `<div class="l"><span>${i.cant!=1 ? i.cant+" × " : ""}${esc(i.nombre)}</span><span>${money(i.sub != null ? i.sub : subt(i))}</span></div>`).join("");
     const mas = s.items.length > 4 ? `<div class="mas">+${s.items.length-4} más</div>` : "";
     return `<div class="card vcard${s.anulada?" anul":""}">
-      <div class="order-h" style="padding:0;border:0"><div class="badge">${esc(nro(s))}</div><div><b>${esc(medioL(s.medio))}</b>${s.medioOrig ? `<span class="antes">antes ${esc(medioL(s.medioOrig))}</span>` : ""}<span>${s.hora} · ${esc(s.cajero)}${s.cliente ? " · 📒 " + esc(s.cliente) : ""}</span></div>${estado(s)}</div>
+      <div class="order-h" style="padding:0;border:0"><div class="badge">${esc(nro(s))}</div><div><b>${esc(medioVenta(s))}</b>${s.medioOrig ? `<span class="antes">antes ${esc(medioL(s.medioOrig))}</span>` : ""}<span>${s.hora} · ${esc(s.cajero)}${s.cliente ? " · 📒 " + esc(s.cliente) : ""}</span></div>${estado(s)}</div>
       <div class="its">${its}${mas}${s.desc ? `<div class="l"><span>Descuento ${esc(descVenta(s))} ${s.descPct}%</span><span>−${money(s.desc)}</span></div>` : ""}</div>
       <div class="vt"><span>Total</span><b>${money(s.total)}</b></div>
       <div class="bar2">${s.remota ? `<span class="pc-tag">PC ${esc(s.pc || "?")}</span>` : ""}<button class="btn soft sm" data-tk="${esc(s.id)}">Ticket</button>${s.anulada || s.ts <= c ? "" : `${s.remota ? "" : `<button class="btn sm" data-md="${esc(s.id)}">Cambiar medio</button>`}<button class="btn danger sm" data-an="${esc(s.id)}">Anular</button>`}</div>
@@ -3849,6 +3905,7 @@ let mdId = null, mdSel = null;
 function abrirMedio(id){
   const s = sales.find(x => x.id === id); if(!s || s.anulada || s.ts <= corte()) return;
   if(s.medio === "ctacte"){ toast("Venta a cuenta corriente: para cobrarla de otra forma, anulala y cargala de nuevo", 6000); return; }
+  if(s.pagos){ toast("Venta pagada con dos medios: para cambiarla, anulala y cargala de nuevo", 6000); return; }   // v3.67
   if(s.desc && /^(efectivo|transferencia)$/.test(s.descTipo || "efectivo")){ toast("Esta venta tuvo descuento por medio de pago: para cobrarla con otro medio, anulala y cargala de nuevo", 6000); return; }
   mdId = id; mdSel = s.medio;
   $("#mdInfo").textContent = `Venta ${nro(s)} · ${s.hora} · ${money(s.total)} · cobrada como ${medioL(s.medio)}`;
@@ -3904,7 +3961,7 @@ const opcional = s => $(s).value.trim() === "" ? null : toNum($(s).value);
 
 function baseLocal(){
   const desde = Math.max(corte(), inicioHoy()), v = sales.filter(s => s.sucursal===cfg.suc && !s.anulada && s.ts > desde);
-  const porMedio = {efectivo:0, postnet:0, transf:0, ctacte:0}; v.forEach(s => porMedio[s.medio] = (porMedio[s.medio] || 0) + s.total);
+  const porMedio = {efectivo:0, postnet:0, transf:0, ctacte:0}; v.forEach(s => pagosDe(s).forEach(x => porMedio[x.m] = (porMedio[x.m] || 0) + x.monto));   // v3.67: cada parte a su medio
   const sube = v.reduce((a,s) => a + s.items.filter(i => i.cat==="SUBE").reduce((x,i)=>x+subt(i),0), 0);
   return {desde, ventas:v.length, porMedio, sube, gastos: gastosCajaLocal(), cobros: cobrosLocal(desde), pcs:[], origen:"solo esta PC"};
 }
@@ -4152,7 +4209,7 @@ async function post(body){
 }
 function encolar(tipo, id, extra){ if(DEMO) return; queue.push({tipo, id, ...(extra || {})}); guardar("queue", queue); flush(); }
 function payload(op){
-  if(op.tipo==="venta"){ const s=sales.find(x=>x.id===op.id); return s && {...s, tipo:"venta", medio: medioL(s.medio)}; }
+  if(op.tipo==="venta"){ const s=sales.find(x=>x.id===op.id); return s && {...s, tipo:"venta", medio: s.pagos ? "Mixto" : medioL(s.medio), pagos: pagosTxt(s)}; }   // v3.67
   if(op.tipo==="anulacion"){ const s = sales.find(x=>x.id===op.id) || {}; return {tipo:"anulacion", id:op.id, cajero: op.cajero || s.anulPor || "", ts: op.ts || s.anulTs || 0}; }   // v3.56: quién y cuándo (S2)
   if(op.tipo==="medio"){ const s=sales.find(x=>x.id===op.id); return s && {tipo:"medio", id:s.id, medio: medioL(s.medio), cambio: s.cambio || ""}; }
   if(op.tipo==="cierre"){ const c=cierres.find(x=>x.id===op.id); return c && {...c, tipo:"cierre"}; }
