@@ -1272,7 +1272,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-24 v3.71";   // v3.71: la seña se ve aparte en ticket, comprobante A4, WhatsApp y carrito ("Seña ya pagada el … · medio", "Total a pagar hoy") · v3.70: presupuesto → un solo "Pasar a la venta"; el % de la lista se aplica según el medio que se elige al cobrar (lo agregado usa las reglas de la caja) · v3.69: dos medios más claro (botón "Dividir en dos medios", el recuadro reemplaza la grilla: Confirmar siempre a la vista, aviso del descuento menor) · v3.68: presupuestos − / + con el mouse · "No aceptó" se puede deshacer · nota de pedido con ✔ está / ✖ falta, Armó/Controló con nombre y fecha de impresión (REIMPRESIÓN) · v3.67: 💳 pago en dos medios (＋ o "Dos medios" al cobrar; descuento = el menor de los dos; sin cta. cte.) · v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-24 v3.72";   // v3.72: dos medios con descuento PROPORCIONAL (cada parte con el % de su medio) · v3.71: la seña se ve aparte en ticket, comprobante A4, WhatsApp y carrito ("Seña ya pagada el … · medio", "Total a pagar hoy") · v3.70: presupuesto → un solo "Pasar a la venta"; el % de la lista se aplica según el medio que se elige al cobrar (lo agregado usa las reglas de la caja) · v3.69: dos medios más claro (botón "Dividir en dos medios", el recuadro reemplaza la grilla: Confirmar siempre a la vista, aviso del descuento menor) · v3.68: presupuestos − / + con el mouse · "No aceptó" se puede deshacer · nota de pedido con ✔ está / ✖ falta, Armó/Controló con nombre y fecha de impresión (REIMPRESIÓN) · v3.67: 💳 pago en dos medios (＋ o "Dos medios" al cobrar; descuento = el menor de los dos; sin cta. cte.) · v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -2208,19 +2208,19 @@ function renderDos(){   // v3.69: con dos medios el recuadro reemplaza la grilla
   if(!on) return;
   const ch = (k, sel, at) => MEDIOS.filter(x => x.k !== "ctacte").map(x => `<button ${at}="${x.k}" type="button" aria-pressed="${x.k === sel}">${x.l.replace(" / QR", "")}</button>`).join("");
   $("#medios1").innerHTML = ch(1, medio, "data-m1"); $("#medios2").innerHTML = ch(2, medio2, "data-m2");
-  const d = mejorDescCobro();
-  $("#dosNota").textContent = descOn && d ? `Con dos medios va el descuento menor: ${d.tipo} ${d.pct}% (−${money(d.monto)})` : "Con dos medios va el descuento menor de los dos: en este caso, sin descuento";
   updDos();
 }
-function updDos(){ if(!medio2) return; const tot = aCobrar(), p1 = toNum($("#parte1").value);
-  $("#dosResto").textContent = p1 > 0 ? (p1 < tot ? money(tot - p1) : "el monto supera el total") : money(tot); }
+function updDos(){ if(!medio2) return; const c = dosCalc(), p1 = toNum($("#parte1").value);   // v3.72
+  $("#dosResto").textContent = c.ok ? money(c.p2) : p1 > 0 ? `tiene que ser menos de ${money(c.max1)}` : "—";
+  $("#dosNota").textContent = !descOn ? "Sin descuento" : c.ok ? (c.desc > 0 ? `Descuento repartido: ${medioL(medio)} ${pctTxt(c.r1)}% sobre ${money(c.L1)} · ${medioL(medio2)} ${pctTxt(c.r2)}% sobre ${money(c.L2)} (−${money(c.desc)})` : "Sin descuento")
+    : `Escribí cuánto paga en ${medioL(medio)}: el descuento se reparte según lo que paga con cada medio`; }
 $("#bDos").onclick = () => { medio2 ? (dosOff(), setMedio(medio)) : dosOn(); };
 $("#dosX").onclick = () => { dosOff(); setMedio(medio); };
 $("#medios1").addEventListener("click", e => { const b = e.target.closest("[data-m1]"); if(b) setMedio(b.dataset.m1); });
 $("#medios2").addEventListener("click", e => { const b = e.target.closest("[data-m2]"); if(!b) return;
   if(b.dataset.m2 === medio){ medio = medio2; } medio2 = b.dataset.m2;                     // eligió abajo el mismo de arriba: se dan vuelta
   renderDesc(); cbTitulo(); setMedio(medio); });
-$("#parte1").addEventListener("input", () => { $("#cobroErr").hidden = true; updDos(); });
+$("#parte1").addEventListener("input", () => { $("#cobroErr").hidden = true; renderDesc(); cbTitulo(); updDos(); });   // v3.72: el total cambia con el reparto
 /* =====================================================================
    DESCUENTOS (hojas Descuentos y Clientes de la planilla). Se aplica SOLO el más alto, nunca se suman.
    · Efectivo: al cobrar en efectivo, desde $X    · Monto: toda la compra, desde $X (escalas)
@@ -2230,7 +2230,7 @@ $("#parte1").addEventListener("input", () => { $("#cobroErr").hidden = true; upd
 const ES_SERVICIO = l => /^(SUBE|FOTOCOPIAS|ANILLADO)$/i.test(l.cat || "") || /^IMP-/.test(l.cod || "") || /fotocop|impresi/i.test(l.cat || "");   // precio que pone el cajero o el cotizador
 const ES_SENA = l => /^se[ñn]a$/i.test(l.cat || "");                                     // v3.66: la seña no lleva descuento ni cuenta como producto
 const SIN_DESC = l => ES_SENA(l) || ES_SERVICIO(l) || /kiosco/i.test(l.cat || "") || CATS_SIN_DESC.has(String(l.cat || "").toUpperCase());   // no llevan descuento: SUBE, copias/anillados, kiosco y botones con Descuento = NO
-const DESC_L = {lista:"📚 Lista escolar", manual:"🏷️ Descuento", efectivo:"💵 Efectivo", transferencia:"🏦 Transferencia", monto:"🧾 Por monto", unidades:"📦 Por cantidad", cliente:"👤", libre:"✋"};
+const DESC_L = {dos:"⇄ Dos medios", lista:"📚 Lista escolar", manual:"🏷️ Descuento", efectivo:"💵 Efectivo", transferencia:"🏦 Transferencia", monto:"🧾 Por monto", unidades:"📦 Por cantidad", cliente:"👤", libre:"✋"};
 let descOn = true, descBloq = false, descCli = null;   // descBloq: venta de un presupuesto con descuento · descCli: cliente o libre elegido
 function reglas(){
   const d = cat && cat.descuentos;
@@ -2278,8 +2278,23 @@ function descPresu(m){
   return {monto: Math.round(monto), pct};
 }
 let medio2 = null;                                                   // v3.67: segundo medio (null = un solo medio)
-const mejorDescCobro = () => { const a = mejorDesc(medio); if(!medio2) return a; const b = mejorDesc(medio2);   // dos medios: el MENOR de los dos
-  return !a || !b ? null : (a.monto <= b.monto ? a : b); };
+/* v3.72 · dos medios PROPORCIONAL: lo que paga con el 1.º medio (ya con su descuento) cubre una parte del precio de lista; el resto de lista
+   va al 2.º medio con su descuento. El % de cada medio sale de su mejor descuento sobre TODA la compra (los escalones miran el total). */
+function dosCalc(){
+  const S = -cart.filter(l => ES_SENA(l)).reduce((x,l) => x + subt(l), 0), T = total() + S;   // T: productos a precio de lista · S: seña ya pagada (se descuenta del 2.º medio)
+  const p1 = Math.round(toNum($("#parte1").value)), a = mejorDesc(medio), b = mejorDesc(medio2);
+  const r1 = descOn && a && T > 0 ? a.monto / T : 0, r2 = descOn && b && T > 0 ? b.monto / T : 0, max1 = Math.round((1 - r1) * (T - S / (1 - r2)));
+  if(!(p1 > 0 && p1 < max1)) return {ok:false, T, max1, a, b};
+  const L1 = Math.min(T, p1 / (1 - r1)), L2 = T - L1, p2 = r10(L2 * (1 - r2) - S);
+  return {ok:true, T, p1, p2, L1:Math.round(L1), L2:Math.round(L2), r1, r2, a, b, desc: total() - p1 - p2};
+}
+const pctTxt = r => Math.round(r * 1000) / 10;
+const mejorDescCobro = () => { const a = mejorDesc(medio); if(!medio2) return a;
+  const c = dosCalc();
+  if(!c.ok){ const b = mejorDesc(medio2); return !a || !b ? null : (a.monto <= b.monto ? a : b); }   // sin monto todavía: muestra el menor
+  if(!(c.desc > 0)) return null;
+  return {tipo:"dos", pct: pctTxt(c.desc / c.T), monto: c.desc, tope:false,
+    motivo: `${medioL(medio)} ${pctTxt(c.r1)}% s/ ${money(c.L1)} + ${medioL(medio2)} ${pctTxt(c.r2)}% s/ ${money(c.L2)}`}; };
 const descAplicado = () => descOn ? (mejorDescCobro() || {monto:0}).monto : 0;
 const aCobrar = () => total() - descAplicado();
 const descNombre = d => d.tipo === "cliente" || d.tipo === "libre" ? `${DESC_L[d.tipo]} ${d.motivo}` : DESC_L[d.tipo] || "Descuento";
@@ -2664,7 +2679,7 @@ function confirmar(){
   if(cart.some(l => !(l.precio > 0 || (ES_SENA(l) && l.precio < 0)) || !(l.cant > 0))){ /* v3.66: "− Seña" va en negativo */ $("#cobroErr").textContent = "Falta precio o cantidad en una línea."; $("#cobroErr").hidden = false; return; }
   const tot = aCobrar(), p = toNum($("#pagaCon").value), d = descAplicado() ? mejorDescCobro() : null;
   const p1 = Math.round(toNum($("#parte1").value)), dos = medio2 ? [{m:medio, monto:p1}, {m:medio2, monto:tot - p1}] : null;   // v3.67
-  if(dos && !(p1 > 0 && p1 < tot)){ $("#cobroErr").textContent = `Escribí cuánto paga en ${medioL(medio)} (menos que ${money(tot)}); el resto va en ${medioL(medio2)}.`; $("#cobroErr").hidden = false; $("#parte1").focus(); return; }
+  if(dos && !dosCalc().ok){ $("#cobroErr").textContent = `Escribí cuánto paga en ${medioL(medio)} (menos que ${money(dosCalc().max1)}); el resto va en ${medioL(medio2)}.`; $("#cobroErr").hidden = false; $("#parte1").focus(); return; }
   if(!medio2 && medio==="efectivo" && p && p<tot){ $("#cobroErr").textContent="El monto recibido es menor al total."; $("#cobroErr").hidden=false; return; }
   if(!medio2 && medio==="efectivo" && p > Math.max(tot * 20, 200000)){ $("#pagaCon").value = ""; updVuelto(); $("#pagaCon").focus();
     $("#cobroErr").textContent = `¿Paga con ${money(p)}? Parece un código de barras: se borró. Para agregar un producto, Esc.`; $("#cobroErr").hidden = false; avisarCobro("Revisá \"Paga con\""); return; }
@@ -2705,6 +2720,7 @@ const comboI = i => i.combo == null && i.sub != null ? i.sub < i.cant * i.precio
 const esSenaI = i => /^se[ñn]a$/i.test(i.cat || "");                                     // v3.71: la seña va aparte en los comprobantes
 const prodsV = s => s.items.filter(i => !esSenaI(i)), senasV = s => s.items.filter(esSenaI);
 const ahorroVenta = s => Math.round((s.desc || 0) + s.items.reduce((a, i) => a + (i.combo || (i.combo == null && i.sub != null) ? Math.max(0, i.cant * i.precio - (i.sub ?? subt(i))) : 0), 0));
+const descPctTxt = s => s.descTipo === "dos" ? "" : s.descPct + "%";                     // v3.72: dos medios ya dice el % de cada parte
 const descVenta = s => ({manual:"especial", efectivo:"efectivo", transferencia:"transferencia", monto:"por monto", unidades:"por cantidad"})[s.descTipo || "efectivo"] || s.descMotivo || "";
 function ticketHTML(s){
   const lineas = prodsV(s).map(i => `<div class="tk-l"><span>${i.cant!=1 ? i.cant+" × " : ""}${esc(i.nombre)}${comboI(i) ? " (combo)" : ""}</span><span>${money(subI(i))}</span></div>`).join("");
@@ -2712,7 +2728,7 @@ function ticketHTML(s){
   const vuelto = s.medio==="efectivo" && s.pagaCon ? `<div class="tk-l"><span>Paga con</span><span>${money(s.pagaCon)}</span></div><div class="tk-l"><span>Vuelto</span><span>${money(s.pagaCon - s.total)}</span></div>` : "";
   return `<div class="tk"><div class="tk-h"><b>${esc(NEGOCIO)}</b><small>Sucursal ${esc(s.sucursal)}</small></div>
     <div class="tk-m"><span>${fechaAR(s.fecha)} ${s.hora}</span><span>N° ${esc(nro(s))}</span></div>
-    <div class="tk-i">${lineas}</div>${s.desc ? `<div class="tk-l"><span>Descuento ${esc(descVenta(s))} ${s.descPct}%</span><span>−${money(s.desc)}</span></div>` : ""}
+    <div class="tk-i">${lineas}</div>${s.desc ? `<div class="tk-l"><span>Descuento ${esc(descVenta(s))} ${descPctTxt(s)}</span><span>−${money(s.desc)}</span></div>` : ""}
     ${senaH}<div class="tk-t"><span>${sn.length ? "Total a pagar hoy" : "Total"}</span><span>${money(s.total)}</span></div>
     ${ahorroVenta(s) ? `<div style="margin:0 8px 8px;border:2px solid #111;border-radius:6px;padding:6px;text-align:center;font-weight:700">🎉 ¡Ahorraste ${money(ahorroVenta(s))}!</div>` : ""}
     <div class="tk-p">${pagosDe(s).map(x => `<div class="tk-l"><span>Pago${s.pagos ? " " + esc(medioL(x.m)) : ""}</span><span>${s.pagos ? money(x.monto) : esc(medioL(s.medio))}</span></div>`).join("")}${s.cliente ? `<div class="tk-l"><span>Cuenta de</span><span>${esc(s.cliente)}</span></div>` : ""}${vuelto}</div>
@@ -2765,7 +2781,7 @@ function ticketA4HTML(s){
     <div class="a4-h"><div><b>${esc(NEGOCIO)}</b><small>Sucursal ${esc(SUC_LBL(s.sucursal))}${TK_INFO.sucursales[s.sucursal] ? " · " + esc(TK_INFO.sucursales[s.sucursal].dir) + ", " + esc(TK_INFO.ciudad) : ""}</small><small style="letter-spacing:.04em;text-transform:none;margin-top:3px">${esc(TK_INFO.razon)} · CUIT ${esc(TK_INFO.cuit)}</small></div>
       <div class="m">${fechaAR(s.fecha)} · ${s.hora} h<br>Comprobante N° ${esc(nro(s))}<br>Te atendió ${esc(String(s.cajero || "").split(" ")[0])}</div></div>
     <table><tr><th style="width:12mm">Cant.</th><th>Producto</th><th class="r">Precio</th><th class="r">Subtotal</th></tr>${filas}</table>
-    <div class="tot${sn.length ? " con-sena" : ""}">${ah ? `<div><span>Precio de lista</span><span>${money(lista)}</span></div>` : ""}${combos > 0 ? `<div><span>Combos</span><span>−${money(combos)}</span></div>` : ""}${s.desc ? `<div><span>Descuento ${esc(descVenta(s))} ${s.descPct}%</span><span>−${money(s.desc)}</span></div>` : ""}
+    <div class="tot${sn.length ? " con-sena" : ""}">${ah ? `<div><span>Precio de lista</span><span>${money(lista)}</span></div>` : ""}${combos > 0 ? `<div><span>Combos</span><span>−${money(combos)}</span></div>` : ""}${s.desc ? `<div><span>Descuento ${esc(descVenta(s))} ${descPctTxt(s)}</span><span>−${money(s.desc)}</span></div>` : ""}
       ${sn.length ? `<div><span>Productos${s.desc ? " (con descuento)" : ""}</span><span>${money(s.total - sn.reduce((a, i) => a + subI(i), 0))}</span></div>` + sn.map(i => `<div class="sena"><span>💰 ${esc(i.nombre)}</span><span>−${money(-subI(i))}</span></div>`).join("") : ""}
       <div class="t"><span>${sn.length ? "Total a pagar hoy" : "Total"}</span><span>${money(s.total)}</span></div>
       ${pagosDe(s).map(x => `<div><span>Pago${s.pagos ? " " + esc(medioL(x.m)) : ""}</span><span>${s.pagos ? money(x.monto) : esc(medioL(s.medio))}</span></div>`).join("")}${s.cliente ? `<div><span>Cuenta de</span><span>${esc(s.cliente)}</span></div>` : ""}${s.medio === "efectivo" && s.pagaCon ? `<div><span>Paga con</span><span>${money(s.pagaCon)}</span></div><div><span>Vuelto</span><span>${money(s.pagaCon - s.total)}</span></div>` : ""}</div>
@@ -2792,7 +2808,7 @@ function imprimir(cuerpo, titulo, css){   // iframe oculto: no lo bloquean como 
 function ticketTexto(s){
   const L = [`*${NEGOCIO.toUpperCase()}*`, `${fechaAR(s.fecha)} ${s.hora} · N° ${nro(s)}`, ""];
   prodsV(s).forEach(i => L.push(`${i.cant!=1 ? i.cant+" × " : ""}${i.nombre}${comboI(i) ? " 🏷️ combo" : ""} — ${money(subI(i))}`));
-  if(s.desc) L.push(`Descuento ${descVenta(s)} ${s.descPct}% — −${money(s.desc)}`);
+  if(s.desc) L.push(`Descuento ${descVenta(s)} ${descPctTxt(s)} — −${money(s.desc)}`);
   senasV(s).forEach(i => L.push("", `💰 *${i.nombre}: −${money(-subI(i))}*`));
   L.push("", `*${senasV(s).length ? "TOTAL A PAGAR HOY" : "TOTAL"}: ${money(s.total)}*`);
   if(ahorroVenta(s)) L.push(`🎉 ¡Ahorraste ${money(ahorroVenta(s))}!`);
@@ -3918,7 +3934,7 @@ function renderVentas(){
     const mas = s.items.length > 4 ? `<div class="mas">+${s.items.length-4} más</div>` : "";
     return `<div class="card vcard${s.anulada?" anul":""}">
       <div class="order-h" style="padding:0;border:0"><div class="badge">${esc(nro(s))}</div><div><b>${esc(medioVenta(s))}</b>${s.medioOrig ? `<span class="antes">antes ${esc(medioL(s.medioOrig))}</span>` : ""}<span>${s.hora} · ${esc(s.cajero)}${s.cliente ? " · 📒 " + esc(s.cliente) : ""}</span></div>${estado(s)}</div>
-      <div class="its">${its}${mas}${s.desc ? `<div class="l"><span>Descuento ${esc(descVenta(s))} ${s.descPct}%</span><span>−${money(s.desc)}</span></div>` : ""}</div>
+      <div class="its">${its}${mas}${s.desc ? `<div class="l"><span>Descuento ${esc(descVenta(s))} ${descPctTxt(s)}</span><span>−${money(s.desc)}</span></div>` : ""}</div>
       <div class="vt"><span>Total</span><b>${money(s.total)}</b></div>
       <div class="bar2">${s.remota ? `<span class="pc-tag">PC ${esc(s.pc || "?")}</span>` : ""}<button class="btn soft sm" data-tk="${esc(s.id)}">Ticket</button>${s.anulada || s.ts <= c ? "" : `${s.remota ? "" : `<button class="btn sm" data-md="${esc(s.id)}">Cambiar medio</button>`}<button class="btn danger sm" data-an="${esc(s.id)}">Anular</button>`}</div>
     </div>`; }).join("") || `<div class="empty">🌱 Todavía no hay ventas hoy.</div>`;
