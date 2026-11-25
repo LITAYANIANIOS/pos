@@ -1213,7 +1213,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-25 v3.75";   // v3.75: 💵 redondeo a $ 50 hacia abajo (a favor del cliente) solo en efectivo con descuento, automático, se suma al descuento · v3.74: 📚 listas H3a · 📥 Traer presupuesto desde Venta (F3: busca por nombre, teléfono o N°, trae todas las listas del cliente − seña) · 📝 Venta → presupuesto (nuevo o sumar a uno pendiente) · 👪 Para compartir (sin nombre ni teléfono, precio de una lista, "¿Querés la tuya?") · logo y contacto arriba y al pie · al volver a Presupuestos arranca uno nuevo con "↩ Seguir" · limpieza: fuera la libreta vieja de faltantes (📝 de Etiquetas vuelve a la ventanita) · v3.73: arreglo · el presupuesto queda "vendido" recién al COBRAR (antes, al pasarlo a la venta: si no se cobraba, desaparecía) · v3.72: dos medios con descuento PROPORCIONAL (cada parte con el % de su medio) · v3.71: la seña se ve aparte en ticket, comprobante A4, WhatsApp y carrito ("Seña ya pagada el … · medio", "Total a pagar hoy") · v3.70: presupuesto → un solo "Pasar a la venta"; el % de la lista se aplica según el medio que se elige al cobrar (lo agregado usa las reglas de la caja) · v3.69: dos medios más claro (botón "Dividir en dos medios", el recuadro reemplaza la grilla: Confirmar siempre a la vista, aviso del descuento menor) · v3.68: presupuestos − / + con el mouse · "No aceptó" se puede deshacer · nota de pedido con ✔ está / ✖ falta, Armó/Controló con nombre y fecha de impresión (REIMPRESIÓN) · v3.67: 💳 pago en dos medios (＋ o "Dos medios" al cobrar; descuento = el menor de los dos; sin cta. cte.) · v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-25 v3.76";   // v3.76: 🟠 envío confirmado: el modo "sin confirmar" ya no queda pegado (dura 15 min y vuelve a probar), no salta por un bache (3 fallas en 2+ min) y lo mandado sin confirmar se vuelve a mandar confirmado (la planilla no duplica) · v3.75: 💵 redondeo a $ 50 hacia abajo (a favor del cliente) solo en efectivo con descuento, automático, se suma al descuento · v3.74: 📚 listas H3a · 📥 Traer presupuesto desde Venta (F3: busca por nombre, teléfono o N°, trae todas las listas del cliente − seña) · 📝 Venta → presupuesto (nuevo o sumar a uno pendiente) · 👪 Para compartir (sin nombre ni teléfono, precio de una lista, "¿Querés la tuya?") · logo y contacto arriba y al pie · al volver a Presupuestos arranca uno nuevo con "↩ Seguir" · limpieza: fuera la libreta vieja de faltantes (📝 de Etiquetas vuelve a la ventanita) · v3.73: arreglo · el presupuesto queda "vendido" recién al COBRAR (antes, al pasarlo a la venta: si no se cobraba, desaparecía) · v3.72: dos medios con descuento PROPORCIONAL (cada parte con el % de su medio) · v3.71: la seña se ve aparte en ticket, comprobante A4, WhatsApp y carrito ("Seña ya pagada el … · medio", "Total a pagar hoy") · v3.70: presupuesto → un solo "Pasar a la venta"; el % de la lista se aplica según el medio que se elige al cobrar (lo agregado usa las reglas de la caja) · v3.69: dos medios más claro (botón "Dividir en dos medios", el recuadro reemplaza la grilla: Confirmar siempre a la vista, aviso del descuento menor) · v3.68: presupuestos − / + con el mouse · "No aceptó" se puede deshacer · nota de pedido con ✔ está / ✖ falta, Armó/Controló con nombre y fecha de impresión (REIMPRESIÓN) · v3.67: 💳 pago en dos medios (＋ o "Dos medios" al cobrar; descuento = el menor de los dos; sin cta. cte.) · v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -4272,23 +4272,35 @@ async function api(accion, params={}, intento=1){
 /* v3.44 · ENVÍO CONFIRMADO: la planilla contesta "ok" y recién ahí se saca de la cola. Si contesta otra cosa (error, planilla ocupada,
    clave mal) o no contesta, queda en la PC y se reintenta cada minuto. La planilla no duplica (reconoce cada cosa por su ID).
    Red de seguridad: si el navegador no deja leer la respuesta 3 veces seguidas (pero la planilla sí responde a las consultas),
-   vuelve al envío sin confirmar de antes y lo avisa en Ajustes. */
-let corsFallas = 0, sinConfirmar = false, ultimoErrorEnvio = "";
+   vuelve al envío sin confirmar de antes y lo avisa en Ajustes.
+   v3.76 (caso Moreno 17/11): ese modo quedaba pegado hasta recargar y sacaba cosas de la cola sin confirmar. Ahora:
+   · salta solo si las 3 fallas seguidas abarcan 2 minutos o más (un bache de Google/red no alcanza)
+   · dura 15 minutos y después vuelve a probar el envío confirmado (si anda, sigue confirmado)
+   · lo que se mandó sin confirmar queda anotado en la PC ("dudosos", 3 días) y, al volver el modo confirmado, se manda de nuevo
+     confirmado: la planilla reconoce cada cosa por su ID y no la duplica */
+const SINCONF_MIN = 15, SINCONF_DETECTA = 2 * 60000;
+let corsFallas = 0, corsDesde = 0, sinConfHasta = 0, ultimoErrorEnvio = "";
+const sinConfirmar = () => Date.now() < sinConfHasta;
+let dudosos = leer("dudosos", []).filter(o => Date.now() - (o.ts || 0) < 3 * 864e5);
 async function post(body){
   if(DEMO) throw new Error("demo");
   const datos = JSON.stringify({...body, clave: cfg.clave}), H = {"Content-Type":"text/plain;charset=utf-8"};
-  if(sinConfirmar){ await fetch(cfg.url, {method:"POST", mode:"no-cors", headers:H, body:datos}); return "sin confirmar"; }
+  if(sinConfirmar()){ await fetch(cfg.url, {method:"POST", mode:"no-cors", headers:H, body:datos}); return "sin confirmar"; }
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 45000);
   try{
     const r = await fetch(cfg.url, {method:"POST", headers:H, body:datos, signal:ctl.signal});
-    const txt = (await r.text()).trim(); corsFallas = 0;
+    const txt = (await r.text()).trim(); corsFallas = 0; corsDesde = 0;
     if(txt === "ok" || /^\{\s*"ok"\s*:\s*true/.test(txt)){ ultimoErrorEnvio = ""; return "ok"; }
     if(txt === "clave incorrecta"){ claveMal = true; throw {tipo:"clave"}; }
     ultimoErrorEnvio = /<html/i.test(txt) ? "la planilla dio un error" : txt.slice(0, 120);
     throw {tipo:"planilla", msg: ultimoErrorEnvio};
   }catch(e){
-    if(e instanceof TypeError && navigator.onLine !== false && ++corsFallas >= 3){
-      try{ await api("ping"); sinConfirmar = true; ultimoErrorEnvio = "este navegador no deja confirmar: se envía como antes"; }catch(x){}
+    if(e instanceof TypeError && navigator.onLine !== false){
+      if(!corsFallas++) corsDesde = Date.now();
+      if(corsFallas >= 3 && Date.now() - corsDesde >= SINCONF_DETECTA){                    // v3.76: no por un bache
+        try{ await api("ping"); sinConfHasta = Date.now() + SINCONF_MIN * 60000; corsFallas = 0; corsDesde = 0;
+          ultimoErrorEnvio = `no se pudo confirmar: se envía sin confirmar ${SINCONF_MIN} min y se vuelve a probar`; }catch(x){}
+      }
     }
     throw e;
   }finally{ clearTimeout(t); }
@@ -4329,10 +4341,16 @@ async function flush(){
   if(bloqueada || flushing || !cfg.url || !queue.length){ renderMeta(); return; }
   flushing = true;
   if(!(await claveOk())){ flushing = false; renderMeta(); return; }
+  if(!sinConfirmar() && dudosos.length){                                                    // v3.76: lo mandado sin confirmar, otra vez y confirmado
+    const ya = new Set(queue.map(o => o.tipo + "|" + o.id));
+    dudosos.forEach(o => { if(!ya.has(o.tipo + "|" + o.id)){ const {ts, ...op} = o; queue.push(op); } });
+    dudosos = []; guardar("dudosos", dudosos); guardar("queue", queue);
+  }
   while(queue.length){
     const body = payload(queue[0]);
     if(!body){ queue.shift(); continue; }
-    try{ await post(body); queue.shift(); guardar("queue", queue); }
+    try{ const r = await post(body); const op = queue.shift(); guardar("queue", queue);
+      if(r === "sin confirmar"){ dudosos.push({...op, ts: Date.now()}); dudosos = dudosos.slice(-1000); guardar("dudosos", dudosos); } }
     catch(e){ break; }
   }
   flushing = false; renderMeta(); enviarEstado();
@@ -4363,7 +4381,7 @@ function renderMeta(){
   if(!LS && !DEMO) av.push("Este navegador no guarda datos: es solo para probar.");
   if(claveMal) av.push("🔑 La clave de la planilla cambió: las ventas se siguen guardando en esta PC pero no se envían. Avisá al encargado (Ajustes → Conexión).");
   if(queue.length >= 5 && ultimoErrorEnvio && !claveMal) av.push(`⚠ Hay ${queue.length} cosas sin enviar (${ultimoErrorEnvio}). Quedan guardadas en esta PC y se reintenta cada minuto.`);
-  if(sinConfirmar) av.push("ℹ️ Este navegador no deja confirmar los envíos: se mandan como antes (sin confirmación). Avisá al encargado.");
+  if(sinConfirmar()) av.push(`ℹ️ La planilla no confirma los envíos: se mandan sin confirmar y en unos minutos se vuelve a probar${dudosos.length ? ` (${dudosos.length} se van a reenviar confirmados)` : ""}. Si sigue así toda la tarde, avisá al encargado.`);
   if(!cat) av.push("Catálogo de PRUEBA: falta conectar la planilla (Ajustes → Conexión).");
   else if(Date.now() - cat.fecha > 864e5) av.push(`Catálogo guardado del ${new Date(cat.fecha).toLocaleDateString("es-AR")}: sin conexión con la planilla, los precios pueden estar viejos.`);
   $("#aviso").hidden = !av.length; $("#aviso").textContent = av.join(" ");
