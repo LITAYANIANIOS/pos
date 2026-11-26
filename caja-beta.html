@@ -22,6 +22,7 @@
   --primary:#37352f; --primary-ink:#ffffff; --primary-soft:#f1f1ef;
   --accent:#f6c445; --accent-ink:#2b2200; --accent-soft:#fbf3db;
   --ok:#448361; --ok-soft:#edf3ec; --warn:#b5821f; --warn-soft:#fbf3db; --bad:#d44c47; --bad-soft:#fdebec;
+  --presu:#2f6fb3; --presu-ink:#ffffff; --presu-soft:#f3f7fc; --presu-grid:#dbe7f4;      /* v3.80: 📝 presupuesto ≠ venta */
   --shadow:none; --r:8px; --r-sm:6px;
   --sans:ui-sans-serif,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif,"Segoe UI Emoji","Apple Color Emoji";
   color-scheme:light;
@@ -30,12 +31,14 @@
   --bg:#191919; --side:#202020; --surface:#202020; --surface-2:#262626; --ink:#d9d9d6; --muted:#9b9b98; --line:rgba(255,255,255,.1); --sel:rgba(255,255,255,.07);
   --primary:#d9d9d6; --primary-ink:#191919; --primary-soft:#2c2c2c;
   --accent:#f6c445; --accent-ink:#2b2200; --accent-soft:#3a3218;
-  --ok:#5fb08d; --ok-soft:#222b25; --warn:#d6a443; --warn-soft:#352c1c; --bad:#e3746f; --bad-soft:#3a2321; color-scheme:dark}}
+  --ok:#5fb08d; --ok-soft:#222b25; --warn:#d6a443; --warn-soft:#352c1c; --bad:#e3746f; --bad-soft:#3a2321; color-scheme:dark;
+  --presu:#5b93d1; --presu-ink:#0d1a2a; --presu-soft:#1d222a; --presu-grid:#263140}}
 :root[data-theme="dark"]{
   --bg:#191919; --side:#202020; --surface:#202020; --surface-2:#262626; --ink:#d9d9d6; --muted:#9b9b98; --line:rgba(255,255,255,.1); --sel:rgba(255,255,255,.07);
   --primary:#d9d9d6; --primary-ink:#191919; --primary-soft:#2c2c2c;
   --accent:#f6c445; --accent-ink:#2b2200; --accent-soft:#3a3218;
-  --ok:#5fb08d; --ok-soft:#222b25; --warn:#d6a443; --warn-soft:#352c1c; --bad:#e3746f; --bad-soft:#3a2321; color-scheme:dark}
+  --ok:#5fb08d; --ok-soft:#222b25; --warn:#d6a443; --warn-soft:#352c1c; --bad:#e3746f; --bad-soft:#3a2321; color-scheme:dark;
+  --presu:#5b93d1; --presu-ink:#0d1a2a; --presu-soft:#1d222a; --presu-grid:#263140}
 
 /* ---------- 2. Base ---------- */
 *,*::before,*::after{box-sizing:border-box}
@@ -469,6 +472,28 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .tp-tabla{max-height:56vh;overflow:auto;margin:8px 0}.tp-tabla table{width:100%;border-collapse:collapse}
 .tp-tabla th{text-align:left;font-size:12px;color:var(--muted);padding:6px 4px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface)}
 .tp-tabla td{padding:7px 4px;border-bottom:1px solid var(--line)}.tp-tabla .r{text-align:right;white-space:nowrap}.tp-tabla .u{font-weight:700;font-size:16px}
+/* v3.80 · 📝 Presupuestos: azul + hoja cuadriculada (se distingue de la venta sin leer; el amarillo sigue siendo "plata") */
+#tab-presu .venta > .card{border:2px solid var(--presu);background-color:var(--presu-soft);
+  background-image:linear-gradient(var(--presu-grid) 1px,transparent 1px),linear-gradient(90deg,var(--presu-grid) 1px,transparent 1px);background-size:16px 16px}
+#tab-presu .venta > .card > .order-h{background:var(--presu);color:var(--presu-ink);margin:-18px -18px 12px;padding:10px 18px;border-bottom:0;border-radius:5px 5px 0 0}
+#tab-presu .venta > .card > .order-h span,#tab-presu .venta > .card > .order-h .nev{color:var(--presu-ink);opacity:.85}
+#tab-presu .order-h .nev{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}#tab-presu .order-h .nev + span{display:inline}
+#tab-presu .venta > .card > .order-h .btn{background:rgba(255,255,255,.16);color:var(--presu-ink);border-color:transparent}
+#tab-presu .col-izq .card{border-top:3px solid var(--presu)}
+#tab-presu .venta > .card > .order-h .btn{white-space:nowrap;padding:6px 9px}
+.wa-btn{background:var(--ok);color:#fff;border-color:var(--ok);font-weight:600}.wa-btn:disabled{opacity:.45}   /* verde WhatsApp: el amarillo queda para la plata */
+#tab-presu .lines li{background:var(--surface)}
+.wa-g{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr);gap:14px}
+.wa-l{list-style:none;margin:0;padding:0;max-height:52vh;overflow:auto}
+.wa-l li{display:grid;grid-template-columns:minmax(0,1fr);gap:1px;padding:8px 10px;border-radius:var(--r-sm);cursor:pointer;border:1px solid transparent}
+.wa-l li:hover{background:var(--sel)}.wa-l li[aria-selected="true"]{border-color:var(--ok);background:var(--ok-soft)}
+.wa-l small{color:var(--muted);font-size:12px}.wa-l small.ok{color:var(--ok)}
+#waTxt{width:100%;min-height:230px;resize:vertical;border:1px solid var(--line);border-radius:var(--r-sm);padding:10px;background:var(--ok-soft);color:var(--ink);font:inherit;font-size:13.5px;line-height:1.45}
+.wa-pie{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;flex-wrap:wrap}.wa-pie .note{margin:0}
+.av-l{list-style:none;margin:8px 0;padding:0;max-height:56vh;overflow:auto}
+.av-l li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.av-l small{color:var(--muted);font-size:12px}.av-l .btn{white-space:nowrap}
+#prDirL[hidden]{display:none}
 .pr-acc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}   /* v3.77 */
 .pr-acc .btn{padding:12px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .pr-acc .btn.pr-no{background:none;color:var(--muted);box-shadow:inset 0 0 0 1px var(--line);font-weight:500}
@@ -738,7 +763,8 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
         <label>Sala / grado <input id="prSala" list="prSalaL" autocomplete="off" spellcheck="false" placeholder="Ej: Sala de 4"><small class="pr-hint">Sala 3 = 1ª sección · 4 = 2ª · 5 = 3ª</small></label>
         <label>Nota <input id="prNota" autocomplete="off" placeholder="Ej: colores, retira el sábado"></label>
         <label>Listas iguales <input id="prN" inputmode="numeric" autocomplete="off" value="1"></label>
-        <label>Retira en <select id="prRet"><option value="FALCON">Falcon</option><option value="NACION">Nación</option><option value="MORENO">Moreno</option><option value="SOMISA">Somisa</option></select></label>
+        <label>Retira en <select id="prRet"><option value="FALCON">Falcon</option><option value="NACION">Nación</option><option value="MORENO">Moreno</option><option value="SOMISA">Somisa</option><option value="ENVIO">🚚 Envío programado</option></select></label>
+        <label id="prDirL" hidden>Dirección de envío <input id="prDir" autocomplete="off" spellcheck="false" placeholder="Ej: Belgrano 123, barrio Centro"></label>
       </div>
       <datalist id="prEscL"></datalist><datalist id="prCliL"></datalist><datalist id="prSalaL"></datalist>
       <div class="pr-aviso pr-plant" id="prPlant" hidden></div>
@@ -753,6 +779,9 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
         <span>Si no está: <b>ítem libre</b> con precio</span>
       </div>
     </div>
+    <div class="card calc">                                                               <!-- v3.80 -->
+      <button class="calc-h" id="prAV" type="button"><span>📋 Para avisar hoy <small class="note">· WhatsApp pendientes</small></span><span class="pill" id="prAVN" hidden>0</span><span class="fl">›</span></button>
+    </div>
     <div class="card calc">                                                               <!-- v3.78 -->
       <button class="calc-h" id="prTP" type="button"><span>📦 Total a preparar <small class="note">· todas las listas señadas sin armar</small></span><span class="fl">›</span></button>
     </div>
@@ -765,7 +794,7 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
     </div>
 
     <div class="card">
-      <div class="order-h"><div class="badge y">📝</div><div><b>Presupuesto</b><span id="prCount">Sin productos</span></div><button class="btn sm" id="prOtra" title="Otra lista para el mismo cliente">＋ Otra lista</button><button class="btn sm" id="prGuardarB" title="Guardar en esta PC y en la planilla">💾 Guardar</button><button class="btn sm" id="prNuevo">＋ Nuevo</button></div>
+      <div class="order-h"><div class="badge y">📝</div><div><b>Presupuesto</b><small class="nev">no es venta</small><span id="prCount">Sin productos</span></div><button class="btn sm" id="prOtra" title="Otra lista para el mismo cliente">＋ Otra lista</button><button class="btn sm" id="prPlantG" type="button" title="Guardar como plantilla de esa escuela y sala" aria-label="Guardar como plantilla">📚</button><button class="btn sm" id="prGuardarB" title="Guardar en esta PC y en la planilla">💾 Guardar</button><button class="btn sm" id="prNuevo">＋ Nuevo</button></div>
       <div class="pr-aviso pr-seg" id="prSeguir" hidden></div>
       <div class="pr-aviso pr-est" id="prEst" hidden></div>
       <div class="pr-aviso" id="prAviso" hidden></div>
@@ -777,9 +806,9 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
         <label>🏦 Transferencia <span>−<input id="prDT" inputmode="decimal" autocomplete="off" placeholder="0">%</span></label><b id="prTra">—</b>
       </div>
       <div class="pr-acc">                                                                <!-- v3.77: 2 filas de 3 -->
+        <button class="btn" id="prWA" type="button" title="Mensajes de WhatsApp con el nombre y los montos (queda anotado)">📲 WhatsApp</button>
         <button class="btn" id="prImg" type="button" title="Como imagen: con los datos del cliente o para compartir (sin datos)">🖼️ Imagen</button>
         <button class="btn" id="prPrint" type="button" title="Hoja A4 con los datos del cliente">🖨️ Imprimir</button>
-        <button class="btn" id="prPlantG" type="button" title="Guardar como plantilla de esa escuela y sala">📚 Plantilla</button>
         <button class="btn" id="prWa" type="button" hidden>💬 WhatsApp</button>
       </div>
       <div class="pr-acc">
@@ -1115,6 +1144,25 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
   </div>
 </div>
 
+<!-- v3.80 · 📲 WhatsApp de un presupuesto -->
+<div class="overlay" id="waOverlay" hidden>
+  <div class="modal img-modal" role="dialog" aria-modal="true" aria-labelledby="waTit" style="max-width:820px">
+    <div class="img-top"><b id="waTit" style="flex:1">📲 WhatsApp</b><button class="img-x" id="waX" type="button" title="Cerrar (Esc)" aria-label="Cerrar">✕</button></div>
+    <div class="wa-g" style="margin-top:10px">
+      <ul class="wa-l" id="waL" role="listbox"></ul>
+      <div><textarea id="waTxt" spellcheck="true" aria-label="Mensaje"></textarea>
+        <div class="wa-pie"><span class="note" id="waEst"></span><span style="display:flex;gap:8px"><button class="btn" id="waCopy" type="button">📋 Copiar texto</button><button class="btn wa-btn" id="waOpen" type="button">Abrir en WhatsApp</button></span></div></div>
+    </div>
+  </div>
+</div>
+<!-- v3.80 · 📋 para avisar hoy -->
+<div class="overlay" id="avOverlay" hidden>
+  <div class="modal img-modal" role="dialog" aria-modal="true" aria-labelledby="avTit" style="max-width:680px">
+    <div class="img-top"><b id="avTit" style="flex:1">📋 Para avisar hoy</b><button class="img-x" id="avX" type="button" title="Cerrar (Esc)" aria-label="Cerrar">✕</button></div>
+    <p class="note" id="avInfo"></p>
+    <ul class="av-l" id="avL"></ul>
+  </div>
+</div>
 <!-- v3.78 · 📦 armado de una lista -->
 <div class="overlay" id="arOverlay" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="arTit" style="max-width:760px">
@@ -1254,14 +1302,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-25 v3.79";   // v3.79: 🧾 ticket, presupuesto, nota de pedido y total a preparar ya no fuerzan A4 (usan el papel de la impresora: en hoja Carta se cortaba el pie) y los renglones no se parten entre hojas · v3.78: 📚 listas H3b (con script v3.61) · 📦 Armado: marcar lo que falta (⏳ después · 🔁 reemplazo · ➖ se saca) → al retirar se cobra lo entregado, lo que falta va a 📝 Faltantes y lo "después" queda como presupuesto pendiente · 📦 Total a preparar (todas las listas señadas) · 🖼️ imagen más simple: se copia sola al abrir, ✕ chiquita, sin descargar ni compartir · v3.77: presupuestos más prolijos: botones en 2 filas de 3, ícono y texto en una línea · 🖼️ Imagen única con "👤 Con sus datos / 👪 Para compartir" adentro (sin PDF) · 💬 WhatsApp oculto · ❌ No aceptó más liviano · tabla de productos con 5 columnas (ya no se corta el subtotal) · v3.76: 🟠 envío confirmado: el modo "sin confirmar" ya no queda pegado (dura 15 min y vuelve a probar), no salta por un bache (3 fallas en 2+ min) y lo mandado sin confirmar se vuelve a mandar confirmado (la planilla no duplica) · v3.75: 💵 redondeo a $ 50 hacia abajo (a favor del cliente) solo en efectivo con descuento, automático, se suma al descuento · v3.74: 📚 listas H3a · 📥 Traer presupuesto desde Venta (F3: busca por nombre, teléfono o N°, trae todas las listas del cliente − seña) · 📝 Venta → presupuesto (nuevo o sumar a uno pendiente) · 👪 Para compartir (sin nombre ni teléfono, precio de una lista, "¿Querés la tuya?") · logo y contacto arriba y al pie · al volver a Presupuestos arranca uno nuevo con "↩ Seguir" · limpieza: fuera la libreta vieja de faltantes (📝 de Etiquetas vuelve a la ventanita) · v3.73: arreglo · el presupuesto queda "vendido" recién al COBRAR (antes, al pasarlo a la venta: si no se cobraba, desaparecía) · v3.72: dos medios con descuento PROPORCIONAL (cada parte con el % de su medio) · v3.71: la seña se ve aparte en ticket, comprobante A4, WhatsApp y carrito ("Seña ya pagada el … · medio", "Total a pagar hoy") · v3.70: presupuesto → un solo "Pasar a la venta"; el % de la lista se aplica según el medio que se elige al cobrar (lo agregado usa las reglas de la caja) · v3.69: dos medios más claro (botón "Dividir en dos medios", el recuadro reemplaza la grilla: Confirmar siempre a la vista, aviso del descuento menor) · v3.68: presupuestos − / + con el mouse · "No aceptó" se puede deshacer · nota de pedido con ✔ está / ✖ falta, Armó/Controló con nombre y fecha de impresión (REIMPRESIÓN) · v3.67: 💳 pago en dos medios (＋ o "Dos medios" al cobrar; descuento = el menor de los dos; sin cta. cte.) · v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-26 v3.80";   // v3.80: 📚 listas H4 (con script v3.62) · 📲 WhatsApp desde el presupuesto: las respuestas rápidas con nombre y montos, abre WhatsApp Web en la misma pestaña y anota quién avisó · 📋 Para avisar hoy · 🚚 Envío programado (dirección) · 📝 Presupuestos se ven distintos de la venta: azul y hoja cuadriculada · v3.79: 🧾 ticket, presupuesto, nota de pedido y total a preparar ya no fuerzan A4 (usan el papel de la impresora: en hoja Carta se cortaba el pie) y los renglones no se parten entre hojas · v3.78: 📚 listas H3b (con script v3.61) · 📦 Armado: marcar lo que falta (⏳ después · 🔁 reemplazo · ➖ se saca) → al retirar se cobra lo entregado, lo que falta va a 📝 Faltantes y lo "después" queda como presupuesto pendiente · 📦 Total a preparar (todas las listas señadas) · 🖼️ imagen más simple: se copia sola al abrir, ✕ chiquita, sin descargar ni compartir · v3.77: presupuestos más prolijos: botones en 2 filas de 3, ícono y texto en una línea · 🖼️ Imagen única con "👤 Con sus datos / 👪 Para compartir" adentro (sin PDF) · 💬 WhatsApp oculto · ❌ No aceptó más liviano · tabla de productos con 5 columnas (ya no se corta el subtotal) · v3.76: 🟠 envío confirmado: el modo "sin confirmar" ya no queda pegado (dura 15 min y vuelve a probar), no salta por un bache (3 fallas en 2+ min) y lo mandado sin confirmar se vuelve a mandar confirmado (la planilla no duplica) · v3.75: 💵 redondeo a $ 50 hacia abajo (a favor del cliente) solo en efectivo con descuento, automático, se suma al descuento · v3.74: 📚 listas H3a · 📥 Traer presupuesto desde Venta (F3: busca por nombre, teléfono o N°, trae todas las listas del cliente − seña) · 📝 Venta → presupuesto (nuevo o sumar a uno pendiente) · 👪 Para compartir (sin nombre ni teléfono, precio de una lista, "¿Querés la tuya?") · logo y contacto arriba y al pie · al volver a Presupuestos arranca uno nuevo con "↩ Seguir" · limpieza: fuera la libreta vieja de faltantes (📝 de Etiquetas vuelve a la ventanita) · v3.73: arreglo · el presupuesto queda "vendido" recién al COBRAR (antes, al pasarlo a la venta: si no se cobraba, desaparecía) · v3.72: dos medios con descuento PROPORCIONAL (cada parte con el % de su medio) · v3.71: la seña se ve aparte en ticket, comprobante A4, WhatsApp y carrito ("Seña ya pagada el … · medio", "Total a pagar hoy") · v3.70: presupuesto → un solo "Pasar a la venta"; el % de la lista se aplica según el medio que se elige al cobrar (lo agregado usa las reglas de la caja) · v3.69: dos medios más claro (botón "Dividir en dos medios", el recuadro reemplaza la grilla: Confirmar siempre a la vista, aviso del descuento menor) · v3.68: presupuestos − / + con el mouse · "No aceptó" se puede deshacer · nota de pedido con ✔ está / ✖ falta, Armó/Controló con nombre y fecha de impresión (REIMPRESIÓN) · v3.67: 💳 pago en dos medios (＋ o "Dos medios" al cobrar; descuento = el menor de los dos; sin cta. cte.) · v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
    (el panel, los cobros, los saldos y compras lo ignoran; se borra con borrarPruebas() en el script). */
 const PRUEBA = new URLSearchParams(location.search).has("prueba") && !new URLSearchParams(location.search).has("demo");
 const SUCS = PRUEBA ? ["PRUEBA"] : ["FALCON","NACION","MORENO","SOMISA","DEPOSITO"];   // DEPOSITO: caja de atrás (cta. cte., transferencias, pruebas con caja-beta)
-const SUC_LBL = s => ({NACION:"Nación", DEPOSITO:"Depósito"})[s] || s[0] + s.slice(1).toLowerCase();
+const SUC_LBL = s => ({NACION:"Nación", DEPOSITO:"Depósito", ENVIO:"🚚 Envío"})[s] || s[0] + s.slice(1).toLowerCase();   // v3.80: ENVIO
 const PCS_POR_SUC = {FALCON: 2};       // sucursales con más de una computadora
 const MEDIOS = [                       // tecla = atajo en el cobro · Tab pasa al siguiente
   {k:"efectivo", l:"Efectivo",      tecla:"E"},
@@ -2730,7 +2778,7 @@ const TK_INFO = {
   razon: "LITA Y AÑAÑOS SAN NICOLAS S.R.L.", cuit: "30-71851936-1", ciudad: "San Nicolás",
   instagram: "@litayanianios",
   sucursales: {             // dir · horario · WhatsApp (lo vacío no se imprime)
-    FALCON: {dir:"Falcon 296",       hor:"", tel:"336 454-2638", resena:"https://search.google.com/local/writereview?placeid=ChIJI5FtAE1nt5URu4lNXhFkR9U"},
+    FALCON: {dir:"Falcon 296",       hor:"9:00 a 13:00 y de 16:30 a 20:30", tel:"336 454-2638", resena:"https://search.google.com/local/writereview?placeid=ChIJI5FtAE1nt5URu4lNXhFkR9U"},
     NACION: {dir:"Nación 155",       hor:"", tel:"336 433-7375", resena:"https://search.google.com/local/writereview?placeid=ChIJr831LgBnt5URF3uMIzr1bWY"},
     MORENO: {dir:"Moreno 125",       hor:"", tel:"336 419-4444", resena:"https://search.google.com/local/writereview?placeid=ChIJY8apMdpnt5URfR1RifiZcLM"},
     SOMISA: {dir:"Av. Central 2079", hor:"", tel:"336 431-2505", resena:"https://search.google.com/local/writereview?placeid=ChIJBzjWdQBft5URveLzuuAGPEA"}   // v3.53: Nación, Moreno y Somisa con su QR
@@ -2819,7 +2867,8 @@ $("#tkOverlay").addEventListener("click", e => { if(e.target.id==="tkOverlay") c
 document.addEventListener("keydown", e => {
   if(e.target && e.target.id === "notaTxt") return;
   if(!$("#faOverlay").hidden){ if(e.key==="Escape"){ e.preventDefault(); cerrarFaltante(); } return; }
-  if(!$("#trOverlay").hidden || !$("#vpOverlay").hidden || !$("#arOverlay").hidden || !$("#tpOverlay").hidden) return;   // v3.74 · v3.78: manejan sus teclas
+  { const ov = ["#trOverlay","#vpOverlay","#arOverlay","#tpOverlay","#waOverlay","#avOverlay"].filter(s => !$(s).hidden);   // v3.74 · v3.80: manejan sus teclas; Esc cierra aunque el foco quede afuera
+    if(ov.length){ if(e.key === "Escape"){ e.preventDefault(); const o = ov[ov.length - 1]; o === "#trOverlay" ? trCerrar() : o === "#vpOverlay" ? vpCerrar() : $(o).hidden = true; } return; } }   // v3.74 · v3.78: manejan sus teclas
   if(!$("#ccOverlay").hidden || !$("#ncOverlay").hidden || !$("#pgOverlay").hidden) return;
   if(!$("#erOverlay").hidden){ if(e.key==="Escape"){ e.preventDefault(); cerrarError(); } return; }
   if(!$("#gaOverlay").hidden){ if(e.key==="Escape"){ e.preventDefault(); cerrarGasto(); } return; }
@@ -3239,8 +3288,9 @@ function renderPresu(){
   ["tel","escuela","sala","plant","grupo"].forEach(k => { if(pr[k] == null) pr[k] = ""; }); if(!(+pr.n >= 1)) pr.n = 1;   // v3.60: presupuestos de antes
   [["#prTel","tel"],["#prEsc","escuela"],["#prSala","sala"]].forEach(([id,k]) => { if(document.activeElement !== $(id)) $(id).value = pr[k]; });
   if(document.activeElement !== $("#prN")) $("#prN").value = pr.n;
-  if(!RETIRA.includes(pr.retira)) pr.retira = RETIRA.includes(pr.suc) ? pr.suc : "FALCON"; if(pr.estado == null) pr.estado = pr.vendido ? "Entregado" : "";   // v3.66: presupuestos de antes
-  $("#prRet").value = pr.retira;
+  if(!RETIRA.includes(pr.retira) && pr.retira !== "ENVIO") pr.retira = RETIRA.includes(pr.suc) ? pr.suc : "FALCON"; if(pr.estado == null) pr.estado = pr.vendido ? "Entregado" : "";   // v3.66: presupuestos de antes
+  $("#prRet").value = pr.retira; $("#prDirL").hidden = pr.retira !== "ENVIO";             // v3.80
+  if(document.activeElement !== $("#prDir")) $("#prDir").value = pr.dir || "";
   $("#prVence").value = pr.vence; $("#prSinFecha").hidden = !pr.vence;
   if(pr.descEfe == null){ pr.descEfe = +cfgDesc().descEfe || 0; pr.descTra = +cfgDesc().descTra || 0; }   // presupuestos de antes
   if(document.activeElement !== $("#prDE")) $("#prDE").value = pr.descEfe || "";
@@ -3323,7 +3373,8 @@ $("#prLines").addEventListener("click", e => {
 $("#prCli").addEventListener("input", () => { pr.cliente = $("#prCli").value; prGuardar(); });
 $("#prNota").addEventListener("input", () => { pr.nota = $("#prNota").value; prGuardar(); });
 $("#prTel").addEventListener("input", () => { pr.tel = $("#prTel").value; prGuardar(); });
-$("#prRet").addEventListener("change", () => { pr.retira = $("#prRet").value; prGuardar(); renderEstado(); });   // v3.66                          // v3.60
+$("#prRet").addEventListener("change", () => { pr.retira = $("#prRet").value; $("#prDirL").hidden = pr.retira !== "ENVIO"; prGuardar(); renderEstado(); if(pr.retira === "ENVIO") $("#prDir").focus(); });
+$("#prDir").addEventListener("input", () => { pr.dir = $("#prDir").value; prGuardar(); });   // v3.80   // v3.66                          // v3.60
 $("#prEsc").addEventListener("input", () => { pr.escuela = $("#prEsc").value; prGuardar(); renderPlant(); });
 $("#prSala").addEventListener("input", () => { pr.sala = $("#prSala").value; prGuardar(); renderPlant(); });
 $("#prN").addEventListener("input", () => { pr.n = Math.max(1, Math.min(50, Math.round(toNum($("#prN").value)) || 1)); renderPrecios(); prGuardar(); renderPresu(); });
@@ -3694,8 +3745,8 @@ function prPendiente(id){
 function renderEstado(){
   if(!pr) return;
   const e = pr.estado || "", b = $("#prEst"), grp = prDelGrupo(pr);
-  b.hidden = !e; b.classList.toggle("no", e === "No aceptó");
-  if(e) b.innerHTML = `<span><b>${EST[e] || e}</b>${pr.sena ? ` · ${money(pr.sena.monto)} ${esc(MEDIO_TXT[pr.sena.medio] || pr.sena.medio)} el ${new Date(pr.sena.ts).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})} · precio congelado` : ""} · retira en ${esc(SUC_LBL(pr.retira))}</span>`;
+  b.hidden = !e && !(pr.avisos || []).length; b.classList.toggle("no", e === "No aceptó");   // v3.80: también si ya se avisó
+  if(!b.hidden) b.innerHTML = `<span><b>${EST[e] || e}</b>${pr.sena ? ` · ${money(pr.sena.monto)} ${esc(MEDIO_TXT[pr.sena.medio] || pr.sena.medio)} el ${new Date(pr.sena.ts).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})} · precio congelado` : ""}${pr.retira === "ENVIO" ? ` · 🚚 envío${pr.dir ? " a " + esc(pr.dir) : " (falta la dirección)"}` : ` · retira en ${esc(SUC_LBL(pr.retira))}`}${pr.avisos && pr.avisos.length ? ` · 📲 ${esc(waUlt(pr))}` : ""}</span>`;
   $("#prSena").hidden = !!(pr.sena || pr.vendido || e === "No aceptó");
   $("#prArm").hidden = !(pr.sena && !pr.vendido);                                           // v3.78: se arma lo señado
   $("#prArm").textContent = pr.armado ? (pr.armado.ok ? "✅ Armado" : "⚠️ Armado con faltantes") : "📦 Armado";
@@ -3706,6 +3757,122 @@ function renderEstado(){
   g.hidden = !(otras > 0 || senaT > 0) || !!pr.vendido;
   if(!g.hidden) g.innerHTML = `<span>${otras > 0 ? `🔗 Pasa a la venta junto con ${otras} lista${otras > 1 ? "s" : ""} más de ${esc(pr.cliente || "este cliente")} (total lista ${money(grp.reduce((a,x) => a + prTotal(x), 0))})` : ""}${otras > 0 && senaT ? " · " : ""}${senaT ? `se descuenta la seña: −${money(senaT)}` : ""}</span>`;
 }
+/* ---------- v3.80 · 📲 WHATSAPP: las respuestas rápidas de siempre (las pasó Roman 26/11) con nombre y montos.
+   Abre WhatsApp Web SIEMPRE en la misma pestaña ("whatsapp") para no tenerlo abierto dos veces. Lo mandado queda en pr.avisos (viaja a la planilla) ---------- */
+const WA_K = {C:"Condiciones", D:"Presupuesto + imagen", E:"Cómo señar", F:"Gracias por la seña", G:"En armado", H:"Lista lista", L:"Llegó lo pendiente", R:"Recordatorio · sin seña", X:"Reintentar (no aceptó)", P:"Recordar retiro"};
+const waNom = x => { const n = String(x.cliente || "").trim().split(/\s+/)[0] || ""; return n ? n[0].toUpperCase() + n.slice(1).toLowerCase() : ""; };
+const waEsc = x => [x.escuela, x.sala].filter(Boolean).join(" ");
+const waLast = (x, k) => Math.max(0, ...((x.avisos || []).filter(a => a.t === k).map(a => +a.ts || 0)));
+const waUlt = x => { const a = (x.avisos || []).slice(-1)[0]; return a ? `${WA_K[a.t] || a.t} ${new Date(a.ts).toLocaleDateString("es-AR", {day:"2-digit", month:"2-digit"})}${a.por ? " · " + a.por.split(" ")[0] : ""}` : ""; };
+const waVence = x => x.vence ? fechaAR(x.vence) : new Date((+x.creado || Date.now()) + 10 * 864e5).toLocaleDateString("es-AR", {day:"2-digit", month:"2-digit"});
+function waTexto(k, x){
+  const o = prOpciones(x), tot = c => (o.find(z => z.k === c) || {}).total, e = +x.descEfe || 0, t = +x.descTra || 0, n = waNom(x);
+  const envio = x.retira === "ENVIO", c = prContacto(x), hor = ((TK_INFO.sucursales[RETIRA.includes(x.retira) ? x.retira : "FALCON"] || {}).hor || "");
+  const lugar = `${hor ? "de " + hor + " " : ""}en ${c.dir || c.suc}`;
+  const falt = prFaltan(x).filter(l => l.fa.e !== "saca").map(l => `${l.fa.q} ${l.nombre}`);
+  if(k === "C") return `Hola${n ? " " + n : ""} ¿Cómo estás? 😌\nAntes de pasarte los detalles te contamos que:\n\nArmamos el presupuesto con TODOS LOS ELEMENTOS DE LIBRERÍA  que nos piden las maestras al MEJOR PRECIO.  📝🎨\n\nNO INCLUIMOS:\n- Elementos de MERCERÍA (Telas/cintas/totora)🧶 \n- Artículos HIGIENE (Papel H/servilletas/jabón líquido)🧻🧴\n\nTambién tenes que saber que el precio final de la lista, puede llegar a cambiar si nos falta algún artículo o si hay que realizar un cambio. Siempre que haya algún cambio te vamos a consultar si te parece bien.\n\nTU SEÑA ❄️CONGELA EL PRECIO 🧊, del presupuesto durante 30 días.\n Tenés hasta 10 DÍAS PARA SEÑAR y congelar este presupuesto, pero no te demores porque puede haber cambios de precios.`;
+  if(k === "D") return `📋Este es el presupuesto de tu lista${waEsc(x) ? " (" + waEsc(x) + ")" : ""}. \nEl precio que figura es el de LISTA y podes abonarlo con T de Credito.${t ? `\n- Si abonas por 💱 transferencia  tenes un ${t}% DE DESCUENTO` : ""}${e ? `\n- Si abonas en 💵 EFECTIVO (billete) tenes un ${e}% DE DESCUENTO.` : ""}\nAsi que te quedaria en:\n💳 Lista: ${money(tot("lista"))}${t ? `\n💱 Transferencia: ${money(tot("tra"))}` : ""}${e ? `\n💵 Efectivo: ${money(tot("efe"))}` : ""}`;
+  if(k === "E") return `Para congelarte el precio y comenzar a armar tu lista precisamos una seña de ${money(senaDef())} que podés transferir (Alias: LIBRE.LITA) o abonar en cualquiera de nuestros locales.\nPreparamos todo y te avisamos cuando esta lista para ${envio ? "enviártela" : "enviar o retirar"}.`;
+  if(k === "F") return `Muchas gracias por confiar en nosotros! 😁\nLas listas se arman en orden de recepción así que ni bien tengamos la tuya para ${envio ? "enviarla" : "retirar o enviarla"} te escribimos por acá`;
+  if(k === "G") return `Tu lista esta en proceso de armado, ni bien la tengamos preparada te avisamos por aca😀`;
+  if(k === "H") return (envio ? `Hola${n ? " " + n : ""}! Tu lista ya esta armada 🙌 ¿Qué día te queda bien que te la llevemos${x.dir ? " a " + x.dir : ""}?` : `Hola! Tu lista ya esta armada para que la retires cuando quieras`)
+    + (falt.length ? `\nTe contamos que nos faltó: ${falt.join(", ")}. ${x.items.some(l => l.fa && l.fa.e === "despues") ? "Te lo damos ni bien llegue." : ""}` : "")
+    + (e ? `${envio || falt.length ? "\nT" : ", t"}e recordamos que el descuento del ${e}% es solo en billete.` : falt.length ? "" : ".") + (envio ? "" : `\nTe esperamos ${lugar}😀`);
+  if(k === "L") return `Hola${n ? " " + n : ""}! Ya llegó lo que faltaba de tu lista 🙌 ${envio ? "Coordinamos el envío: ¿qué día te queda bien?" : `Podés pasar a retirarlo ${lugar}😀`}`;
+  if(k === "R") return `Hola${n ? " " + n : ""}! ¿Pudiste ver el presupuesto de la lista${waEsc(x) ? " de " + waEsc(x) : ""}? Te recordamos que tenés hasta el ${waVence(x)} para señar y congelar el precio ❄️. Cualquier duda nos escribís por acá 😊`;
+  if(k === "X") return `Hola${n ? " " + n : ""}! ¿Cómo estás? Si todavía no resolviste la lista${waEsc(x) ? " de " + waEsc(x) : ""}, podemos armártela con lo que necesites o ajustar el presupuesto. Avisanos y lo vemos 😊`;
+  if(k === "P") return `Hola${n ? " " + n : ""}! Te recordamos que tu lista${waEsc(x) ? " de " + waEsc(x) : ""} ya está lista para retirar. Te esperamos ${lugar}😀`;
+  return "";
+}
+function waSugerido(x){
+  if(/^⏳ Pendiente/.test(x.nota || "")) return "L";
+  if(x.armado) return waLast(x, "H") < x.armado.ts ? "H" : x.retira === "ENVIO" ? "H" : "P";
+  if(x.sena) return waLast(x, "F") ? "G" : "F";
+  if(x.estado === "No aceptó") return "X";
+  if(!waLast(x, "C")) return "C";
+  if(!waLast(x, "D")) return "D";
+  return waLast(x, "E") ? "R" : "E";
+}
+let waK = "D";
+function waNum(t){
+  let d = String(t || "").replace(/\D/g, "").replace(/^0+/, "");
+  if(d.startsWith("549")) return d.length >= 12 ? d : "";
+  if(d.startsWith("54")) d = d.slice(2);
+  return d.length === 10 ? "549" + d : "";
+}
+function waAbrir(k){
+  if(!pr || !pr.items.length){ toast("El presupuesto está vacío"); return; }
+  waK = k || waSugerido(pr);
+  $("#waTit").textContent = `📲 WhatsApp · ${pr.cliente || "Sin nombre"}${waEsc(pr) ? " · " + waEsc(pr) : ""}`;
+  $("#waOverlay").hidden = false; waElegir(waK); $("#waOpen").disabled ? $("#waCopy").focus() : $("#waOpen").focus();
+}
+function waElegir(k){
+  waK = k; const sug = waSugerido(pr);
+  $("#waL").innerHTML = Object.keys(WA_K).map(c => { const u = waLast(pr, c);
+    return `<li data-k="${c}" role="option" aria-selected="${c === k}"><span>${c} · ${WA_K[c]}</span><small class="${u ? "ok" : ""}">${u ? "✓ " + new Date(u).toLocaleDateString("es-AR", {day:"2-digit", month:"2-digit"}) + " " + hm(new Date(u)) : c === sug ? "sugerido" : ""}</small></li>`; }).join("");
+  $("#waTxt").value = waTexto(k, pr);
+  const num = waNum(pr.tel);
+  $("#waEst").textContent = !num ? "⚠️ El teléfono está incompleto: usá 📋 Copiar texto" : k === "D" ? "Armando la imagen…" : "";
+  $("#waOpen").disabled = !num;
+  if(k === "D") prImagen(false).then(im => navigator.clipboard.write([new ClipboardItem({"image/png": im.blob})]))     // la imagen queda copiada: Ctrl+V en el chat
+    .then(() => { if(waK === "D") $("#waEst").innerHTML = "🖼️ Imagen copiada: en el chat, <kbd>Ctrl</kbd>+<kbd>V</kbd>"; }, () => { if(waK === "D") $("#waEst").textContent = "No se copió la imagen: usá 🖼️ Imagen"; });
+}
+function waAnotar(){
+  pr.avisos = (pr.avisos || []).concat({t:waK, ts:Date.now(), por:cfg.turno ? cfg.turno.cajero : "", suc:cfg.suc || ""}).slice(-40);
+  prGuardar(); renderPresu(); avContar();
+}
+$("#prWA").onclick = () => waAbrir();
+$("#waX").onclick = () => { $("#waOverlay").hidden = true; };
+$("#waL").addEventListener("click", e => { const li = e.target.closest("[data-k]"); if(li) waElegir(li.dataset.k); });
+$("#waOpen").onclick = () => {
+  const num = waNum(pr.tel); if(!num) return;
+  window.open(`https://web.whatsapp.com/send?phone=${num}&text=${encodeURIComponent($("#waTxt").value)}`, "whatsapp");   // misma pestaña siempre
+  waAnotar(); $("#waOverlay").hidden = true; toast(`📲 Anotado: ${WA_K[waK]}`);
+};
+$("#waCopy").onclick = async () => {
+  try{ await navigator.clipboard.writeText($("#waTxt").value); waAnotar(); toast(`📋 Texto copiado y anotado: ${WA_K[waK]}`); waElegir(waK); }
+  catch(e){ toast("No se pudo copiar: seleccioná el texto y Ctrl+C"); }
+};
+$("#waOverlay").addEventListener("keydown", e => { e.stopPropagation(); if(e.key === "Escape"){ e.preventDefault(); $("#waOverlay").hidden = true; } });
+
+/* ---------- v3.80 · 📋 PARA AVISAR HOY: lo que pide un WhatsApp (todas las sucursales con script v3.62; si no, esta PC) ---------- */
+const AV_DIAS = {R:3, P:7, X:5};
+function avPend(x){
+  if(!x || x.vendido || !(x.items || []).length) return null;
+  const ahora = Date.now(), dd = ts => Math.floor((ahora - ts) / 864e5), dtxt = n => n <= 0 ? "hoy" : n === 1 ? "ayer" : `hace ${n} días`;
+  if(x.armado){ const h = waLast(x, "H");
+    if(h < x.armado.ts) return {k:"H", t:`${x.armado.ok ? "Armada" : "Armada con faltantes"} ${dtxt(dd(x.armado.ts))} · sin avisar`, ts:x.armado.ts};
+    if(x.retira !== "ENVIO" && ahora - h > AV_DIAS.P * 864e5 && ahora - waLast(x, "P") > AV_DIAS.P * 864e5) return {k:"P", t:`Avisada ${dtxt(dd(h))} · no retiró`, ts:h};
+    return null; }
+  if(x.sena) return null;
+  if(x.estado === "No aceptó") return !waLast(x, "X") && ahora - (+x.mod || 0) > AV_DIAS.X * 864e5 ? {k:"X", t:`No aceptó ${dtxt(dd(+x.mod))}`, ts:+x.mod} : null;
+  const d = waLast(x, "D");
+  if(!d) return ahora - (+x.creado || ahora) < 15 * 864e5 ? {k:waLast(x, "C") ? "D" : "C", t:`Presupuesto sin enviar (o no anotado) · ${dtxt(dd(+x.creado || ahora))}`, ts:+x.creado || ahora} : null;
+  if(ahora - d > AV_DIAS.R * 864e5 && ahora - waLast(x, "R") > AV_DIAS.R * 864e5) return {k:"R", t:`Enviado ${dtxt(dd(d))} · sin seña · vence ${waVence(x)}`, ts:d};
+  return null;
+}
+let avL = [];
+function avContar(){ const n = presus.filter(avPend).length; $("#prAVN").hidden = !n; $("#prAVN").textContent = n; }
+async function avAbrir(){
+  $("#avOverlay").hidden = false; $("#avL").innerHTML = ""; $("#avInfo").textContent = "🔎 Buscando…";
+  let ps = null, nota = "";
+  if(!DEMO && cfg.url){ try{ const r = await api("seguimiento", {_vis:1}); if(r && Array.isArray(r.presupuestos)) ps = r.presupuestos; else nota = "Falta publicar el script v3.62: se ven solo los de esta PC. "; }catch(e){ nota = "Sin conexión: se ven solo los de esta PC. "; } }
+  else if(DEMO) nota = "Demo: solo los de esta PC. ";
+  const m = new Map(); presus.forEach(x => m.set(x.id, x));
+  (ps || []).forEach(y => { const x = {...prNuevo(), ...y, suc:y.sucursal || y.suc || "", vendido: y.vendido ? Date.now() : 0}; const l = m.get(x.id); if(!l || (+l.mod || 0) < (+x.mod || 0)) m.set(x.id, x); });
+  avL = [...m.values()].map(x => ({x, p:avPend(x)})).filter(o => o.p).sort((a,b) => "HPLRDCX".indexOf(a.p.k) - "HPLRDCX".indexOf(b.p.k) || a.p.ts - b.p.ts);
+  $("#avInfo").textContent = nota + (avL.length ? `${avL.length} para avisar. Tocá el botón: se abre el presupuesto con el mensaje listo.` : "Nada pendiente 🎉");
+  $("#avL").innerHTML = avL.map((o,i) => `<li><span>${esc(o.x.cliente || "Sin nombre")}${waEsc(o.x) ? " · " + esc(waEsc(o.x)) : ""}</span><button class="btn sm" data-i="${i}" type="button">${o.p.k} · ${WA_K[o.p.k]}</button>
+    <small>${esc(o.p.t)}${o.x.suc ? " · 🏪 " + esc(SUC_LBL(o.x.suc)) : ""}</small></li>`).join("");
+}
+$("#prAV").onclick = avAbrir;
+$("#avX").onclick = () => { $("#avOverlay").hidden = true; };
+$("#avL").addEventListener("click", e => { const b = e.target.closest("[data-i]"); if(!b) return; const o = avL[+b.dataset.i]; if(!o) return;
+  const i = presus.findIndex(z => z.id === o.x.id); if(i < 0) presus.unshift(o.x); else if((+presus[i].mod || 0) < (+o.x.mod || 0)) presus[i] = o.x;
+  guardar("presus", presus); $("#avOverlay").hidden = true; prSeg = ""; prAbrir(presus.find(z => z.id === o.x.id)); waAbrir(o.p.k); });
+$("#avOverlay").addEventListener("keydown", e => { e.stopPropagation(); if(e.key === "Escape"){ e.preventDefault(); $("#avOverlay").hidden = true; } });
+avContar();
+
 /* ---------- v3.78 · 📦 ARMADO: se marca solo lo que falta. Lo que falta va a 📝 Faltantes (con el N° de presupuesto). Sin el paso, todo sigue como antes ---------- */
 let arIt = [];
 function arAbrir(){
@@ -3742,6 +3909,7 @@ $("#arOk").onclick = () => {
     obs:`📚 Lista ${pr.id} · ${pr.cliente || ""} · faltan ${l.fa.q} · ${l.fa.e === "despues" ? "se entrega después" : "se reemplazó"}`};
     faltantes.push(f); encolar("faltante", f.id); });
   if(nuevos.length) guardar("faltantes", faltantes);
+  setTimeout(() => waAbrir("H"), 400);                                                      // v3.80: listo para avisar
   toast(pr.armado.ok ? "✅ Armado completo" : `⚠️ Armado con faltantes${nuevos.length ? ` · ${nuevos.length} anotado${nuevos.length > 1 ? "s" : ""} en 📝 Faltantes` : ""}. Al retirar se cobra lo entregado`, 6000);
 };
 $("#arOverlay").addEventListener("keydown", e => { e.stopPropagation(); if(e.key === "Escape"){ e.preventDefault(); $("#arOverlay").hidden = true; } });
@@ -3807,7 +3975,7 @@ $("#prNotaP").onclick = () => {
     .np .q small{display:block;font-size:10px;font-weight:400;color:#555}.np .co{width:110px;font-weight:700;white-space:nowrap}
     .np-f{display:flex;gap:28px;margin-top:26px;font-size:15px}.np-f span{flex:1;border-bottom:1px solid #111;padding-bottom:4px}</style>
     <div class="np"><div class="np-h"><div><div class="np-id">${esc(pr.id)}</div><small>NOTA DE PEDIDO · ${esc(NEGOCIO)} · impresa el ${fh}${reimp ? `<span class="np-re">REIMPRESIÓN</span>` : ""}</small></div>
-      <div style="text-align:right;font-size:18px"><b>RETIRA EN ${esc(SUC_LBL(pr.retira || "FALCON").toUpperCase())}</b><small>${pr.sena ? `Seña ${money(pr.sena.monto)} · ${esc(MEDIO_TXT[pr.sena.medio] || pr.sena.medio)}` : "SIN SEÑA"}</small></div></div>
+      <div style="text-align:right;font-size:18px"><b>${pr.retira === "ENVIO" ? "🚚 ENVÍO" + (pr.dir ? " · " + esc(pr.dir.toUpperCase()) : "") : "RETIRA EN " + esc(SUC_LBL(pr.retira || "FALCON").toUpperCase())}</b><small>${pr.sena ? `Seña ${money(pr.sena.monto)} · ${esc(MEDIO_TXT[pr.sena.medio] || pr.sena.medio)}` : "SIN SEÑA"}</small></div></div>
     <div class="np-dat"><span>Cliente: <b>${esc(pr.cliente)}</b></span><span>Tel: <b>${esc(pr.tel || "")}</b></span>
       <span>Escuela: <b>${esc(pr.escuela || "")}</b></span><span>Sala/grado: <b>${esc(pr.sala || "")}</b></span>
       ${N > 1 ? `<span style="grid-column:1/-1">Listas iguales: <b>${N}</b> (las cantidades ya están multiplicadas)</span>` : ""}
@@ -4456,7 +4624,7 @@ function payload(op){
             escuela:x.escuela || "", sala:x.sala || "", n:+x.n || 1, nota:x.nota, plant:x.plant || "", grupo:x.grupo || "", lista:o[0].total, efe:t("efe"), tra:t("tra"),
             descEfe:x.descEfe, descTra:x.descTra, vence:x.vence || "", vendido:x.vendido || 0, items:x.items,
             estado:x.estado || "", retira:x.retira || "", sena:x.sena ? x.sena.monto : "", senaMedio:x.sena ? MEDIO_TXT[x.sena.medio] || x.sena.medio : "",
-            senaTs:x.sena ? x.sena.ts : "", senaVenta:x.sena ? x.sena.venta : "", armado:x.armado || null}; }   // v3.66 · v3.78
+            senaTs:x.sena ? x.sena.ts : "", senaVenta:x.sena ? x.sena.venta : "", armado:x.armado || null, avisos:x.avisos || [], dir:x.dir || ""}; }   // v3.66 · v3.78 · v3.80
   if(op.tipo==="plantilla"){ const p = plants.items.find(y => y.id === op.id); return p && {...p, tipo:"plantilla"}; }
   if(op.tipo==="faltanteEstado"){ const x=flEst[op.id]; return x && {tipo:"faltanteEstado", ids:op.id, estado:x.estado, sucursal:cfg.suc, quien:cfg.turno ? cfg.turno.cajero : ""}; }
   if(op.tipo==="ccModificar"){ const m=ccMods.find(x=>x.modId===op.id); return m && {...m, tipo:"ccModificar"}; }
