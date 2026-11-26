@@ -288,6 +288,9 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .lines .mn{flex:none;width:26px;height:30px;border:0;border-radius:6px;background:var(--surface-2);color:var(--ink);cursor:pointer;font-size:16px;font-weight:700;line-height:1}
 .lines .mn:hover{background:var(--accent-soft)}
 #prLines .qty{width:58px;justify-self:end}
+#prLines .hd,#prLines li{grid-template-columns:minmax(0,1fr) 96px 72px 84px 22px;gap:6px}   /* v3.77: 5 columnas (antes 4: el subtotal se cortaba y la ✕ bajaba) */
+#prLines .p,#prLines .s{text-align:right;white-space:nowrap}
+#prLines .s{font-weight:600}
 .lines .hd{font-size:12px;color:var(--muted);padding:12px 0 6px}
 .lines li{padding:7px 0}
 .lines .n{line-height:1.3;overflow-wrap:anywhere;font-size:14px}
@@ -455,6 +458,28 @@ main{padding:28px 40px 48px;min-width:0;max-width:1400px}
 .pr-bus{display:flex;gap:8px;padding:0 10px 10px}   /* v3.60 */
 .pr-bus input{flex:1;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface-2);color:var(--ink);font:inherit}
 .pr-plant{background:var(--accent-soft);color:var(--ink)}
+.ar-list{list-style:none;margin:10px 0;padding:0;max-height:52vh;overflow:auto}   /* v3.78 */
+.ar-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.ar-list li.falta{background:var(--warn-soft);padding:8px;border-radius:var(--r-sm)}
+.ar-list .n b{display:block;font-weight:600}.ar-list .n small{color:var(--muted)}
+.ar-list .seg button{padding:7px 10px;white-space:nowrap}
+.ar-list .q{grid-column:1 / -1;display:flex;align-items:center;gap:8px;font-size:14px}.ar-list .q input{width:64px;text-align:center}
+.ar-pie{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:6px}.ar-pie input{width:180px;margin-left:6px}
+#prLines .fa{display:block;font-size:12px;font-weight:600;color:var(--warn)}#prLines .fa.saca{color:var(--muted)}#prLines .fa.ree{color:var(--accent-ink)}
+.tp-tabla{max-height:56vh;overflow:auto;margin:8px 0}.tp-tabla table{width:100%;border-collapse:collapse}
+.tp-tabla th{text-align:left;font-size:12px;color:var(--muted);padding:6px 4px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface)}
+.tp-tabla td{padding:7px 4px;border-bottom:1px solid var(--line)}.tp-tabla .r{text-align:right;white-space:nowrap}.tp-tabla .u{font-weight:700;font-size:16px}
+.pr-acc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}   /* v3.77 */
+.pr-acc .btn{padding:12px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pr-acc .btn.pr-no{background:none;color:var(--muted);box-shadow:inset 0 0 0 1px var(--line);font-weight:500}
+.pr-acc .btn.pr-no:hover{color:var(--bad);box-shadow:inset 0 0 0 1px var(--bad)}
+.img-modo{display:flex;width:100%;box-sizing:border-box;margin:4px 0 12px}.img-modo button{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2}.img-modo small{font-weight:400;font-size:12px;color:var(--muted)}
+#imgModo button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--accent);color:var(--ink)}
+.img-modal{padding:14px 16px}                                                            /* v3.78: más simple */
+.img-top{display:flex;align-items:center;gap:10px}.img-top .img-modo{flex:1;margin:0}.img-modo button{flex-direction:row;padding:7px 10px}
+.img-x{border:0;background:none;color:var(--muted);font-size:18px;line-height:1;width:32px;height:32px;border-radius:50%;cursor:pointer}.img-x:hover{background:var(--surface-2);color:var(--ink)}
+.img-pie{display:flex;align-items:center;justify-content:space-between;gap:12px}.img-pie .note{margin:0}.img-pie .btn{white-space:nowrap;padding:10px 16px}
+.img-modal .pr-img{margin:10px 0;max-height:64vh}
 .pr-seg{background:var(--accent-soft);color:var(--ink);margin-top:0;margin-bottom:10px}   /* v3.74 */
 #bTraer{margin-left:auto} #bTraer kbd{font-size:11px}
 .tr-q{width:100%;margin-top:10px;padding:10px 12px;border:2px solid var(--ink);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);font:inherit;font-size:16px}
@@ -728,6 +753,9 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
         <span>Si no está: <b>ítem libre</b> con precio</span>
       </div>
     </div>
+    <div class="card calc">                                                               <!-- v3.78 -->
+      <button class="calc-h" id="prTP" type="button"><span>📦 Total a preparar <small class="note">· todas las listas señadas sin armar</small></span><span class="fl">›</span></button>
+    </div>
     <div class="card calc">
       <button class="calc-h" id="prGToggle" aria-expanded="false"><span>📂 Guardados en esta PC</span><span class="pill" id="prGN">0</span><span class="fl" id="prGFl">▸</span></button>
       <ul class="pr-guard" id="prGuard" hidden></ul>
@@ -748,17 +776,17 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
         <label>💵 Efectivo <span>−<input id="prDE" inputmode="decimal" autocomplete="off" placeholder="0">%</span></label><b id="prEfe">—</b>
         <label>🏦 Transferencia <span>−<input id="prDT" inputmode="decimal" autocomplete="off" placeholder="0">%</span></label><b id="prTra">—</b>
       </div>
-      <div class="bar2">
-        <button class="btn" id="prImg">🖼️ Imagen</button>
-        <button class="btn" id="prWa">💬 WhatsApp</button>
-        <button class="btn" id="prPrint">🖨️ Imprimir</button>
-        <button class="btn" id="prComp" title="Sin nombre ni teléfono, con el precio de una lista: para que la familia lo reenvíe">👪 Para compartir</button>
-        <button class="btn" id="prPlantG">📚 Guardar plantilla</button>
+      <div class="pr-acc">                                                                <!-- v3.77: 2 filas de 3 -->
+        <button class="btn" id="prImg" type="button" title="Como imagen: con los datos del cliente o para compartir (sin datos)">🖼️ Imagen</button>
+        <button class="btn" id="prPrint" type="button" title="Hoja A4 con los datos del cliente">🖨️ Imprimir</button>
+        <button class="btn" id="prPlantG" type="button" title="Guardar como plantilla de esa escuela y sala">📚 Plantilla</button>
+        <button class="btn" id="prWa" type="button" hidden>💬 WhatsApp</button>
       </div>
-      <div class="bar2">
-        <button class="btn" id="prSena">💰 Señar</button>
-        <button class="btn" id="prNotaP">🧾 Nota de pedido</button>
-        <button class="btn" id="prNoAc">❌ No aceptó</button>
+      <div class="pr-acc">
+        <button class="btn" id="prArm" type="button" hidden title="Marcar lo que falta al armar la lista">📦 Armado</button>
+        <button class="btn" id="prSena" type="button">💰 Señar</button>
+        <button class="btn" id="prNotaP" type="button">🧾 Nota de pedido</button>
+        <button class="btn pr-no" id="prNoAc" type="button">❌ No aceptó</button>
       </div>
       <div class="pr-aviso" id="prGrp" hidden></div>
       <div class="bar2" id="prVentaBar"></div>
@@ -1087,6 +1115,25 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
   </div>
 </div>
 
+<!-- v3.78 · 📦 armado de una lista -->
+<div class="overlay" id="arOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="arTit" style="max-width:760px">
+    <h2 id="arTit">📦 Armado</h2>
+    <p class="note">Marcá <b>solo lo que falta</b>. Todo lo demás queda como ✔ Está.</p>
+    <ul class="ar-list" id="arList"></ul>
+    <div class="ar-pie"><label>Armó <input id="arPor" autocomplete="off" placeholder="Nombre"></label><span class="note" id="arRes"></span></div>
+    <div class="bar2"><button class="btn" id="arCancel" type="button">Cancelar <kbd>Esc</kbd></button><button class="btn primary" id="arOk" type="button">✅ Guardar armado</button></div>
+  </div>
+</div>
+<!-- v3.78 · 📦 total a preparar -->
+<div class="overlay" id="tpOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="tpTit" style="max-width:720px">
+    <h2 id="tpTit">📦 Total a preparar</h2>
+    <p class="note" id="tpInfo"></p>
+    <div class="tp-tabla" id="tpTabla"></div>
+    <div class="bar2"><button class="btn" id="tpPrint" type="button">🖨️ Imprimir</button><button class="btn" id="tpClose" type="button">Cerrar <kbd>Esc</kbd></button></div>
+  </div>
+</div>
 <!-- v3.74 · 📥 traer un presupuesto a la venta -->
 <div class="overlay" id="trOverlay" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="trTit" style="max-width:640px">
@@ -1151,17 +1198,11 @@ button.avatar{border:0;padding:0;background:none;cursor:pointer;border-radius:50
 
 <!-- Presupuesto como imagen -->
 <div class="overlay" id="imgOverlay" hidden>
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Presupuesto como imagen" style="max-width:560px">
-    <h2 id="imgTit">🖼️ Presupuesto como imagen</h2>
-    <p class="note">En WhatsApp Web: tocá <b>Copiar imagen</b> y pegala en el chat con <kbd>Ctrl</kbd>+<kbd>V</kbd>.</p>
+  <div class="modal img-modal" role="dialog" aria-modal="true" aria-label="Presupuesto como imagen" style="max-width:520px">
+    <div class="img-top"><div class="seg img-modo" id="imgModo" role="group" aria-label="Qué datos lleva"><button type="button" data-c="0" aria-pressed="true">👤 Con datos</button><button type="button" data-c="1" aria-pressed="false">👪 Sin datos</button></div>
+      <button class="img-x" id="imgClose" type="button" title="Cerrar (Esc)" aria-label="Cerrar">✕</button></div>
     <div class="pr-img"><img id="imgPrev" alt="Vista previa del presupuesto"></div>
-    <div class="bar2">
-      <button class="btn primary" id="imgCopy">📋 Copiar imagen</button>
-      <button class="btn" id="imgShare" hidden>📤 Compartir</button>
-      <button class="btn" id="imgDown">⬇️ Descargar</button>
-      <button class="btn" id="imgPdf" hidden>🖨️ PDF</button>
-      <button class="btn" id="imgClose">Cerrar <kbd>Esc</kbd></button>
-    </div>
+    <div class="img-pie"><span id="imgEst" class="note"></span><button class="btn primary" id="imgCopy" type="button">📋 Copiar</button></div>
   </div>
 </div>
 
@@ -1213,7 +1254,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 /* =====================================================================
    1. CONFIGURACIÓN — lo único que se toca seguido
    ===================================================================== */
-const VERSION = "2026-11-25 v3.76";   // v3.76: 🟠 envío confirmado: el modo "sin confirmar" ya no queda pegado (dura 15 min y vuelve a probar), no salta por un bache (3 fallas en 2+ min) y lo mandado sin confirmar se vuelve a mandar confirmado (la planilla no duplica) · v3.75: 💵 redondeo a $ 50 hacia abajo (a favor del cliente) solo en efectivo con descuento, automático, se suma al descuento · v3.74: 📚 listas H3a · 📥 Traer presupuesto desde Venta (F3: busca por nombre, teléfono o N°, trae todas las listas del cliente − seña) · 📝 Venta → presupuesto (nuevo o sumar a uno pendiente) · 👪 Para compartir (sin nombre ni teléfono, precio de una lista, "¿Querés la tuya?") · logo y contacto arriba y al pie · al volver a Presupuestos arranca uno nuevo con "↩ Seguir" · limpieza: fuera la libreta vieja de faltantes (📝 de Etiquetas vuelve a la ventanita) · v3.73: arreglo · el presupuesto queda "vendido" recién al COBRAR (antes, al pasarlo a la venta: si no se cobraba, desaparecía) · v3.72: dos medios con descuento PROPORCIONAL (cada parte con el % de su medio) · v3.71: la seña se ve aparte en ticket, comprobante A4, WhatsApp y carrito ("Seña ya pagada el … · medio", "Total a pagar hoy") · v3.70: presupuesto → un solo "Pasar a la venta"; el % de la lista se aplica según el medio que se elige al cobrar (lo agregado usa las reglas de la caja) · v3.69: dos medios más claro (botón "Dividir en dos medios", el recuadro reemplaza la grilla: Confirmar siempre a la vista, aviso del descuento menor) · v3.68: presupuestos − / + con el mouse · "No aceptó" se puede deshacer · nota de pedido con ✔ está / ✖ falta, Armó/Controló con nombre y fecha de impresión (REIMPRESIÓN) · v3.67: 💳 pago en dos medios (＋ o "Dos medios" al cobrar; descuento = el menor de los dos; sin cta. cte.) · v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
+const VERSION = "2026-11-25 v3.79";   // v3.79: 🧾 ticket, presupuesto, nota de pedido y total a preparar ya no fuerzan A4 (usan el papel de la impresora: en hoja Carta se cortaba el pie) y los renglones no se parten entre hojas · v3.78: 📚 listas H3b (con script v3.61) · 📦 Armado: marcar lo que falta (⏳ después · 🔁 reemplazo · ➖ se saca) → al retirar se cobra lo entregado, lo que falta va a 📝 Faltantes y lo "después" queda como presupuesto pendiente · 📦 Total a preparar (todas las listas señadas) · 🖼️ imagen más simple: se copia sola al abrir, ✕ chiquita, sin descargar ni compartir · v3.77: presupuestos más prolijos: botones en 2 filas de 3, ícono y texto en una línea · 🖼️ Imagen única con "👤 Con sus datos / 👪 Para compartir" adentro (sin PDF) · 💬 WhatsApp oculto · ❌ No aceptó más liviano · tabla de productos con 5 columnas (ya no se corta el subtotal) · v3.76: 🟠 envío confirmado: el modo "sin confirmar" ya no queda pegado (dura 15 min y vuelve a probar), no salta por un bache (3 fallas en 2+ min) y lo mandado sin confirmar se vuelve a mandar confirmado (la planilla no duplica) · v3.75: 💵 redondeo a $ 50 hacia abajo (a favor del cliente) solo en efectivo con descuento, automático, se suma al descuento · v3.74: 📚 listas H3a · 📥 Traer presupuesto desde Venta (F3: busca por nombre, teléfono o N°, trae todas las listas del cliente − seña) · 📝 Venta → presupuesto (nuevo o sumar a uno pendiente) · 👪 Para compartir (sin nombre ni teléfono, precio de una lista, "¿Querés la tuya?") · logo y contacto arriba y al pie · al volver a Presupuestos arranca uno nuevo con "↩ Seguir" · limpieza: fuera la libreta vieja de faltantes (📝 de Etiquetas vuelve a la ventanita) · v3.73: arreglo · el presupuesto queda "vendido" recién al COBRAR (antes, al pasarlo a la venta: si no se cobraba, desaparecía) · v3.72: dos medios con descuento PROPORCIONAL (cada parte con el % de su medio) · v3.71: la seña se ve aparte en ticket, comprobante A4, WhatsApp y carrito ("Seña ya pagada el … · medio", "Total a pagar hoy") · v3.70: presupuesto → un solo "Pasar a la venta"; el % de la lista se aplica según el medio que se elige al cobrar (lo agregado usa las reglas de la caja) · v3.69: dos medios más claro (botón "Dividir en dos medios", el recuadro reemplaza la grilla: Confirmar siempre a la vista, aviso del descuento menor) · v3.68: presupuestos − / + con el mouse · "No aceptó" se puede deshacer · nota de pedido con ✔ está / ✖ falta, Armó/Controló con nombre y fecha de impresión (REIMPRESIÓN) · v3.67: 💳 pago en dos medios (＋ o "Dos medios" al cobrar; descuento = el menor de los dos; sin cta. cte.) · v3.66: 💰 seña (se cobra como venta, congela precios) · retira en · estados (Señado, Entregado, No aceptó) · 🧾 nota de pedido con 🎨 · 🔗 pasar todas las listas del cliente con − seña · v3.65: 🏫 escuelas oficiales (hoja Escuelas: se elige por número o nombre y queda escrita igual siempre) · 👤 clientes de listas (por teléfono o nombre completa los datos) · v3.64: botón 💾 Guardar al lado de ＋ Nuevo (manda ya a la planilla) · v3.63: también pide teléfono (7+ números) · v3.62: no se puede pasar a otro presupuesto (＋ Nuevo, ＋ Otra lista, abrir otro) si el actual tiene productos y le falta el nombre · v3.61: sala ↔ sección (Sala de 3 = 1ª, 4 = 2ª, 5 = 3ª): ayuda bajo el campo y la plantilla se encuentra escribiendo cualquiera de las dos · v3.60: 📝 presupuestos en la planilla (se buscan desde cualquier sucursal) · teléfono, escuela, sala, ×listas iguales, ＋ otra lista · 📚 plantillas por escuela + sala · v3.59: 🔫 el lector se reconoce aunque no mande Enter o sea más lento · 8 a 14 números en la búsqueda + Enter = código (solo exacto) · v3.58: 🔫 lector de códigos: un escaneo en un campo de números (precio, cantidad, paga con, montos) no se toma y el código va a la búsqueda · un código escaneado agrega solo el producto EXACTO; si no está cargado se avisa SOLO a Roman (sin que el cajero escriba nada) · números de 10+ cifras se rechazan · v3.57: Falcon: 🖨 Ticket también de las ventas de la otra PC (con descuento y combos si el script es v3.54) · v3.56: la anulación manda quién y cuándo anuló (control del panel, necesita script con S2; sin cambios en pantalla) · v3.55: 🔒 consultas a la planilla por POST: la clave y el PIN ya no van en la dirección (necesita script v3.51) · v3.54: 📝 Faltantes abre la libreta de la sucursal en otra pestaña (faltantes.html?suc=, necesita script v3.49) · v3.53: QR de reseñas de Google en el ticket de las 4 sucursales · v3.52: 💳 cobrando más claro (velo sobre la búsqueda, color del medio, aviso si escribe o escanea) · ticket A4 con "Ahorraste" y datos de sucursales · cierre anterior: primero se ve, después se imprime · billetes: solo cantidades enteras · v3.51: 📝 faltantes como hoja de libreta + remito "En camino" al costado · v3.50: 📝 faltantes sin cantidad obligatoria, buscador del catálogo, "🚚 En camino" aparte · Catálogo → 🏷️ Etiquetas ·   // v3.49: 📋 de lista: los que vienen en pack muestran ENTERO y SUELTO (el cajero elige) · v3.48: 📋 productos que no están en el catálogo, con precio de las listas de proveedores
 const NEGOCIO = "Lita & Añaños";
 /* PRUEBA: caja-rapida.html?prueba → sucursal PRUEBA para que el encargado pruebe versiones nuevas sin pisar a nadie.
    Usa el catálogo y la conexión reales, guarda aparte en esta PC y lo que manda a la planilla queda marcado PRUEBA
@@ -2696,7 +2737,8 @@ const TK_INFO = {
   },
   encuesta: ""              // link general (encuesta). Si la sucursal tiene "resena" (link de reseña de Google), se usa ese → QR en el ticket
 };
-const TK_A4_CSS = `.a4 .sena{border:2px dashed #111;border-radius:6px;padding:6px 8px!important;margin:6px 0;font-weight:800;font-size:14px;gap:10px}.a4 .sena span:last-child,.a4 .tot .t span:last-child{white-space:nowrap}.a4 .tot.con-sena{width:92mm}.a4{font-family:ui-sans-serif,"Segoe UI",Helvetica,Arial,sans-serif;color:#111;background:#fff;box-sizing:border-box;min-height:270mm;display:flex;flex-direction:column;font-size:12.5px}
+const TK_A4_CSS = `.a4 .sena{border:2px dashed #111;border-radius:6px;padding:6px 8px!important;margin:6px 0;font-weight:800;font-size:14px;gap:10px}.a4 .sena span:last-child,.a4 .tot .t span:last-child{white-space:nowrap}.a4 .tot.con-sena{width:92mm}.a4{font-family:ui-sans-serif,"Segoe UI",Helvetica,Arial,sans-serif;color:#111;background:#fff;box-sizing:border-box;min-height:240mm;display:flex;flex-direction:column;font-size:12.5px}   /* v3.79: era 270 mm (A4 justo): en hoja Carta o con margen de impresora se cortaba el pie */
+.a4 tr,.a4 .tot,.a4 .sena,.a4 .ahorro{break-inside:avoid}.a4 thead{display:table-header-group}
 .a4 *{box-sizing:border-box}
 .a4-h{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #111;padding-bottom:10px}
 .a4-h b{font-size:30px;letter-spacing:.02em;text-transform:uppercase;line-height:1}
@@ -2766,7 +2808,7 @@ function ticketTexto(s){
   return L.join("\n");
 }
 $("#tkClose").onclick = cerrarTicket;
-function imprimirTicket(){ const s=ventaDe(tkId); if(s) imprimir(ticketA4HTML(s), "Ticket "+nro(s), TK_A4_CSS + "@page{size:A4;margin:13mm}"); }   // v3.52: hoja A4
+function imprimirTicket(){ const s=ventaDe(tkId); if(s) imprimir(ticketA4HTML(s), "Ticket "+nro(s), TK_A4_CSS + "@page{margin:12mm}"); }   // v3.79: sin forzar A4 (usa el papel de la impresora)   // v3.52: hoja A4
 $("#tkPrint").onclick = imprimirTicket;
 $("#tkWa").onclick = () => { const s=ventaDe(tkId); if(s) copiar(ticketTexto(s), "Ticket copiado"); };
 $("#tkOverlay").addEventListener("click", e => { if(e.target.id==="tkOverlay") cerrarTicket(); });
@@ -2777,7 +2819,7 @@ $("#tkOverlay").addEventListener("click", e => { if(e.target.id==="tkOverlay") c
 document.addEventListener("keydown", e => {
   if(e.target && e.target.id === "notaTxt") return;
   if(!$("#faOverlay").hidden){ if(e.key==="Escape"){ e.preventDefault(); cerrarFaltante(); } return; }
-  if(!$("#trOverlay").hidden || !$("#vpOverlay").hidden) return;                          // v3.74: manejan sus teclas
+  if(!$("#trOverlay").hidden || !$("#vpOverlay").hidden || !$("#arOverlay").hidden || !$("#tpOverlay").hidden) return;   // v3.74 · v3.78: manejan sus teclas
   if(!$("#ccOverlay").hidden || !$("#ncOverlay").hidden || !$("#pgOverlay").hidden) return;
   if(!$("#erOverlay").hidden){ if(e.key==="Escape"){ e.preventDefault(); cerrarError(); } return; }
   if(!$("#gaOverlay").hidden){ if(e.key==="Escape"){ e.preventDefault(); cerrarGasto(); } return; }
@@ -3133,6 +3175,7 @@ const cfgDesc = () => (cat && cat.config) || {};      // descuentos por defecto:
 let plants = leer("plantillas", {t:0, items:[]}), prRem = [], prSyncT = null, cliSug = null;
 const RETIRA = ["FALCON","NACION","MORENO","SOMISA"];                                      // v3.66: dónde retira el cliente
 const MEDIO_TXT = {efectivo:"Efectivo", postnet:"Postnet / QR", transf:"Transferencia", ctacte:"Cta. cte.", mixto:"Dos medios"};
+const armTxt = x => x.armado ? (x.armado.ok ? "✅ armado" : `⚠️ armado con ${prFaltan(x).length} faltante${prFaltan(x).length === 1 ? "" : "s"}`) : "";   // v3.78
 const EST = {"":"📝 Presupuestado", "Señado":"💰 Señado", "Entregado":"✅ Entregado", "No aceptó":"❌ No aceptó"};   // v3.60 · v3.65: cliSug
 const prNuevo = () => ({id:"P-"+Date.now().toString(36), creado:Date.now(), mod:Date.now(), cliente:"", nota:"", vence:"", items:[], vendido:0,
   tel:"", escuela:"", sala:"", n:1, plant:"", grupo:"", suc:cfg.suc || "", cajero:cfg.turno ? cfg.turno.cajero : "",
@@ -3151,10 +3194,15 @@ function renderPrecios(){
   $("#prTot").textContent = money(op[0].total); $("#prTotL").textContent = op[0].l + (op[0].det ? " · " + op[0].det.toLowerCase() : "");
   $("#prEfe").textContent = por("efe") ? money(por("efe").total) : "—";
   $("#prTra").textContent = por("tra") ? money(por("tra").total) : "—";
-  $("#prVentaBar").innerHTML = `<button class="btn primary" data-pv="lista">🛒 Pasar a la venta<small>el medio de pago se elige al cobrar${op.length > 1 ? " (con su descuento)" : ""}</small></button>`;   // v3.70
+  $("#prVentaBar").innerHTML = `<button class="btn primary" data-pv="lista">🛒 Pasar a la venta<small>el medio de pago se elige al cobrar${op.length > 1 ? ", con su descuento" : ""}</small></button>`;   // v3.70
 }
 const prTotal = x => Math.round(x.items.reduce((a,l) => a + subt(l), 0) * (+x.n || 1));
-const prUna = x => Math.round(x.items.reduce((a,l) => a + subt(l), 0));               // v3.60: total de UNA lista
+const prUna = x => Math.round(x.items.reduce((a,l) => a + subt(l), 0));
+/* v3.78 · 📦 armado: l.fa = {e:"despues"|"reemp"|"saca", q: unidades que faltan (del total, con las ×N listas)} · l.reemp = agregado como reemplazo */
+const FA_TXT = {despues:"⏳ se entrega después", reemp:"🔁 se reemplaza", saca:"➖ se saca"};
+const prUds = (x, l) => (+l.cant || 0) * (+x.n || 1);                                      // unidades de la línea en todo el presupuesto
+const prEntrega = (x, l) => Math.max(0, prUds(x, l) - (l.fa ? +l.fa.q || 0 : 0));          // lo que se lleva al retirar
+const prFaltan = x => x.items.filter(l => l.fa && +l.fa.q > 0);               // v3.60: total de UNA lista
 const prVacio = x => !x.items.length && !x.cliente.trim() && !x.nota.trim() && !String(x.tel || "").trim();
 /* v3.60: escuela · sala · N listas · nota (para WhatsApp, imagen e impresión) */
 const prDet = x => [[x.escuela, x.sala].map(s => String(s || "").trim()).filter(Boolean).join(" · "), (+x.n || 1) > 1 ? `${x.n} listas iguales` : "", String(x.nota || "").trim()].filter(Boolean).join(" · ");
@@ -3198,7 +3246,7 @@ function renderPresu(){
   if(document.activeElement !== $("#prDE")) $("#prDE").value = pr.descEfe || "";
   if(document.activeElement !== $("#prDT")) $("#prDT").value = pr.descTra || "";
   $("#prLines").innerHTML = (pr.items.length ? `<div class="hd"><span>Producto</span><span style="text-align:right">Cant.</span><span style="text-align:right">Precio</span><span style="text-align:right">Subtotal</span><span></span></div>` : "") +
-    pr.items.map((l,i) => `<li><span class="n" title="${esc(l.nombre)}">${l.libre ? "✏️ " : ""}${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span></span>
+    pr.items.map((l,i) => `<li><span class="n" title="${esc(l.nombre)}">${l.libre ? "✏️ " : ""}${l.reemp ? "🔁 " : ""}${esc(l.nombre)}<span class="cb">${conCombo(l) ? " 🏷️ combo" : ""}</span>${l.fa && +l.fa.q > 0 ? `<span class="fa${l.fa.e === "saca" ? " saca" : l.fa.e === "reemp" ? " ree" : ""}">${FA_TXT[l.fa.e]} · faltan ${l.fa.q}</span>` : ""}</span>
     <span class="step"><button class="mn" data-dec="${i}" type="button" tabindex="-1" aria-label="Uno menos">−</button><input class="qty" data-i="${i}" value="${l.cant}" inputmode="decimal" aria-label="Cantidad"><button class="mn" data-inc="${i}" type="button" tabindex="-1" aria-label="Uno más">+</button></span>
     ${l.libre || l.abierto ? `<input class="price${l.precio>0?"":" need"}" data-i="${i}" value="${l.precio||""}" placeholder="precio" inputmode="decimal" aria-label="Precio">` : `<span class="p">${money(l.precio)}</span>`}
     <span class="s">${money(subt(l))}</span><button class="x" data-i="${i}" aria-label="Quitar">✕</button></li>`).join("");
@@ -3219,7 +3267,7 @@ function renderPresu(){
 function renderGuardados(){
   $("#prGN").textContent = presus.length;
   $("#prGuard").innerHTML = presus.map((x,i) => `<li data-i="${i}" class="${pr && x.id===pr.id ? "act" : ""}"><span class="n">${esc(x.cliente || "Sin nombre")}${x.estado && EST[x.estado] ? " " + EST[x.estado].split(" ")[0] : x.vendido ? " ✓" : ""}</span><span class="t">${money(prTotal(x))}</span><button class="x" data-del="${i}" aria-label="Borrar">✕</button>
-    <span class="sub">${new Date(x.mod).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})} ${hm(new Date(x.mod))} · ${x.items.length} ítem${x.items.length===1?"":"s"}${x.tel ? " · 📞 "+esc(x.tel) : ""}${x.escuela ? " · "+esc(x.escuela) : ""}${x.sala ? " "+esc(x.sala) : ""}${(+x.n||1)>1 ? " · ×"+x.n : ""}${x.grupo ? " · 🔗" : ""}${x.nota ? " · "+esc(x.nota) : ""}${x.vendido ? " · vendido" : ""}</span></li>`).join("")
+    <span class="sub">${x.armado ? armTxt(x) + " · " : ""}${new Date(x.mod).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})} ${hm(new Date(x.mod))} · ${x.items.length} ítem${x.items.length===1?"":"s"}${x.tel ? " · 📞 "+esc(x.tel) : ""}${x.escuela ? " · "+esc(x.escuela) : ""}${x.sala ? " "+esc(x.sala) : ""}${(+x.n||1)>1 ? " · ×"+x.n : ""}${x.grupo ? " · 🔗" : ""}${x.nota ? " · "+esc(x.nota) : ""}${x.vendido ? " · vendido" : ""}</span></li>`).join("")
     || `<li class="sub" style="cursor:default">Todavía no hay presupuestos guardados.</li>`;
 }
 function pSearch(){
@@ -3241,7 +3289,8 @@ function pAgregar(p, qty){
   const ex = !p.libre && !p._open && pr.items.find(l => l.cod === p.cod && l.nombre === p.nombre);
   if(ex) ex.cant += qty;
   else if(p.libre) pr.items.push({cod:"VAR", nombre:p.nombre, cat:"VARIOS", cant:qty, precio:0, libre:true});
-  else pr.items.push({cod:p.cod, nombre:p.nombre, cat:p.cat, cant:qty, precio:p._open ? 0 : p.precio, abierto:p._open, ...(p.combo ? {combo:p.combo} : {})});
+  else pr.items.push({cod:p.cod, nombre:p.nombre, cat:p.cat, cant:qty, precio:p._open ? 0 : p.precio, abierto:p._open, ...(p.combo ? {combo:p.combo} : {}),
+    ...(pr.armado && pr.items.some(l => l.fa && l.fa.e === "reemp") ? {reemp:1} : {})});   // v3.78
   $("#pq").value = ""; pFound = []; renderPResults(); prGuardar(); renderPresu();
   $("#prLines").scrollTop = $("#prLines").scrollHeight;
   if(!ex && (p.libre || p._open)){ const ins = document.querySelectorAll("#prLines input.price"); ins[ins.length-1].focus(); } else $("#pq").focus();
@@ -3365,7 +3414,7 @@ $("#prWa").onclick = () => {
 function prImprimir(comp){
   const x = comp ? prComp(pr) : pr, c = prContacto(x), ct = prContTxt(x);
   const filas = x.items.map(l => `<tr><td class="c">${l.cant}</td><td>${esc(l.nombre)}</td><td class="r">${money(l.precio)}</td><td class="r">${money(subt(l))}</td></tr>`).join("");
-  imprimir(`<style>@page{size:A4;margin:14mm}.pd{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#111;font-size:12px}
+  imprimir(`<style>@page{margin:14mm}.pd tr,.pd-t,.pd-q,.pd-pie{break-inside:avoid}.pd{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#111;font-size:12px}
     .pd-h{display:flex;justify-content:space-between;align-items:center;gap:14px;border-bottom:4px solid #FFB703;padding-bottom:10px;margin-bottom:12px}
     .pd-h .lg{display:flex;align-items:center;gap:12px}.pd-h img{width:74px;height:74px;object-fit:contain}
     .pd-h b{font-size:22px}.pd-h small{display:block;color:#555}.pd table{width:100%;border-collapse:collapse}
@@ -3441,21 +3490,21 @@ let prImgComp = false;                                                          
 const prArchivo = () => prImgComp ? "Lista " + ([pr.escuela, pr.sala].filter(Boolean).join(" ") || prFecha(pr).replace(/\//g,"-")) + ".png" : "Presupuesto " + (pr.cliente.trim() || prFecha(pr).replace(/\//g,"-")) + ".png";
 async function prImgVer(comp){                                                              // v3.74: también 👪 para compartir
   if(!prListo()) return;
-  prImgComp = comp; $("#imgTit").textContent = comp ? "👪 Para compartir · sin nombre ni teléfono" : "🖼️ Presupuesto como imagen"; $("#imgPdf").hidden = !comp;
-  const im = await prImagen(comp); prImgBlob = im.blob; $("#imgPrev").src = im.url;
-  const f = new File([prImgBlob], prArchivo(), {type:"image/png"});
-  $("#imgShare").hidden = !(navigator.canShare && navigator.canShare({files:[f]}));
-  $("#imgOverlay").hidden = false; $("#imgCopy").focus();
+  prImgComp = comp;                                                                         // v3.77: un solo botón, el modo se elige adentro
+  $("#imgModo").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.c === (comp ? "1" : "0"))));
+  const p = prImagen(comp);
+  $("#imgEst").textContent = "Armando la imagen…"; $("#imgOverlay").hidden = false;
+  imgCopiar(p.then(im => im.blob));                                                         // v3.78: se copia sola (mismo clic)
+  const im = await p; prImgBlob = im.blob; $("#imgPrev").src = im.url; $("#imgCopy").focus();
+}
+async function imgCopiar(blobP){
+  try{ await navigator.clipboard.write([new ClipboardItem({"image/png": blobP})]); $("#imgEst").innerHTML = "✓ <b>Copiada</b> · pegala en WhatsApp con <kbd>Ctrl</kbd>+<kbd>V</kbd>"; }
+  catch(e){ $("#imgEst").textContent = "No se copió sola: tocá 📋 Copiar (o clic derecho en la imagen → Copiar imagen)"; }
 }
 $("#prImg").onclick = () => prImgVer(false);
-$("#prComp").onclick = () => prImgVer(true);
-$("#imgPdf").onclick = () => prImprimir(true);                                               // 👪 como hoja A4 / PDF
-$("#imgCopy").onclick = async () => {
-  try{ await navigator.clipboard.write([new ClipboardItem({"image/png": prImgBlob})]); toast("🖼️ Imagen copiada: pegala en WhatsApp con Ctrl+V"); }
-  catch(e){ toast("Este navegador no deja copiar imágenes: usá Descargar", 4000); }
-};
-$("#imgDown").onclick = () => { const a = document.createElement("a"); a.href = $("#imgPrev").src; a.download = prArchivo(); a.click(); };
-$("#imgShare").onclick = async () => { try{ await navigator.share({files:[new File([prImgBlob], prArchivo(), {type:"image/png"})], title:"Presupuesto"}); }catch(e){} };
+$("#imgModo").addEventListener("click", e => { const b = e.target.closest("[data-c]"); if(b && (b.dataset.c === "1") !== prImgComp) prImgVer(b.dataset.c === "1"); });
+
+$("#imgCopy").onclick = () => { if(prImgBlob) imgCopiar(Promise.resolve(prImgBlob)); };
 $("#imgClose").onclick = () => { $("#imgOverlay").hidden = true; };
 $("#imgOverlay").addEventListener("click", e => { if(e.target.id === "imgOverlay") $("#imgOverlay").hidden = true; });
 
@@ -3630,7 +3679,17 @@ function prMarcar(id, cambios){
 }
 function prTrasVenta(s, lineas){
   lineas.forEach(l => { if(l.presuSena) prMarcar(l.presuSena, {estado:"Señado", sena:{monto:Math.round(l.precio), medio:s.medio, ts:s.ts, venta:s.id}}); });
-  [...new Set(lineas.filter(l => l.presu).map(l => l.presu))].forEach(id => prMarcar(id, {estado:"Entregado", vendido: s.ts || Date.now()}));   // v3.73: vendido recién al cobrar
+  [...new Set(lineas.filter(l => l.presu).map(l => l.presu))].forEach(id => { prMarcar(id, {estado:"Entregado", vendido: s.ts || Date.now()}); prPendiente(id); });   // v3.73 · v3.78
+}
+/* v3.78 · lo marcado "⏳ se entrega después" pasa a un presupuesto nuevo del mismo cliente, con el precio congelado: cuando llega, se trae con F3 y se cobra */
+function prPendiente(id){
+  const x = presus.find(z => z.id === id); if(!x) return;
+  const its = x.items.filter(l => l.fa && l.fa.e === "despues" && +l.fa.q > 0).map(l => { const {fa, reemp, ...o} = l; return {...o, cant:+l.fa.q}; });
+  if(!its.length || presus.some(z => z.origen === id)) return;
+  const n = {...prNuevo(), id:"P-" + Date.now().toString(36) + "p", cliente:x.cliente, tel:x.tel, escuela:x.escuela, sala:x.sala, retira:x.retira, grupo:x.grupo || x.id,
+    descEfe:x.descEfe, descTra:x.descTra, items:its, origen:id, nota:`⏳ Pendiente de ${id}: lo que faltó al retirar (precio de la lista)`};
+  presus.unshift(n); guardar("presus", presus); prEncolar(n.id);
+  toast(`⏳ Quedó pendiente lo que faltó (${its.length} producto${its.length > 1 ? "s" : ""}): presupuesto ${n.id}. Cuando llegue, F3 y se cobra`, 8000);
 }
 function renderEstado(){
   if(!pr) return;
@@ -3638,6 +3697,8 @@ function renderEstado(){
   b.hidden = !e; b.classList.toggle("no", e === "No aceptó");
   if(e) b.innerHTML = `<span><b>${EST[e] || e}</b>${pr.sena ? ` · ${money(pr.sena.monto)} ${esc(MEDIO_TXT[pr.sena.medio] || pr.sena.medio)} el ${new Date(pr.sena.ts).toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit"})} · precio congelado` : ""} · retira en ${esc(SUC_LBL(pr.retira))}</span>`;
   $("#prSena").hidden = !!(pr.sena || pr.vendido || e === "No aceptó");
+  $("#prArm").hidden = !(pr.sena && !pr.vendido);                                           // v3.78: se arma lo señado
+  $("#prArm").textContent = pr.armado ? (pr.armado.ok ? "✅ Armado" : "⚠️ Armado con faltantes") : "📦 Armado";
   $("#prNoAc").hidden = !!(pr.sena || pr.vendido);                                          // v3.68: "No aceptó" se puede deshacer
   $("#prNoAc").textContent = e === "No aceptó" ? "↩ Volver a presupuestado" : "❌ No aceptó";
   $("#prSena").textContent = `💰 Señar ${money(senaDef())}`;
@@ -3645,6 +3706,77 @@ function renderEstado(){
   g.hidden = !(otras > 0 || senaT > 0) || !!pr.vendido;
   if(!g.hidden) g.innerHTML = `<span>${otras > 0 ? `🔗 Pasa a la venta junto con ${otras} lista${otras > 1 ? "s" : ""} más de ${esc(pr.cliente || "este cliente")} (total lista ${money(grp.reduce((a,x) => a + prTotal(x), 0))})` : ""}${otras > 0 && senaT ? " · " : ""}${senaT ? `se descuenta la seña: −${money(senaT)}` : ""}</span>`;
 }
+/* ---------- v3.78 · 📦 ARMADO: se marca solo lo que falta. Lo que falta va a 📝 Faltantes (con el N° de presupuesto). Sin el paso, todo sigue como antes ---------- */
+let arIt = [];
+function arAbrir(){
+  if(!pr || !pr.sena || pr.vendido) return;
+  arIt = pr.items.map(l => ({e: l.fa ? l.fa.e : "", q: l.fa ? +l.fa.q : prUds(pr, l)}));
+  $("#arTit").textContent = `📦 Armado · ${pr.cliente || "Sin nombre"}${pr.escuela || pr.sala ? " · " + [pr.escuela, pr.sala].filter(Boolean).join(" ") : ""}${(+pr.n || 1) > 1 ? ` · ×${pr.n} listas` : ""}`;
+  $("#arPor").value = (pr.armado && pr.armado.por) || (cfg.turno ? cfg.turno.cajero : "");
+  arRender(); $("#arOverlay").hidden = false; $("#arOk").focus();
+}
+function arRender(){
+  $("#arList").innerHTML = pr.items.map((l,i) => { const a = arIt[i], u = prUds(pr, l);
+    return `<li class="${a.e ? "falta" : ""}"><span class="n"><b>${l.reemp ? "🔁 " : ""}${esc(l.nombre)}</b><small>${u} u.</small></span>
+      <span class="seg">${[["", "✔ Está"], ["despues", "⏳ Después"], ["reemp", "🔁 Reemplazo"], ["saca", "➖ Se saca"]].map(([k,t]) => `<button type="button" data-i="${i}" data-e="${k}" aria-pressed="${a.e === k}">${t}</button>`).join("")}</span>
+      ${a.e ? `<span class="q">Faltan <input data-q="${i}" inputmode="numeric" value="${a.q}"> de ${u}${a.e === "reemp" ? " · después agregá el reemplazo con el buscador (queda 🔁)" : a.e === "despues" ? " · se cobra cuando llegue" : ""}</span>` : ""}</li>`; }).join("");
+  const f = arIt.filter(a => a.e).length;
+  $("#arRes").textContent = f ? `${f} producto${f > 1 ? "s" : ""} con faltante` : "Está todo ✔";
+}
+$("#prArm").onclick = arAbrir;
+$("#arList").addEventListener("click", e => { const b = e.target.closest("[data-e]"); if(!b) return; const i = +b.dataset.i;
+  arIt[i].e = b.dataset.e; if(arIt[i].e && !(arIt[i].q > 0)) arIt[i].q = prUds(pr, pr.items[i]); arRender();
+  const q = $("#arList").querySelector(`[data-q="${i}"]`); if(q){ q.focus(); q.select(); } });
+$("#arList").addEventListener("input", e => { const i = e.target.dataset.q; if(i == null) return; const u = prUds(pr, pr.items[+i]);
+  arIt[+i].q = Math.max(0, Math.min(u, Math.round(toNum(e.target.value)) || 0)); });
+$("#arCancel").onclick = () => { $("#arOverlay").hidden = true; };
+$("#arOk").onclick = () => {
+  const por = $("#arPor").value.trim(); if(!por){ toast("Escribí quién armó"); $("#arPor").focus(); return; }
+  const t = new Date(), nuevos = [];
+  pr.items.forEach((l,i) => { const a = arIt[i], antes = l.fa ? l.fa.e + l.fa.q : "";
+    if(a.e && a.q > 0){ l.fa = {e:a.e, q:a.q}; if(antes !== a.e + a.q && a.e !== "saca") nuevos.push(l); } else delete l.fa; });
+  pr.armado = {ts:t.getTime(), por, ok: !prFaltan(pr).length};
+  prGuardar(); renderPresu(); $("#arOverlay").hidden = true;
+  if(cfg.suc && !DEMO) nuevos.forEach((l,k) => { const f = {id:"F-"+cfg.suc.slice(0,3)+(cfg.pc||"")+"-"+(t.getTime()+k).toString(36), fecha:ymd(t), hora:hm(t), ts:t.getTime(),
+    sucursal:cfg.suc, cajero:por, cod:l.cod || "", nombre:l.nombre, cant:0, nada:false,
+    obs:`📚 Lista ${pr.id} · ${pr.cliente || ""} · faltan ${l.fa.q} · ${l.fa.e === "despues" ? "se entrega después" : "se reemplazó"}`};
+    faltantes.push(f); encolar("faltante", f.id); });
+  if(nuevos.length) guardar("faltantes", faltantes);
+  toast(pr.armado.ok ? "✅ Armado completo" : `⚠️ Armado con faltantes${nuevos.length ? ` · ${nuevos.length} anotado${nuevos.length > 1 ? "s" : ""} en 📝 Faltantes` : ""}. Al retirar se cobra lo entregado`, 6000);
+};
+$("#arOverlay").addEventListener("keydown", e => { e.stopPropagation(); if(e.key === "Escape"){ e.preventDefault(); $("#arOverlay").hidden = true; } });
+
+/* ---------- v3.78 · 📦 TOTAL A PREPARAR: suma por producto de las listas señadas sin entregar (todas las sucursales, script v3.61).
+   Sin armar: todo · armado con faltantes: solo lo "⏳ después" · armado completo: nada ---------- */
+let tpFilas = [];
+async function tpAbrir(){
+  $("#tpOverlay").hidden = false; $("#tpTabla").innerHTML = ""; $("#tpInfo").textContent = "🔎 Buscando las listas señadas…";
+  let ps = null, nota = "";
+  if(!DEMO && cfg.url){ try{ const r = await api("preparar", {_vis:1}); if(r && Array.isArray(r.presupuestos)) ps = r.presupuestos; else nota = "Falta publicar el script v3.61: se ven solo los de esta PC. "; }catch(e){ nota = "Sin conexión: se ven solo los de esta PC. "; } }
+  else nota = DEMO ? "Demo: solo los de esta PC. " : "";
+  const m = new Map(); presus.filter(x => x.sena && !x.vendido).forEach(x => m.set(x.id, x));
+  (ps || []).forEach(y => { const l = m.get(y.id); if(!l || (+l.mod || 0) < (+y.mod || 0)) m.set(y.id, y); });
+  const lst = [...m.values()].filter(x => !x.vendido && (x.sena || x.estado === "Señado")), g = new Map();
+  let sinArmar = 0, conFalt = 0;
+  lst.forEach(x => {
+    if(x.armado && x.armado.ok) return;
+    if(x.armado) conFalt++; else sinArmar++;
+    (x.items || []).forEach(l => { const u = x.armado ? (l.fa && l.fa.e === "despues" ? +l.fa.q || 0 : 0) : prUds(x, l); if(!(u > 0)) return;
+      const k = (l.libre || !l.cod || l.cod === "VAR" ? "n:" + norm(l.nombre) : "c:" + l.cod), o = g.get(k) || {nombre:l.nombre, cod:l.libre ? "" : l.cod || "", u:0, listas:new Set(), desp:0};
+      o.u += u; o.listas.add(x.id); if(x.armado) o.desp += u; g.set(k, o); });
+  });
+  tpFilas = [...g.values()].sort((a,b) => b.u - a.u || a.nombre.localeCompare(b.nombre));
+  $("#tpInfo").textContent = nota + (lst.length ? `${sinArmar} lista${sinArmar === 1 ? "" : "s"} señada${sinArmar === 1 ? "" : "s"} sin armar${conFalt ? ` · ${conFalt} armada${conFalt === 1 ? "" : "s"} con faltantes (cuenta solo lo ⏳ después)` : ""}.` : "No hay listas señadas pendientes.");
+  $("#tpTabla").innerHTML = tpFilas.length ? `<table><tr><th>Producto</th><th class="r">Unidades</th><th class="r">Listas</th></tr>${tpFilas.map(o => `<tr><td>${esc(o.nombre)}${o.cod ? ` <small class="note">${esc(o.cod)}</small>` : ""}${o.desp ? ` <small class="note">· ⏳ ${o.desp} de faltantes</small>` : ""}</td><td class="r u">${o.u}</td><td class="r">${o.listas.size}</td></tr>`).join("")}</table>` : "";
+}
+$("#prTP").onclick = tpAbrir;
+$("#tpClose").onclick = () => { $("#tpOverlay").hidden = true; };
+$("#tpPrint").onclick = () => { if(!tpFilas.length) return;
+  imprimir(`<style>@page{margin:12mm}tr{break-inside:avoid}body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:12px}h1{font-size:18px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:8px}th{text-align:left;font-size:10px;text-transform:uppercase;color:#555;border-bottom:1px solid #999;padding:4px}td{border-bottom:1px solid #ddd;padding:5px 4px}.r{text-align:right}.c{width:26px;text-align:center;font-size:16px}</style>
+    <h1>📦 Total a preparar · listas escolares</h1><div>${esc($("#tpInfo").textContent)} · ${new Date().toLocaleString("es-AR", {hourCycle:"h23"})}</div>
+    <table><tr><th class="c">✔</th><th>Producto</th><th class="r">Unidades</th><th class="r">Listas</th></tr>${tpFilas.map(o => `<tr><td class="c">☐</td><td>${esc(o.nombre)}${o.cod ? ` <small>(${esc(o.cod)})</small>` : ""}</td><td class="r"><b>${o.u}</b></td><td class="r">${o.listas.size}</td></tr>`).join("")}</table>`, "Total a preparar"); };
+$("#tpOverlay").addEventListener("keydown", e => { e.stopPropagation(); if(e.key === "Escape"){ e.preventDefault(); $("#tpOverlay").hidden = true; } });
+
 $("#prSena").onclick = () => {
   if(!prListo() || !prCompleto("señar")) return;
   if(cart.length){ toast("Terminá o poné en espera (F6) la venta en curso antes de cobrar la seña", 5000); return; }
@@ -3665,7 +3797,7 @@ $("#prNotaP").onclick = () => {
   const y = presus.find(z => z.id === pr.id); [pr, y].forEach(o => { if(o){ o.notaN = (o.notaN || 0) + 1; o.notaTs = ahora; } }); guardar("presus", presus);
   const fh = new Date(ahora).toLocaleString("es-AR", {day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit", hourCycle:"h23"});
   const filas = pr.items.map(l => `<tr><td class="ck">☐</td><td class="ck">☐</td><td class="q">${l.cant * N}${N > 1 ? `<small>${l.cant} × ${N}</small>` : ""}</td><td>${esc(l.nombre)}</td><td class="co">${VA_COLOR(l.nombre) ? "🎨 ver foto" : ""}</td></tr>`).join("");
-  imprimir(`<style>@page{size:A4;margin:12mm}.np{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#111;font-size:15px}
+  imprimir(`<style>@page{margin:12mm}.np tr{break-inside:avoid}.np{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#111;font-size:15px}
     .np-h{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:5px solid #111;padding-bottom:8px;margin-bottom:10px}
     .np-id{font-size:30px;font-weight:900;letter-spacing:.02em}.np-h small{display:block;font-size:13px;color:#444}
     .np-dat{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;font-size:16px;margin-bottom:10px}.np-dat b{font-size:19px}
@@ -3706,8 +3838,8 @@ function prAVenta(base, otros = []){
   if(mal){ guardar("presus", presus); showTab("presu"); prAbrir(mal); prListo(); return; }
   todas.forEach(x => {
     const pd = {efectivo: +x.descEfe || 0, transf: +x.descTra || 0};                         // v3.70: el % viaja con cada línea y se aplica al cobrar
-    cart.push(...x.items.map(l => ({cod:l.cod, nombre:l.nombre, cat:l.cat, cant:l.cant * (+x.n || 1), precio:Math.round(l.precio), open:false, presu:x.id, pd,
-      ...(l.combo ? {combo:l.combo} : {})})));
+    cart.push(...x.items.filter(l => prEntrega(x, l) > 0).map(l => ({cod:l.cod, nombre:l.nombre, cat:l.cat, cant:prEntrega(x, l), precio:Math.round(l.precio), open:false, presu:x.id, pd,
+      ...(l.combo ? {combo:l.combo} : {})})));                                               // v3.78: lo que falta no se cobra
     if(x.sena && x.sena.monto > 0) senas.push({cod:"SENA", nombre:`Seña ya pagada${x.sena.ts ? " el " + new Date(x.sena.ts).toLocaleDateString("es-AR", {day:"2-digit", month:"2-digit"}) : ""}${x.sena.medio ? " · " + (MEDIO_TXT[x.sena.medio] || x.sena.medio) : ""}${x.escuela || x.sala ? " (" + [x.escuela, x.sala].filter(Boolean).join(" ") + ")" : ""}`, cat:"SEÑA", cant:1, precio:-Math.round(x.sena.monto), open:false, presu:x.id});
     x.mod = Date.now();                                                                      // v3.73: vendido se marca al cobrar (prTrasVenta)
   });
@@ -4324,7 +4456,7 @@ function payload(op){
             escuela:x.escuela || "", sala:x.sala || "", n:+x.n || 1, nota:x.nota, plant:x.plant || "", grupo:x.grupo || "", lista:o[0].total, efe:t("efe"), tra:t("tra"),
             descEfe:x.descEfe, descTra:x.descTra, vence:x.vence || "", vendido:x.vendido || 0, items:x.items,
             estado:x.estado || "", retira:x.retira || "", sena:x.sena ? x.sena.monto : "", senaMedio:x.sena ? MEDIO_TXT[x.sena.medio] || x.sena.medio : "",
-            senaTs:x.sena ? x.sena.ts : "", senaVenta:x.sena ? x.sena.venta : ""}; }   // v3.66
+            senaTs:x.sena ? x.sena.ts : "", senaVenta:x.sena ? x.sena.venta : "", armado:x.armado || null}; }   // v3.66 · v3.78
   if(op.tipo==="plantilla"){ const p = plants.items.find(y => y.id === op.id); return p && {...p, tipo:"plantilla"}; }
   if(op.tipo==="faltanteEstado"){ const x=flEst[op.id]; return x && {tipo:"faltanteEstado", ids:op.id, estado:x.estado, sucursal:cfg.suc, quien:cfg.turno ? cfg.turno.cajero : ""}; }
   if(op.tipo==="ccModificar"){ const m=ccMods.find(x=>x.modId===op.id); return m && {...m, tipo:"ccModificar"}; }
