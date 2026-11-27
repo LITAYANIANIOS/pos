@@ -11,9 +11,11 @@
 <script>/* tema ☀️/🌙 elegido (compartido: panel, faltantes, proveedores) antes de pintar, para que no parpadee */try{const t=localStorage.getItem("dabox.tema")||localStorage.getItem("falt.tema");if(t==="claro"||t==="oscuro")document.documentElement.dataset.theme=t==="claro"?"light":"dark"}catch(e){}</script>
 <style>
 /* =====================================================================
-   PANEL · DA BOX                                                 v2.16.1
+   PANEL · DA BOX                                                 v2.17
    Para MIRAR números. Lo compartido está en comun/.
    Cada clave ve sus secciones: Encargado (todo), Dueño (ventas y meses), Compras (productos).
+   v2.17: 📚 LISTAS (encargado y compras · script v3.63): pedidos por día, en qué están (por presupuestar → entregadas), señas,
+          ✔ para controlar (ver productos, Controlado / Corregir con nota) y 📦 total a preparar. Sigue el filtro de sucursal.
    v2.16.1: pdf.js en comun/ (pdf.min.mjs, pdf.worker.min.mjs), donde quedó en el repo · si el PDF no se puede leer lo dice (antes decía "escaneado").
    v2.16: 💳 Cobros · 🏦 BANCO NACIÓN: se suelta el RESUMEN MENSUAL en PDF (o un .txt de "Movimientos históricos", con hora) junto con los demás.
           El PDF se lee en esta PC con pdf.js guardado en el repo (comun/pdf/, v4.10.38): no sale de la PC ni se carga nada de afuera.
@@ -93,6 +95,8 @@ svg.chart .hit:hover + .mk, svg.chart g.col:hover .mk{opacity:.8}
 .acc{white-space:nowrap;text-align:right}
 .acc .btn{margin-left:4px}
 .tile.alerta{border-color:var(--bad)} .tile.alerta b{color:var(--bad)}
+.li-l{display:grid} .li-r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:start;padding:10px 0;border-top:1px solid var(--line)} .li-r:first-child{border-top:0}   /* v2.17 */
+.li-b{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end} .li-n{font-size:13px;color:var(--warn);margin-top:3px} .li-n.bad{color:var(--bad)} .li-ver{margin-top:8px} .li-e .barra{grid-template-columns:175px minmax(0,1fr) 44px}
 tr.sb-abierto td{background:var(--surface-2)}
 .sbf{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;padding:6px 0 4px}
 .sbf label{display:grid;gap:4px;font-size:12px;color:var(--muted);font-weight:500}
@@ -186,6 +190,7 @@ iframe.embebido{width:100%;height:calc(100vh - 120px);min-height:520px;border:0;
   <section id="s-precios" hidden></section>
   <section id="s-falt" hidden></section>
   <section id="s-prov" hidden></section>
+  <section id="s-listas" hidden></section>
 </main>
 </div>
 
@@ -198,7 +203,7 @@ const {$, esc, money, millones, pct, pad, ymd, fechaAR, norm, hace, leerLS, guar
 /* =====================================================================
    1. CONFIGURACIÓN
    ===================================================================== */
-const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], sobres:["💰","Sobres"], cobros:["💳","Cobros"], control:["🔍","Control"], productos:["📦","Productos"], precios:["🏷️","Precios"], falt:["📝","Faltantes"], prov:["💲","Proveedores"]};
+const SECCIONES = {vivo:["🟢","En vivo"], ventas:["📈","Ventas"], mensual:["📅","Meses"], cierres:["💵","Cierres"], sobres:["💰","Sobres"], cobros:["💳","Cobros"], control:["🔍","Control"], productos:["📦","Productos"], precios:["🏷️","Precios"], falt:["📝","Faltantes"], prov:["💲","Proveedores"], listas:["📚","Listas"]};
 const ROLES = {admin:"Encargado", dueno:"Dueño", compras:"Compras"};
 const CON_COMPRAS = ["admin","compras"];                    // roles que ven el link al tablero de compras
 const PERIODOS = [[1,"Hoy"],[7,"7 días"],[30,"30 días"],[90,"90 días"],[365,"1 año"]];
@@ -227,6 +232,7 @@ async function actualizar(){
 function armarNav(){
   const secs = D.secciones.filter(s => SECCIONES[s]);
   if(["admin","dueno"].includes(D.rol) && !secs.includes("precios")) secs.push("precios");   // cambiar precios: la planilla vuelve a pedir la clave en cada cambio
+  if(CON_COMPRAS.includes(D.rol)) secs.push("listas");                                      // v2.17: 📚 Listas (Roman y Joa)
   if(CON_COMPRAS.includes(D.rol)) secs.push("prov");                                        // v2.13: 📝 Faltantes se abre en otra pestaña (botón en la barra)                                  // se abren acá adentro con la misma clave (faltantes.html y proveedores.html)
   if(D.rol === "compras"){ secs.sort((a, b) => (a === "productos") - (b === "productos")); if(!tab) tab = "prov"; }   // Joa arranca en Faltantes
   if(!secs.includes(tab)) tab = secs[0];
@@ -241,7 +247,7 @@ $("#s-vivo").addEventListener("click", e => { if(e.target.id === "vIrCierres"){ 
 function renderFiltros(){
   $("#fDias").innerHTML = PERIODOS.map(([d,l]) => `<button data-d="${d}" aria-pressed="${!rango && d===dias}">${l}</button>`).join("") + `<button data-d="r" aria-pressed="${!!rango}" title="Elegir fechas">📅 ${rango ? enPer().slice(4) : "Fechas"}</button>`;
   $("#fSuc").innerHTML = ["TODAS", ...SUCS].map(s => `<button data-s="${s}" aria-pressed="${s===suc}">${s==="TODAS" ? "Todas" : `<i class="dot" style="background:${SUC_COLOR[s]}"></i>${sucNom(s)}`}</button>`).join("");
-  $("#fDias").hidden = ["vivo","mensual","cobros","sobres","precios","falt","prov"].includes(tab); if($("#fDias").hidden) $("#fRango").hidden = true;         // esas secciones no dependen del período
+  $("#fDias").hidden = ["vivo","mensual","cobros","sobres","precios","falt","prov","listas"].includes(tab); if($("#fDias").hidden) $("#fRango").hidden = true;         // esas secciones no dependen del período
   $("#fSuc").hidden = tab === "vivo" || tab === "precios";
   document.querySelector("main > .filtros").hidden = ["precios","falt","prov"].includes(tab);
 }
@@ -252,7 +258,7 @@ $("#rOk").onclick = () => { const d = $("#rD").value, h = $("#rH").value;
   if(!d || !h || d > h) return LA.toast("Elegí Desde y Hasta (Desde antes que Hasta)");
   rango = [d, h]; $("#fRango").hidden = true; actualizar(); };
 $("#fSuc").addEventListener("click", e => { const b = e.target.closest("button"); if(!b) return; suc = b.dataset.s; render(); });
-$("#bAct").onclick = actualizar;
+$("#bAct").onclick = () => { if(tab === "listas") LI = null; actualizar(); };
 $("#bSalir").onclick = () => LA.salir();
 /* v2.10 · ☀️/🌙: una sola elección por PC (la comparten faltantes y proveedores, incluso adentro del panel) */
 const esOscuro = () => { const t = document.documentElement.dataset.theme; return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
@@ -270,7 +276,92 @@ function render(){
   Object.keys(SECCIONES).forEach(s => $("#s-"+s).hidden = s !== tab);
   $("#titulo").innerHTML = `<i class="emo">${SECCIONES[tab][0]}</i>${SECCIONES[tab][1]}`;
   $("#sAct").textContent = "Actualizado " + new Date(D.generado).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
-  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, sobres:rSobres, cobros:rCobros, control:rControl, productos:rProductos, precios:rPrecios, falt:() => rEmbebido("falt"), prov:() => rEmbebido("prov")})[tab]();
+  ({vivo:rVivo, ventas:rVentas, mensual:rMensual, cierres:rCierres, sobres:rSobres, cobros:rCobros, control:rControl, productos:rProductos, precios:rPrecios, listas:rListas, falt:() => rEmbebido("falt"), prov:() => rEmbebido("prov")})[tab]();
+}
+/* =====================================================================
+   v2.17 · 📚 LISTAS — presupuestos de listas escolares (script v3.63, accion=listas). Encargado y compras. Sin costos.
+   ===================================================================== */
+let LI = null, liCargando = false, liVer = null;
+const LI_ETAPAS = [["ped","📥 Por presupuestar","Llegó el pedido, todavía sin productos"],["sin","📝 Sin enviar","Presupuesto armado, no se mandó el D por WhatsApp"],
+  ["esp","⏳ Esperan seña","Se mandó el presupuesto"],["sen","💰 Señadas sin armar",""],["arm","📦 Armadas sin retirar",""],["ent","✅ Entregadas",""],["no","❌ No aceptó",""]];
+function liEtapa(x){
+  if(x.estado === "No aceptó") return "no";
+  if(x.vendido || x.estado === "Entregado") return "ent";
+  if(x.estado === "Señado") return x.armado ? "arm" : "sen";
+  if(!x.ni) return "ped";
+  return (x.avisos || []).some(a => a.t === "D") ? "esp" : "sin";
+}
+const liCtrlPend = x => x.ni && ["sin","esp"].includes(liEtapa(x)) && (!x.ctrl || !x.ctrl.ok || x.mod > x.ctrl.ts + 60000);
+async function liCargar(){
+  liCargando = true;
+  try{ LI = LA.demo ? liDemo() : await LA.api("listas"); }
+  catch(e){ if(e === "clave"){ LA.salir(LA.ERR.clave); return; }
+    $("#s-listas").innerHTML = `<div class="card empty">No se pudo cargar. ${esc(LA.ERR[e] || "")} ${/desconocida|clave/.test(String(e)) ? "¿Ya se publicó el script v3.63?" : ""}</div>`; return; }
+  finally{ liCargando = false; }
+  if(tab === "listas") rListas();
+}
+function rListas(){
+  const S = $("#s-listas");
+  if(!LI || Date.now() - LI.generado > REFRESCO_MIN*60000){ if(!LI) S.innerHTML = `<div class="card empty">Cargando listas…</div>`; if(!liCargando) liCargar(); if(!LI) return; }
+  const P = (LI.presupuestos || []).filter(x => deSuc(x.suc)), hoy = ymd(new Date()), h7 = Date.now() - 7*864e5;
+  const et = {}; LI_ETAPAS.forEach(([k]) => et[k] = []); P.forEach(x => et[liEtapa(x)].push(x));
+  const pedHoy = P.filter(x => ymd(new Date(x.creado)) === hoy).length, ped7 = P.filter(x => x.creado >= h7).length;
+  const proc = ["ped","sin","esp","sen","arm"].reduce((a,k) => a + et[k].length, 0);
+  const senas = P.filter(x => x.sena), totSena = senas.reduce((a,x) => a + (+x.sena.monto || 0), 0);
+  const ctrl = P.filter(liCtrlPend).sort((a,b) => a.creado - b.creado);
+  const porDia = {}; P.forEach(x => { const f = ymd(new Date(x.creado)); porDia[f] = (porDia[f] || 0) + 1; });
+  const dias30 = []; for(let d = new Date(Date.now() - 29*864e5); dias30.length < 30; d.setDate(d.getDate()+1)) dias30.push(ymd(d));
+  const maxE = Math.max(1, ...LI_ETAPAS.map(([k]) => et[k].length));
+  const fila = x => `${esc(x.id)} · <b>${esc(x.cliente || "Sin nombre")}</b> <span class="note">${esc([x.escuela, x.sala].filter(Boolean).join(" "))}${x.n > 1 ? " ×" + x.n : ""} · ${x.ni} productos · ${money(x.lista)} · ${esc(x.cajero || "")} ${esc(sucNom(x.suc))}, ${hace(x.creado)}</span>`;
+  const ver = x => liVer !== x.id ? "" : `<div class="li-ver"><table class="t-t"><tr><th>Producto</th><th class="r">Cant.</th><th class="r">Precio</th></tr>${(x.items || []).map(l =>
+      `<tr><td>${l.libre ? "✏️ " : ""}${esc(l.nombre)}</td><td class="r">${l.cant}</td><td class="r">${money(l.precio)}</td></tr>`).join("")}</table></div>`;
+  const prep = {}; P.filter(x => x.estado === "Señado" && !x.vendido).forEach(x => (x.items || []).forEach(l => {
+      const q = x.armado ? (l.fa && l.fa.e === "despues" ? +l.fa.q || 0 : 0) : (+l.cant || 0) * (x.n || 1); if(!q) return;
+      const k = l.cod + "|" + l.nombre; (prep[k] = prep[k] || {n: l.nombre, q: 0, l: 0}).q += q; prep[k].l++; }));
+  const prepL = Object.values(prep).sort((a,b) => b.q - a.q);
+  S.innerHTML = `<div class="grid">
+    <div class="tiles">
+      <div class="tile"><span>Pedidos hoy</span><b>${pedHoy}</b><small>${ped7} en 7 días · ${P.length} en total</small></div>
+      <div class="tile"><span>En proceso</span><b>${proc}</b><small>sin entregar</small></div>
+      <div class="tile"><span>Señas cobradas</span><b>${millones(totSena)}</b><small>${senas.length} listas · ${money(totSena)}</small></div>
+      <div class="tile${ctrl.length ? " alerta" : ""}"><span>Para controlar</span><b>${ctrl.length}</b><small>presupuestos sin revisar</small></div>
+    </div>
+    <div class="card"><h3>Pedidos por día</h3><p class="note">Presupuestos nuevos de cada día (últimos 30)${suc!=="TODAS" ? " en "+sucNom(suc) : ", todas las sucursales"}. Cuenta desde que se carga nombre y teléfono.</p>${chartDias(porDia, v => Math.round(v), v => v + " pedido" + (v === 1 ? "" : "s"), dias30)}</div>
+    <div class="g2">
+      <div class="card"><h3>En qué están</h3><p class="note">Cada presupuesto en un solo lugar.</p><div class="barras li-e">${LI_ETAPAS.map(([k,l,t]) =>
+        `<div class="barra" data-tip="${esc(t || l)}"><span class="lab">${l}</span><span class="pista"><i style="width:${et[k].length/maxE*100}%"></i></span><span class="val">${et[k].length}</span></div>`).join("")}</div></div>
+      <div class="card"><h3>📦 Total a preparar</h3><p class="note">Listas señadas sin entregar: sin armar = todo; armadas = solo lo ⏳ que falta.</p>${prepL.length
+        ? `<div class="tw"><table class="t-t"><tr><th>Producto</th><th class="r">Cant.</th><th class="r">Listas</th></tr>${prepL.map(p => `<tr><td>${esc(p.n)}</td><td class="r"><b>${p.q}</b></td><td class="r">${p.l}</td></tr>`).join("")}</table></div>`
+        : `<p class="empty">No hay listas señadas para preparar.</p>`}</div>
+    </div>
+    <div class="card"><h3>✔ Para controlar</h3><p class="note">Presupuestos armados que todavía no mandaron o esperan seña, sin controlar (o que cambiaron después). No traba nada: quien arma puede mandarlo igual.</p>
+      ${ctrl.length ? `<div class="li-l">${ctrl.map(x => `<div class="li-r" data-id="${esc(x.id)}"><div>${fila(x)}
+        ${x.nota ? `<div class="li-n">📝 ${esc(x.nota)}</div>` : ""}${x.libres ? `<div class="li-n">✏️ ${x.libres} ítem${x.libres > 1 ? "s" : ""} libre${x.libres > 1 ? "s" : ""}</div>` : ""}
+        ${x.ctrl && !x.ctrl.ok ? `<div class="li-n bad">✏️ A corregir: ${esc(x.ctrl.msg || "")}</div>` : x.ctrl ? `<div class="li-n">Cambió después del control</div>` : ""}${ver(x)}</div>
+        <div class="li-b"><button class="btn sm" data-a="ver">${liVer === x.id ? "Ocultar" : "Ver"}</button><button class="btn sm" data-a="mal">✏️ Corregir</button><button class="btn sm primary" data-a="ok">✔ Controlado</button></div></div>`).join("")}</div>`
+        : `<p class="empty">🎉 Nada para controlar.</p>`}</div>
+  </div>`;
+}
+$("#s-listas").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-a]"); if(!b) return; const r = b.closest(".li-r"), x = LI && LI.presupuestos.find(p => p.id === r.dataset.id); if(!x) return;
+  if(b.dataset.a === "ver"){ liVer = liVer === x.id ? null : x.id; rListas(); return; }
+  let msg = "";
+  if(b.dataset.a === "mal"){ msg = prompt("¿Qué hay que corregir? (lo ve quien armó el presupuesto, acá en el panel)", x.ctrl && x.ctrl.msg || ""); if(msg == null) return; msg = msg.trim(); if(!msg) return; }
+  b.disabled = true;
+  try{ const res = LA.demo ? {ctrl: {ok: b.dataset.a === "ok" ? 1 : 0, ts: Date.now(), por: "Encargado", msg}} : await LA.api("listas-ctrl", {id: x.id, ok: b.dataset.a === "ok" ? 1 : 0, msg, _sinReintento: 1});
+    if(res && res.error) throw res.error; x.ctrl = res.ctrl; LA.toast(b.dataset.a === "ok" ? "✔ Controlado" : "✏️ Anotado para corregir"); rListas(); }
+  catch(err){ b.disabled = false; LA.toast(typeof err === "string" ? err : "No se pudo guardar. Probá de nuevo."); }
+});
+function liDemo(){
+  const now = Date.now(), d = n => now - n*864e5, it = (n,c,p,o) => Object.assign({cod: "C" + n.length, nombre: n, cant: c, precio: p}, o || {});
+  const base = [["Ana Pérez","EP 5","2do"],["Laura Gómez","Jardín 901","Sala de 4"],["Marcos Díaz","San José","1ro"],["Sofía Ruiz","EP 12","3ro"],["Carla Sosa","Jardín 905","Sala de 5"]];
+  const P = []; for(let i = 0; i < 46; i++){ const b = base[i % 5], dd = (i * 7) % 29 + (i % 3) * .3;
+    const e = i % 9, its = e === 0 ? [] : [it("Cuaderno Rivadavia ABC 50h",2,6900), it("Plasticola 40g",1,1300), it("Lápiz grafito HB",3,750, i % 4 ? {} : {fa: {e: "despues", q: 1}}), ...(i % 5 ? [] : [it("Carpeta N°3 forrada",1,4500,{libre: 1})])];
+    P.push({id: "P-demo" + (100 + i), creado: d(dd), mod: d(dd), suc: ["FALCON","FALCON","NACION","MORENO","SOMISA"][i % 5], cajero: i % 2 ? "Joa" : "Ana", cliente: b[0], escuela: b[1], sala: b[2], n: i % 7 ? 1 : 2,
+      nota: i % 6 ? "" : "Los afiches no, ya los tengo", lista: its.reduce((a,l) => a + l.cant*l.precio, 0), items: its, ni: its.length, libres: its.filter(l => l.libre).length,
+      estado: e < 3 ? "" : e < 6 ? "Señado" : e < 8 ? "Entregado" : "No aceptó", vendido: e >= 6 && e < 8 ? 1 : 0, armado: e === 5 ? {ts: now, por: "Ana"} : null,
+      avisos: e === 2 ? [{t: "D", ts: now}] : [], sena: e >= 3 && e < 8 ? {monto: 10000} : null, ctrl: e === 2 && i % 2 ? {ok: 1, ts: now + 1e6} : null}); }
+  return {generado: now, presupuestos: P};
 }
 /* 📝 💲 adentro del panel: la página se carga una sola vez (no se pierde lo escrito al cambiar de sección) y usa la clave del panel */
 function rEmbebido(s){
@@ -356,16 +447,16 @@ function barras(items, total, html){
   return `<div class="barras">${items.map(([l,v,c]) => `<div class="barra" data-tip="${esc(html ? "" : l)} ${money(v)} · ${pct(v,total)}"><span class="lab">${html ? l : esc(l)}</span>
     <span class="pista"><i style="width:${v/max*100}%;${c ? "background:"+c : ""}"></i></span><span class="val">${millones(v)}<small>${pct(v,total)}</small></span></div>`).join("")}</div>`;
 }
-function chartDias(porDia){
+function chartDias(porDia, fmt = millones, tipFmt = money, lista0 = null){   // v2.17: también cuenta (listas)
   const desde = D.r ? new Date(D.r[0] + "T12:00") : (d => (d.setHours(12,0,0,0), d.setDate(d.getDate() - dias + 1), d))(new Date()), fin = D.r ? D.r[1] : ymd(new Date());
-  const lista = []; for(let d = new Date(desde); ymd(d) <= fin; d.setDate(d.getDate()+1)) lista.push(ymd(d));
+  const lista = lista0 || []; if(!lista0) for(let d = new Date(desde); ymd(d) <= fin; d.setDate(d.getDate()+1)) lista.push(ymd(d));
   const W = 900, H = 200, PL = 56, PB = 22, max = Math.max(...lista.map(f => porDia[f] || 0), 1), paso = (W - PL) / lista.length, bw = Math.max(1.5, paso - 2);
   const y = v => H - PB - v / max * (H - PB - 8);
-  const grid = [0, .5, 1].map(p => `<line class="grid-l" x1="${PL}" x2="${W}" y1="${y(max*p)}" y2="${y(max*p)}"/><text x="${PL-8}" y="${y(max*p)+4}" text-anchor="end">${millones(max*p)}</text>`).join("");
+  const grid = [0, .5, 1].map(p => `<line class="grid-l" x1="${PL}" x2="${W}" y1="${y(max*p)}" y2="${y(max*p)}"/><text x="${PL-8}" y="${y(max*p)+4}" text-anchor="end">${fmt(max*p)}</text>`).join("");
   const cada = Math.ceil(lista.length / 10);
   const cols = lista.map((f,i) => {
     const v = porDia[f] || 0, x = PL + i*paso + 1, d = new Date(f+"T12:00");
-    const t = `<b>${DIAS_SEM[d.getDay()||7]} ${fechaAR(f)}</b><br>${money(v)}`;
+    const t = `<b>${DIAS_SEM[d.getDay()||7]} ${fechaAR(f)}</b><br>${tipFmt(v)}`;
     return `<g class="col" data-tip="${esc(t)}"><rect class="hit" x="${x-1}" y="0" width="${paso}" height="${H-PB}"/>${v ? `<rect class="mk" x="${x}" y="${y(v)}" width="${bw}" height="${H-PB-y(v)}" rx="${Math.min(3,bw/2)}" fill="var(--seq)"/>` : ""}
       ${i % cada === 0 ? `<text x="${x+bw/2}" y="${H-6}" text-anchor="middle">${f.slice(8)}/${f.slice(5,7)}</text>` : ""}</g>`;
   }).join("");
